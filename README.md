@@ -18,3 +18,7 @@
 - :gear: **Engine / Core**: Rust (`gpui`)
 - :yellow_heart: **JS Runtime**: QuickJS (`rquickjs`)
 - :desktop_computer: **Frontend**: Vue 3 / Custom Renderer + Vite
+
+## :scroll: License
+
+Dual-licensed under [MIT](./LICENSE-MIT) or [Apache 2.0](./LICENSE-APACHE).
