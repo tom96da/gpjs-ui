@@ -1,0 +1,8 @@
+[submodule "third_party/zed"]
+	path = third_party/zed
+	url = https://github.com/zed-industries/zed.git
+	shallow = true
+[submodule "third_party/rquickjs"]
+	path = third_party/rquickjs
+	url = https://github.com/DelSkayn/rquickjs.git
+	shallow = true
