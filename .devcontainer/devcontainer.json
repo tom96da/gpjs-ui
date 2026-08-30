@@ -39,7 +39,11 @@
       "extensions": [
         // Common extensions.
         "editorconfig.editorconfig",
-        "timonwong.shellcheck"
+        "timonwong.shellcheck",
+
+        // Git extensions.
+        "mhutchie.git-graph",
+        "eamodio.gitlens"
       ]
     }
   }
