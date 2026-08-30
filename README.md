@@ -17,7 +17,8 @@
 
 - :gear: **Engine / Core**: Rust (`gpui`)
 - :yellow_heart: **JS Runtime**: QuickJS (`rquickjs`)
-- :desktop_computer: **Frontend**: Vue 3 / Custom Renderer + Vite
+- :desktop_computer: **Frontend**: Vue 3 / Custom Renderer
+- :package: **Bundler**: Vite, in library/build mode (not a browser dev server) — see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
 
 ## :scroll: License
 

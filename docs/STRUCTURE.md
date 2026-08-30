@@ -1,6 +1,6 @@
 <!--
 Copyright (c) 2026 tom96da
-SPDX-License-Identifier: Apache-2.0 OR MIT
+SPDX-License-Identifier: MIT OR Apache-2.0
 -->
 
 # Repository structure
@@ -15,7 +15,10 @@ gpjs-ui/
 ├── AGENTS.md                # agent instructions entry point — read this first
 ├── CLAUDE.md                # Claude Code entry point; just `@AGENTS.md`
 ├── docs/
-│   └── STRUCTURE.md         # this file
+│   ├── STRUCTURE.md         # this file
+│   ├── ARCHITECTURE.md      # target tech stack, system diagram, HMR delivery design
+│   ├── ROADMAP.md           # planned phased implementation (Vue 3 first, React later)
+│   └── FFI.md               # JS↔Rust host bridge function surface (spec, not yet implemented)
 ├── .devcontainer/
 │   └── devcontainer.json    # Rust devcontainer image, with the `node` and `claude-code` features
 ├── .github/
@@ -23,12 +26,36 @@ gpjs-ui/
 └── third_party/             # pinned upstream sources, as git submodules — see below
     ├── zed/                 # zed-industries/zed @ v1.17.2
     └── rquickjs/            # DelSkayn/rquickjs @ v0.12.2
-    └── sys/quickjs/         # nested submodule: quickjs-ng @ the commit rquickjs v0.12.2 pins
+        └── sys/quickjs/     # nested submodule: quickjs-ng @ the commit rquickjs v0.12.2 pins
 ```
 
 ## Status
 
 This repository is at the bootstrap stage: there is no Rust crate or frontend package yet, so no `Cargo.toml`, `Cargo.lock`, `package.json`, or build/lint/test commands exist. Update this file (directory layout) and [AGENTS.md](../AGENTS.md) (commands, conventions) as the real Rust workspace and frontend package land — do not let either go stale.
+
+## Planned workspace layout (not yet scaffolded)
+
+Once the Rust workspace and frontend packages are scaffolded (see
+[docs/ROADMAP.md](./ROADMAP.md)), the layout is planned to be:
+
+```
+gpjs-ui/
+├── Cargo.toml
+├── crates/
+│   ├── gpjsui-core/         # GPUI host, retained tree, QuickJS host bridge (Phase 1)
+│   ├── gpjsui-cli/          # `cargo gpjsui` dev/build CLI, manages the Vite process (Phase 3)
+│   └── gpjsui-macros/       # host bridge binding helper macros
+├── packages/
+│   ├── gpjsui-vue/          # Vue 3 custom renderer (Phase 2)
+│   ├── gpjsui-runtime/      # QuickJS-side Vite Runtime API integration for HMR (Phase 3)
+│   └── gpjsui-react/        # React custom renderer — future, not started (Phase 4)
+└── examples/
+    └── hello-vue/           # sample Vue 3 app
+```
+
+This is a plan, not current structure — update this section (or replace it
+with the real layout) as each crate/package actually lands, per
+[docs/ROADMAP.md](./ROADMAP.md).
 
 ## `third_party/` — pinned upstream sources
 
