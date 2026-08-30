@@ -17,7 +17,7 @@ gpjs-ui/
 ├── docs/
 │   └── STRUCTURE.md         # this file
 ├── .devcontainer/
-│   └── devcontainer.json    # Rust devcontainer image, with the `node` features
+│   └── devcontainer.json    # Rust devcontainer image, with the `node` and `claude-code` features
 ├── .github/
 │   └── dependabot.yml       # auto-updates the devcontainer image/features only, for now
 └── third_party/             # pinned upstream sources, as git submodules — see below
