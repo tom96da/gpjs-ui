@@ -9,17 +9,21 @@ A map of this repository for AI agents. Read [AGENTS.md](../AGENTS.md) first —
 
 ```
 gpjs-ui/
-├── README.md              # public-facing project pitch (features, tech stack, license)
+├── README.md                # public-facing project pitch (features, tech stack, license)
 ├── LICENSE-MIT
-├── LICENSE-APACHE         # dual-licensed MIT OR Apache-2.0
-├── AGENTS.md               # agent instructions entry point — read this first
-├── CLAUDE.md               # Claude Code entry point; just `@AGENTS.md`
+├── LICENSE-APACHE           # dual-licensed MIT OR Apache-2.0
+├── AGENTS.md                # agent instructions entry point — read this first
+├── CLAUDE.md                # Claude Code entry point; just `@AGENTS.md`
 ├── docs/
-│   └── STRUCTURE.md        # this file
-└── third_party/            # pinned upstream sources, as git submodules — see below
+│   └── STRUCTURE.md         # this file
+├── .devcontainer/
+│   └── devcontainer.json    # Rust devcontainer image, with the `node` features
+├── .github/
+│   └── dependabot.yml       # auto-updates the devcontainer image/features only, for now
+└── third_party/             # pinned upstream sources, as git submodules — see below
     ├── zed/                 # zed-industries/zed @ v1.17.2
     └── rquickjs/            # DelSkayn/rquickjs @ v0.12.2
-        └── sys/quickjs/      # nested submodule: quickjs-ng @ the commit rquickjs v0.12.2 pins
+    └── sys/quickjs/         # nested submodule: quickjs-ng @ the commit rquickjs v0.12.2 pins
 ```
 
 ## Status

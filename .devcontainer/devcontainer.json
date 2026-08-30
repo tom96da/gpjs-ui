@@ -1,0 +1,44 @@
+/*
+ * Copyright (c) 2026 tom96da
+ * SPDX-License-Identifier: MIT OR Apache-2.0
+ */
+
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/rust
+{
+  "name": "GPJSUI",
+  // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+  "image": "mcr.microsoft.com/devcontainers/rust:2-1-trixie",
+
+  // Use 'mounts' to make the cargo cache persistent in a Docker Volume.
+  "mounts": [
+    "source=devcontainer-cargo-cache-${devcontainerId},target=/usr/local/cargo,type=volume",
+    "source=devcontainer-pnpm-store-${devcontainerId},target=/home/vscode/.local/share/pnpm/store,type=volume"
+  ],
+
+  // Features to add to the dev container. More info: https://containers.dev/features.
+  "features": {
+    "ghcr.io/devcontainers/features/node:2": {
+        "version": "26",
+        "pnpmVersion": "12"
+    }
+  },
+
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // "forwardPorts": [],
+
+  // Use 'postCreateCommand' to run commands after the container is created.
+  // "postCreateCommand": "rustc --version",
+
+  // Configure tool-specific properties.
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "editorconfig.editorconfig"
+      ]
+    }
+  }
+
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  // "remoteUser": "root"
+}

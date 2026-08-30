@@ -32,6 +32,7 @@ See [docs/STRUCTURE.md](./docs/STRUCTURE.md) for the full directory map, includi
   Copyright (c) <year> tom96da
   SPDX-License-Identifier: MIT OR Apache-2.0
   ```
+- **Dev container**: the project targets `mcr.microsoft.com/devcontainers/rust:2-1-trixie` with the `node` devcontainer feature. Use `pnpm` for any JS/frontend tooling — Vite's officially supported and tested runtime is Node.js, and this project's HMR bridge builds directly on Vite's less battle-tested Runtime API (`vite/module-runner`), so avoid introducing a second, less-proven runtime (e.g. Bun) there.
 - **Commit messages**: this repo follows [Conventional Commits](https://www.conventionalcommits.org/):
   ```
   <type>[optional scope]: <description>
