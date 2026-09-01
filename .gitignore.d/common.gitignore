@@ -1,0 +1,14 @@
+# common.gitignore
+
+# Logs
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+tmp/
+temp/
+*.tmp
