@@ -20,7 +20,7 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
 
 ### Prerequisites
 
-- [ ] Add native build dependencies for `gpui` to the devcontainer
+- [x] Add native build dependencies for `gpui` to the devcontainer
 
 ### Rust workspace
 

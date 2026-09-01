@@ -20,7 +20,9 @@ gpjs-ui/
 │   ├── ROADMAP.md           # planned phased implementation (Vue 3 first, React later)
 │   └── FFI.md               # JS↔Rust host bridge function surface (spec, not yet implemented)
 ├── .devcontainer/
-│   └── devcontainer.json    # Rust devcontainer image, with the `node` and `claude-code` features
+│   ├── devcontainer.json    # builds from ./Dockerfile, adds the `node` and `claude-code` features
+│   ├── Dockerfile           # extends the Rust devcontainer image with gpui's native build deps
+│   └── post-create.sh       # post-create ownership fixes (non-image-layer setup only)
 ├── .github/
 │   └── dependabot.yml       # auto-updates the devcontainer image/features only, for now
 └── third_party/             # pinned upstream sources, as git submodules — see below

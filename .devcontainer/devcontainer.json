@@ -7,8 +7,11 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/rust
 {
   "name": "GPJSUI",
-  // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-  "image": "mcr.microsoft.com/devcontainers/rust:2-1-trixie",
+  // Extends the base rust devcontainer image with gpui's native build deps
+  // (see .devcontainer/Dockerfile). More info: https://containers.dev/guide/dockerfile
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
 
   // Use 'mounts' to make the cargo cache persistent in a Docker Volume.
   "mounts": [
