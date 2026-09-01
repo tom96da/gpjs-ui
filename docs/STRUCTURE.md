@@ -18,7 +18,9 @@ gpjs-ui/
 │   ├── STRUCTURE.md         # this file
 │   ├── ARCHITECTURE.md      # target tech stack, system diagram, HMR delivery design
 │   ├── ROADMAP.md           # planned phased implementation (Vue 3 first, React later)
-│   └── FFI.md               # JS↔Rust host bridge function surface (spec, not yet implemented)
+│   ├── FFI.md               # JS↔Rust host bridge function surface (spec, not yet implemented)
+│   ├── PLAN.md              # checkbox-tracked, per-phase task breakdown of ROADMAP.md
+│   └── GIT.md               # commit message format and the commit-review policy
 ├── .devcontainer/
 │   ├── devcontainer.json    # builds from ./Dockerfile, adds the `node` and `claude-code` features
 │   ├── Dockerfile           # extends the Rust devcontainer image with gpui's native build deps

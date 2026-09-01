@@ -46,18 +46,5 @@ See [docs/STRUCTURE.md](./docs/STRUCTURE.md) for the full directory map, includi
   SPDX-License-Identifier: MIT OR Apache-2.0
   ```
 - **Dev container**: `.devcontainer/Dockerfile` builds on `mcr.microsoft.com/devcontainers/rust:2-1-trixie`, adding the native build/runtime dependencies `gpui` needs (windowing, Vulkan, fontconfig — see the Dockerfile's comment), plus the `node` devcontainer feature. Use `pnpm` for any JS/frontend tooling — Vite's officially supported and tested runtime is Node.js, and this project's HMR bridge builds directly on Vite's less battle-tested Runtime API (`vite/module-runner`), so avoid introducing a second, less-proven runtime (e.g. Bun) there.
-- **Commit messages**: this repo follows [Conventional Commits](https://www.conventionalcommits.org/):
-  ```
-  <type>[optional scope]: <description>
-
-  [optional body]
-
-  [optional footer(s)]
-  ```
-  - `type` is one of `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
-  - `description` is imperative, lower-case, no trailing period (e.g. `feat(runtime): add quickjs bridge`).
-  - `body` is a concise bullet list of what was done and why — not prose.
-  - A breaking change is marked either with `!` after the type/scope (`feat!: ...`) or a `BREAKING CHANGE:` footer — not both unless it aids clarity.
-  - Scope is optional; use it for the affected area once the workspace has named crates/packages (e.g. `fix(gpui-shell): ...`).
-  - Any commit Claude is involved in must include a `Co-Authored-By: Claude <noreply@anthropic.com>` trailer (adjust the model name if relevant, e.g. `Claude Sonnet 5`).
+- **Git & commits**: see [docs/GIT.md](./docs/GIT.md) for the commit message format and, most importantly, the review policy — never run `git commit`/`git commit --amend` without first showing the exact diff and message for explicit approval.
 - Keep this file (not just README.md) up to date as real architecture, module boundaries, and commands land — this is the file agents read first.
