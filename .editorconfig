@@ -13,8 +13,13 @@ charset = utf-8
 trim_trailing_whitespace = true
 insert_final_newline = true
 
-[*.json]
+[*.{json,yaml,yml}]
 indent_style = space
+indent_size = 2
+
+[*.md]
+# Markdown uses a trailing double-space for a hard line break.
+trim_trailing_whitespace = false
 indent_size = 2
 
 [*.sh]
