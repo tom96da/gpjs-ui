@@ -1,0 +1,15 @@
+{
+  "name": "@gpjs-ui/vue",
+  "version": "0.0.0-0",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tom96da/gpjs-ui.git",
+    "directory": "packages/vue"
+  },
+  "license": "(MIT OR Apache-2.0)",
+  "type": "module",
+  "dependencies": {
+    "@vue/runtime-core": "^3.5.42"
+  }
+}

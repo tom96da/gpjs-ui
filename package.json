@@ -1,0 +1,21 @@
+{
+  "name": "@gpjs-ui/monorepo",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tom96da/gpjs-ui.git"
+  },
+  "license": "(MIT OR Apache-2.0)",
+  "type": "module",
+  "engines": {
+    "node": ">=26"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.1.0",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.1.0"
+}
