@@ -13,6 +13,7 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 readme = "README.md"
+keywords.workspace = true
 publish = false
 
 [lib]

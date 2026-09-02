@@ -8,6 +8,14 @@
     "directory": "packages/vue"
   },
   "license": "(MIT OR Apache-2.0)",
+  "keywords": [
+    "vue",
+    "vue3",
+    "custom-renderer",
+    "gpjs-ui",
+    "desktop-app",
+    "gui"
+  ],
   "type": "module",
   "dependencies": {
     "@vue/runtime-core": "^3.5.42"

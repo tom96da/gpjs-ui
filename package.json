@@ -6,6 +6,19 @@
     "url": "git+https://github.com/tom96da/gpjs-ui.git"
   },
   "license": "(MIT OR Apache-2.0)",
+  "keywords": [
+    "gpui",
+    "quickjs",
+    "desktop-app",
+    "gui",
+    "webview-free",
+    "rust",
+    "vue",
+    "vite",
+    "cross-platform",
+    "electron-alternative",
+    "tauri-alternative"
+  ],
   "type": "module",
   "engines": {
     "node": ">=26"

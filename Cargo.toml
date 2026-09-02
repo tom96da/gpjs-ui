@@ -19,6 +19,7 @@ license = "MIT OR Apache-2.0"
 authors = ["tom96da"]
 repository = "https://github.com/tom96da/gpjs-ui"
 readme = "README.md"
+keywords = ["gpui", "quickjs", "desktop-app", "gui", "webview-free"]
 
 [workspace.dependencies]
 gpui = { git = "https://github.com/zed-industries/zed", tag = "v1.17.2" }

@@ -8,5 +8,16 @@
     "directory": "packages/gpjs-ui"
   },
   "license": "(MIT OR Apache-2.0)",
+  "keywords": [
+    "gpui",
+    "quickjs",
+    "desktop-app",
+    "gui",
+    "webview-free",
+    "cross-platform",
+    "framework-agnostic",
+    "electron-alternative",
+    "tauri-alternative"
+  ],
   "type": "module"
 }
