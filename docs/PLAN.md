@@ -43,8 +43,8 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
 
 ### Unit ii — QuickJS runtime bootstrap
 
-- [ ] Implement `crates/gpjs-ui/src/js/engine.rs`
-- [ ] Tests: `ctx.eval` smoke test, syntax-error propagation,
+- [x] Implement `crates/gpjs-ui/src/js/engine.rs`
+- [x] Tests: `ctx.eval` smoke test, syntax-error propagation,
       two engines don't share globals
 
 ### Unit iii — `__gpjsui_native__` bindings
