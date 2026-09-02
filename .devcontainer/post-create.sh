@@ -51,6 +51,7 @@ change_ownership() {
 
 main() {
     echo "Activating devcontainer..."
+    change_ownership "$(npm prefix -g)"
     change_ownership "$HOME/.claude/"
     change_ownership "$HOME/.claude.json"
     change_ownership "$HOME/.local/share/pnpm/"
