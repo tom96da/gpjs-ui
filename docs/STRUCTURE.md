@@ -46,9 +46,9 @@ Once the Rust workspace and frontend packages are scaffolded (see
 gpjs-ui/
 ├── Cargo.toml
 ├── crates/
-│   ├── gpjsui-core/         # GPUI host, retained tree, QuickJS host bridge (Phase 1)
-│   ├── gpjsui-cli/          # `cargo gpjsui` dev/build CLI, manages the Vite process (Phase 3)
-│   └── gpjsui-macros/       # host bridge binding helper macros
+│   ├── gpjs-ui/             # GPUI host, retained tree, QuickJS host bridge (Phase 1)
+│   ├── gpjs-ui-cli/         # `cargo gpjsui` dev/build CLI, manages the Vite process (Phase 3)
+│   └── gpjs-ui-macros/      # host bridge binding helper macros
 ├── packages/
 │   ├── gpjs-ui/             # `gpjs-ui` — framework-agnostic host bridge wrapper (Phase 2)
 │   ├── vue/                 # `@gpjs-ui/vue` — Vue 3 custom renderer (Phase 2)

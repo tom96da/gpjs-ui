@@ -13,7 +13,7 @@ Update the status of each phase as it lands instead of leaving this stale.
 Vue 3 support is built first end-to-end (Phases 1–3); React support is an
 additive package added later (Phase 4), not a parallel effort.
 
-## Phase 1: Rust host & FFI bridge core (`gpjsui-core`)
+## Phase 1: Rust host & FFI bridge core (`gpjs-ui`)
 
 1. **QuickJS context setup**: use `rquickjs` to spin up a managed QuickJS
    runtime inside the GPUI event loop.

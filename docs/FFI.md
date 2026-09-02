@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 
 The planned function surface exposed to JS as `globalThis.__gpjsui_native__`,
 bound into the QuickJS context by the Rust host via `rquickjs`. This is a
-target spec — see [docs/ROADMAP.md](./ROADMAP.md#phase-1-rust-host--ffi-bridge-core-gpjsui-core)
+target spec — see [docs/ROADMAP.md](./ROADMAP.md#phase-1-rust-host--ffi-bridge-core-gpjs-ui)
 for when it lands; update this file as the real bindings are implemented.
 
 It's called "FFI" for the calling-convention style (JS calling into Rust
