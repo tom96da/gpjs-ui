@@ -54,7 +54,8 @@ main() {
     change_ownership "$(npm prefix -g)"
     change_ownership "$HOME/.claude/"
     change_ownership "$HOME/.claude.json"
-    change_ownership "$HOME/.local/share/pnpm/"
+    change_ownership "$CARGO_HOME"
+    change_ownership "$WORKSPACE_FOLDER/node_modules/"
 }
 
 main
