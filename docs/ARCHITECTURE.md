@@ -20,7 +20,8 @@ The JS↔Rust binding surface is specced in [docs/FFI.md](./FFI.md).
 | --- | --- | --- |
 | **Native core** | Rust + [`gpui`](https://www.gpui.rs/) (wgpu) | Window management, event loop, retained virtual tree, direct GPU rendering. |
 | **JS engine** | QuickJS via [`rquickjs`](https://github.com/DelSkayn/rquickjs) | Embedded, lightweight JS runtime executing UI logic and reactivity. |
-| **Frontend framework** | Vue 3 (first-class, current) / React (future, see [Roadmap](./ROADMAP.md#phase-4-react-custom-renderer-future)) | Custom renderer mapping virtual component trees to host-bridge mutation calls. |
+| **Core JS package** | `gpjs-ui` (framework-agnostic) | Thin, typed JS wrapper around the host bridge (`__gpjsui_native__`), shared by every framework adapter instead of duplicated in each. |
+| **Frontend framework** | `@gpjs-ui/vue` (first-class, current) / `@gpjs-ui/react` (future, see [Roadmap](./ROADMAP.md#phase-4-react-custom-renderer-future)) | Custom renderer mapping virtual component trees to `gpjs-ui` calls. |
 | **Bundler & dev tooling** | Vite, used in library/build mode (no browser dev server) | Compiles `.vue`/`.tsx` via the official `@vitejs/plugin-vue` (and later `@vitejs/plugin-react`); HMR is delivered through Vite's Runtime API instead of Vite's browser client — see [HMR delivery](#hmr-delivery). |
 | **Host bridge** | In-process Rust functions bound into the QuickJS context via `rquickjs` | Transfers mutation operations (`createNode`, `setAttribute`, `appendChild`, ...) from JS to the Rust host. Not a real C ABI or IPC boundary — everything runs in one process. |
 
@@ -49,6 +50,7 @@ Rust-bundler speed benefit isn't lost by choosing Vite.
 │  │ JS Runtime (QuickJS via `rquickjs`)                        │  │
 │  │   - Vue 3 application (React: future, see Roadmap)         │  │
 │  │   - Custom renderer (`createRenderer` / `react-reconciler`)│  │
+│  │   - `gpjs-ui` core (typed `__gpjsui_native__` wrapper)     │  │
 │  │   - Custom ModuleEvaluator (runs Vite-transformed modules  │  │
 │  │     inside QuickJS instead of Node's `vm`)                 │  │
 │  └──────────────────────────┬─────────────────────────────────┘  │

@@ -30,8 +30,9 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
 ### Phase 2 landing spot (scaffolding only, no renderer logic yet)
 
 - [ ] `pnpm-workspace.yaml` + root `package.json`
-- [ ] `packages/gpjsui-vue` placeholder package
-- [ ] `examples/hello-vue` placeholder package
+- [ ] `packages/vue` placeholder package (npm name `@gpjs-ui/vue`)
+- [ ] `packages/gpjs-ui` placeholder package (framework-agnostic; deferred — scaffold when Phase 2 implementation begins)
+- [ ] `examples/hello-vue` placeholder package (deferred — needs `@gpjs-ui/vue` to have real content first)
 
 ### Unit i — VirtualNode arena
 
