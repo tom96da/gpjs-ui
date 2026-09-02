@@ -1,0 +1,25 @@
+#:schema https://json.schemastore.org/cargo.json
+
+# Copyright (c) 2026 tom96da
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[workspace]
+resolver = "3"
+members = [
+    "crates/gpjs-ui",
+    # gpjs-ui-cli, gpjs-ui-macros land in Phase 3 / on-demand — see docs/ROADMAP.md
+]
+default-members = ["crates/gpjs-ui"]
+
+[workspace.package]
+version = "0.0.0-0"
+edition = "2024"
+rust-version = "1.97"
+license = "MIT OR Apache-2.0"
+authors = ["tom96da"]
+repository = "https://github.com/tom96da/gpjs-ui"
+readme = "README.md"
+
+[workspace.dependencies]
+gpui = { git = "https://github.com/zed-industries/zed", tag = "v1.17.2" }
+rquickjs = { version = "0.12.2", default-features = false, features = ["std"] }

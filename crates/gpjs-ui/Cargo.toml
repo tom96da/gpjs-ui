@@ -1,0 +1,26 @@
+#:schema https://json.schemastore.org/cargo.json
+
+# Copyright (c) 2026 tom96da
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+name = "gpjs-ui"
+description = "A lightweight Webview-free desktop application framework powered by GPUI and QuickJS."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+readme = "README.md"
+publish = false
+
+[lib]
+name = "gpjs_ui"
+
+[dependencies]
+gpui.workspace = true
+rquickjs.workspace = true
+
+[dev-dependencies]
+gpui = { workspace = true, features = ["test-support"] }

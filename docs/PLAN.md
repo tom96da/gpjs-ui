@@ -24,8 +24,8 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
 
 ### Rust workspace
 
-- [ ] Root `Cargo.toml` workspace scaffold (`gpui` as a git dependency)
-- [ ] `crates/gpjs-ui/Cargo.toml`
+- [x] Root `Cargo.toml` workspace scaffold (`gpui` as a git dependency)
+- [x] `crates/gpjs-ui/Cargo.toml`
 
 ### Phase 2 landing spot (scaffolding only, no renderer logic yet)
 

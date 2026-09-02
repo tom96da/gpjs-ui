@@ -27,6 +27,10 @@ gpjs-ui/
 │   └── post-create.sh       # post-create ownership fixes (non-image-layer setup only)
 ├── .github/
 │   └── dependabot.yml       # auto-updates the devcontainer image/features only, for now
+├── Cargo.toml               # Rust workspace manifest
+├── Cargo.lock               # locked Rust dependency graph, including git-pinned gpui
+├── crates/
+│   └── gpjs-ui/             # Rust host crate placeholder for Phase 1
 └── third_party/             # pinned upstream sources, as git submodules — see below
     ├── zed/                 # zed-industries/zed @ v1.17.2
     └── rquickjs/            # DelSkayn/rquickjs @ v0.12.2
@@ -35,12 +39,16 @@ gpjs-ui/
 
 ## Status
 
-This repository is at the bootstrap stage: there is no Rust crate or frontend package yet, so no `Cargo.toml`, `Cargo.lock`, `package.json`, or build/lint/test commands exist. Update this file (directory layout) and [AGENTS.md](../AGENTS.md) (commands, conventions) as the real Rust workspace and frontend package land — do not let either go stale.
+This repository is at the scaffold stage: the Rust workspace and `crates/gpjs-ui` exist, but the crate is a placeholder with no real implementation yet. The pnpm/frontend workspace has not landed yet.
 
-## Planned workspace layout (not yet scaffolded)
+- Rust: `cargo check -p gpjs-ui`, `cargo test -p gpjs-ui`.
 
-Once the Rust workspace and frontend packages are scaffolded (see
-[docs/ROADMAP.md](./ROADMAP.md)), the layout is planned to be:
+Update this file and [AGENTS.md](../AGENTS.md) as real crates, packages, commands, and ownership boundaries land — do not let either go stale.
+
+## Planned workspace layout
+
+Later phases add more workspace members and packages (see
+[docs/ROADMAP.md](./ROADMAP.md)):
 
 ```
 gpjs-ui/

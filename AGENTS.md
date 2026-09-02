@@ -20,7 +20,11 @@ See [README.md](./README.md) for the full pitch. `gpjs-ui` is currently a develo
 
 ## Status
 
-This repository is at the bootstrap stage: no Rust crate or frontend package exists yet. There are no build, lint, or test commands to run. [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and [docs/ROADMAP.md](./docs/ROADMAP.md) describe the *planned* target design — not code that exists yet. When the workspace is scaffolded, update this file with the actual commands (`cargo build`, `cargo test`, package manager for the frontend, etc.) instead of leaving this section stale.
+The Rust workspace (`crates/gpjs-ui`) is scaffolded but not yet implemented — see [docs/PLAN.md](./docs/PLAN.md) for the task breakdown. [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and [docs/ROADMAP.md](./docs/ROADMAP.md) still describe *planned* target design, not landed code. The frontend/pnpm workspace has not landed yet.
+
+- Rust: `cargo check -p gpjs-ui`, `cargo test -p gpjs-ui`.
+
+Keep these commands accurate as real logic lands — don't let this section go stale.
 
 ## Architecture
 
