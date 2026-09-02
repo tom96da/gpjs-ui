@@ -49,8 +49,8 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
 
 ### Unit iii — `__gpjsui_native__` bindings
 
-- [ ] Implement `crates/gpjs-ui/src/js/bindings.rs`
-- [ ] Tests driven through `ctx.eval` (happy path, type round-trips,
+- [x] Implement `crates/gpjs-ui/src/js/bindings.rs`
+- [x] Tests driven through `ctx.eval` (happy path, type round-trips,
       bad id/type raises a catchable JS exception, not a Rust panic)
 
 ### Unit iv — minimal gpui window
