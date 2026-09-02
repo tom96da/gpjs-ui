@@ -36,8 +36,8 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
 
 ### Unit i — VirtualNode arena
 
-- [ ] Implement `crates/gpjs-ui/src/tree.rs`
-- [ ] Unit tests: id uniqueness, append order, detach-keeps-node-alive,
+- [x] Implement `crates/gpjs-ui/src/tree.rs`
+- [x] Unit tests: id uniqueness, append order, detach-keeps-node-alive,
       remove-of-absent-child is a no-op, set-attribute overwrites,
       unknown-id lookup returns `None` rather than panicking
 
