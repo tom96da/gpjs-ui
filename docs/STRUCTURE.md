@@ -31,7 +31,7 @@ gpjs-ui/
 ├── Cargo.toml               # Rust workspace manifest
 ├── Cargo.lock               # locked Rust dependency graph, including git-pinned gpui
 ├── crates/
-│   └── gpjs-ui/             # Rust host crate placeholder for Phase 1
+│   └── gpjs-ui/             # Rust host: retained tree, QuickJS bridge, GPUI render (Phase 1, done)
 └── third_party/             # pinned upstream sources, as git submodules — see below
     ├── zed/                 # zed-industries/zed @ v1.17.2
     └── rquickjs/            # DelSkayn/rquickjs @ v0.12.2
@@ -40,7 +40,12 @@ gpjs-ui/
 
 ## Status
 
-This repository is at the scaffold stage: the Rust workspace and `crates/gpjs-ui` exist, but the crate is a placeholder with no real implementation yet. The pnpm/frontend workspace has not landed yet.
+Phase 1 (`crates/gpjs-ui`: retained tree, QuickJS bootstrap, host bindings,
+GPUI render conversion, click-event dispatch) is functionally complete —
+see [AGENTS.md](../AGENTS.md#status) and [PLAN.md](./PLAN.md) for what
+landed and what's still deliberately incomplete (vocabulary left for later,
+manual visual confirmation unconfirmed). The pnpm/frontend workspace and
+everything from Phase 2 onward has not landed yet.
 
 - Rust: `cargo check -p gpjs-ui --all-targets`, `cargo test -p gpjs-ui`.
 

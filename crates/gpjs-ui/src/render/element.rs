@@ -3,22 +3,26 @@
 
 //! Converts a retained [`VirtualTree`] into real `gpui` elements.
 //!
-//! Split into two layers, as tracked in `docs/PLAN.md`:
+//! Split into two layers:
 //! - a pure spec layer ([`ElementSpec`]/[`StyleSpec`]/[`build_spec`]) that
 //!   has no `gpui` dependency and is exhaustively unit-testable on its own;
 //! - a thin gpui layer ([`build_element`]/[`render_tree`]) that turns that
 //!   spec into a real [`AnyElement`].
 //!
-//! The recognized `style_props`/`attributes` keys are documented in
-//! `docs/FFI.md`. Unrecognized keys and malformed values are silently
-//! ignored rather than erroring: this runs on the render path, not a JS call
-//! boundary, so there's no channel to raise a catchable exception through.
+//! Unrecognized `style_props`/`attributes` keys and malformed values are
+//! silently ignored rather than erroring: this runs on the render path, not
+//! a JS call boundary, so there's no channel to raise a catchable exception
+//! through.
 
 use std::collections::HashMap;
 
 use gpui::prelude::*;
-use gpui::{AnyElement, Display, Fill, FlexDirection, Hsla, Length, StyleRefinement, div, px, rgb};
+use gpui::{
+    AnyElement, Display, ElementId, Fill, FlexDirection, Hsla, Length, StyleRefinement, div, px,
+    rgb,
+};
 
+use crate::render::bridge::EventDispatcher;
 use crate::tree::{AttributeValue, NodeId, VirtualTree};
 
 /// What kind of element a [`VirtualNode`](crate::tree::VirtualNode) maps to.
@@ -80,8 +84,8 @@ pub enum AlignSpec {
 }
 
 /// A plain-data, `gpui`-independent style description, built from a
-/// [`VirtualNode`](crate::tree::VirtualNode)'s `style_props`. See
-/// `docs/FFI.md` for the recognized keys.
+/// [`VirtualNode`](crate::tree::VirtualNode)'s `style_props` — see
+/// `style_spec_from_props`'s match arms for the exact recognized keys.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct StyleSpec {
     pub display: Option<DisplaySpec>,
@@ -342,23 +346,54 @@ fn apply_style(style: &mut StyleRefinement, spec: &StyleSpec) {
 
 /// Recursively converts an [`ElementSpec`] into a real `gpui` [`AnyElement`].
 ///
-/// Every container is tagged with a `.debug_selector("node-{id}")` — a
+/// Every container gets a real `gpui` `ElementId` (`Integer(node_id)`,
+/// reusing our own stable [`NodeId`]) — without one, GPUI can't associate
+/// interactive state (hover/active/focus/pointer-capture) with the element
+/// across re-renders, since that state is keyed off `GlobalElementId`, and
+/// `on_click` (used when `dispatch` is `Some`) doesn't exist at all without
+/// one. It's also tagged with a `.debug_selector("node-{id}")` — a
 /// documented no-op outside test builds — so tests (including the
 /// layout-parity test in `tests/layout_parity.rs`) can look its computed
 /// bounds up by [`NodeId`].
-pub fn build_element(spec: &ElementSpec) -> AnyElement {
+///
+/// When `dispatch` is `Some`, every container is wired to call
+/// [`EventDispatcher::dispatch`] for `"click"` on click — cheap to attach
+/// (just cloning a couple of `Rc`s), so a re-render with no new input never
+/// touches the JS engine. See `render/bridge.rs`'s module docs for why.
+fn build_element_inner(spec: &ElementSpec, dispatch: Option<&EventDispatcher>) -> AnyElement {
     match &spec.tag {
         ElementTag::Text(content) => content.clone().into_any_element(),
         ElementTag::Container => {
             let id = spec.id;
-            let mut element = div().debug_selector(move || format!("node-{id}"));
+            let mut element = div()
+                .id(ElementId::Integer(id as u64))
+                .debug_selector(move || format!("node-{id}"));
+            if let Some(dispatch) = dispatch {
+                let dispatch = dispatch.clone();
+                element = element.on_click(move |_, window, _| {
+                    dispatch.dispatch(id, "click", window);
+                });
+            }
             apply_style(element.style(), &spec.style);
             for child in &spec.children {
-                element = element.child(build_element(child));
+                element = element.child(build_element_inner(child, dispatch));
             }
             element.into_any_element()
         }
     }
+}
+
+/// Recursively converts an [`ElementSpec`] into a real `gpui` [`AnyElement`],
+/// with no event wiring — see [`build_element_with_events`] for a version
+/// whose containers dispatch `"click"` into JS.
+pub fn build_element(spec: &ElementSpec) -> AnyElement {
+    build_element_inner(spec, None)
+}
+
+/// Like [`build_element`], but every container's click dispatches into JS
+/// via `dispatch` (see `render/bridge.rs`).
+pub fn build_element_with_events(spec: &ElementSpec, dispatch: &EventDispatcher) -> AnyElement {
+    build_element_inner(spec, Some(dispatch))
 }
 
 /// Composes [`build_spec`] and [`build_element`]: builds `root` and its
@@ -366,6 +401,16 @@ pub fn build_element(spec: &ElementSpec) -> AnyElement {
 /// doesn't resolve.
 pub fn render_tree(tree: &VirtualTree, root: NodeId) -> Option<AnyElement> {
     build_spec(tree, root).map(|spec| build_element(&spec))
+}
+
+/// Like [`render_tree`], but every container's click dispatches into JS via
+/// `dispatch` (see [`build_element_with_events`]).
+pub fn render_tree_with_events(
+    tree: &VirtualTree,
+    root: NodeId,
+    dispatch: &EventDispatcher,
+) -> Option<AnyElement> {
+    build_spec(tree, root).map(|spec| build_element_with_events(&spec, dispatch))
 }
 
 #[cfg(test)]

@@ -84,11 +84,32 @@ variants beyond the four above.
 On each GPUI `render()` frame cycle, the host recursively converts the
 `VirtualNode` tree into GPUI `AnyElement` instances.
 
-`addEventListener`'s dispatch (Unit vi) is expected to need no thread-safe/
-cross-thread callback machinery: gpjs-ui's embedded QuickJS and the GPUI
-event loop already share one process and are driven synchronously (see
+### Event dispatch (v1: `"click"` only)
+
+Implemented by `crates/gpjs-ui/src/render/bridge.rs` (Unit vi):
+`render_tree_with_events`/`build_element_with_events`
+(`crates/gpjs-ui/src/render/element.rs`) wire every container's click to an
+`EventDispatcher`, which looks up and calls the JS callbacks registered
+for `(nodeId, "click")` via `addEventListener`, then requests a redraw.
+Other event names aren't wired to any real GPUI input yet — extend as
+needed, same "deliberately incomplete" framing as the style vocabulary.
+
+`addEventListener` itself is unchanged and needs no thread-safe/cross-thread
+callback machinery: gpjs-ui's embedded QuickJS and the GPUI event loop
+already share one process and are driven synchronously (see
 `crates/gpjs-ui/src/js/engine.rs`'s `Context::with`), unlike an architecture
 where JS runs in a separate runtime that loads a native addon (JS and the
-native UI layer on different threads/processes). A GPUI event handler
-closure should be able to call directly into the registered
-`rquickjs::Function` in place.
+native UI layer on different threads/processes) — confirmed, not just
+assumed, by `crates/gpjs-ui/tests/event_dispatch.rs`.
+
+`EventListeners` only ever stores the plain `u32` `callbackId` it's given —
+never an `rquickjs::Value`/`Function`/`Persistent<T>`, per the FFI safety
+checklist below. The real JS function has to live somewhere, so the
+convention is: **the caller stores it itself**, at
+`globalThis.__gpjsui_callbacks__[callbackId]`, before calling
+`addEventListener` with that id. `EventDispatcher::dispatch` looks the real
+function up fresh inside one `Engine::with` call and drops it before that
+call returns — it never crosses into a long-lived Rust struct. A missing
+`__gpjsui_callbacks__`/callback entry, a non-function entry, or an
+exception thrown by the callback are all silently skipped rather than
+propagated: a bad listener must not take down the host.

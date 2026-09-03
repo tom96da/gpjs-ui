@@ -89,8 +89,10 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
 
 ### Unit vi — event-driven JS invocation (zero-overhead render loop)
 
-- [ ] `crates/gpjs-ui/src/render/bridge.rs`
-- [ ] Give every container a real GPUI `ElementId` (e.g.
+- [x] `crates/gpjs-ui/src/render/bridge.rs` — `EventDispatcher`, dispatching
+      `"click"` only so far (see docs/FFI.md's "Event dispatch" section);
+      other event names aren't wired to real GPUI input yet
+- [x] Give every container a real GPUI `ElementId` (e.g.
       `ElementId::Integer(node_id as u64)`, reusing our existing stable
       `NodeId`) before wiring up any interactivity. `build_element`
       currently assigns none — harmless today (Unit v has no interactive
@@ -98,16 +100,35 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
       `InteractiveElementState` (hover/active/focus/pointer-capture) across
       re-renders, since GPUI keys that state off the element's
       `GlobalElementId`. (Cross-checked against a competing GPUI-based
-      framework that hit exactly this bug.)
-- [ ] Test: one simulated input event triggers exactly one JS call and
-      one `cx.notify()`
-- [ ] Test: repeated renders with no new events touch the JS engine zero times
-- [ ] Manual: clickable element in that Unit v example mutates state via JS
-      and re-renders
+      framework that hit exactly this bug.) Confirmed while implementing:
+      `on_click` itself doesn't exist without `.id(...)` first — this
+      wasn't just about state persistence, `on_click` is only reachable via
+      `StatefulInteractiveElement`.
+- [x] Test: one simulated input event triggers exactly one JS call — landed
+      as `crates/gpjs-ui/tests/event_dispatch.rs`'s
+      `click_dispatches_to_js_exactly_once`. Dropped the "and one
+      `cx.notify()`" half of this item: confirmed empirically that
+      `window.refresh()` (not `cx.notify()`/`Context<V>` — no entity
+      plumbing needed through `render_tree`/`build_element` at all) is what
+      `dispatch()` calls, but also confirmed a click on *any* interactive
+      element already makes GPUI redraw for its own hover/active
+      bookkeeping regardless — so a redraw-count assertion can't actually
+      isolate this call's effect, and isn't included in the test.
+- [x] Test: repeated renders with no new events touch the JS engine zero
+      times — `event_dispatch.rs`'s
+      `repeated_builds_with_no_event_never_touch_the_js_engine` (a plain
+      `#[test]`: building an `AnyElement` needs no `gpui` App/Window at
+      all, confirmed while implementing)
+- [x] Manual: clickable element mutates state via JS and re-renders — landed
+      as a new example, `examples/click_counter.rs` (not folded into
+      `examples/hello_world.rs`: that one's whole point is being a faithful,
+      non-interactive recreation of gpui's own static example, so bolting
+      interactivity onto it would undermine what its name/doc comment
+      promise); confirmed on macOS — clicking the box counts up
 
 ### Docs
 
-- [ ] Update `docs/STRUCTURE.md` and `AGENTS.md`'s Status section to match
+- [x] Update `docs/STRUCTURE.md` and `AGENTS.md`'s Status section to match
       what actually landed
 
 ## Evergreen checklists

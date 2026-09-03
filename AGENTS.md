@@ -20,12 +20,26 @@ See [README.md](./README.md) for the full pitch. `gpjs-ui` is currently a develo
 
 ## Status
 
-The Rust workspace (`crates/gpjs-ui`) is scaffolded but not yet implemented — see [docs/PLAN.md](./docs/PLAN.md) for the task breakdown. [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and [docs/ROADMAP.md](./docs/ROADMAP.md) still describe *planned* target design, not landed code. The frontend/pnpm workspace has not landed yet.
+Phase 1 (Rust host & FFI bridge core, `crates/gpjs-ui`) is functionally
+complete per [docs/PLAN.md](./docs/PLAN.md): the retained `VirtualNode`
+arena (`src/tree.rs`), the QuickJS runtime bootstrap (`src/js/engine.rs`),
+the `__gpjsui_native__` bindings (`src/js/bindings.rs`), `VirtualNode` →
+GPUI `AnyElement` conversion (`src/render/element.rs`), and click-event
+dispatch back into JS (`src/render/bridge.rs`) are all implemented and
+tested — see [docs/FFI.md](./docs/FFI.md) for the exact tag/style/event
+vocabulary landed so far (all deliberately incomplete subsets, extended as
+real usage needs them). The one item nobody in this container can do is the
+manual visual check (no display attached — see
+[docs/MANUAL_GUI_CHECK.md](./docs/MANUAL_GUI_CHECK.md)).
+[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and
+[docs/ROADMAP.md](./docs/ROADMAP.md)'s Phase 2 onward (JS packages, the Vue
+3 custom renderer, HMR) are still *planned* target design, not landed code.
+The frontend/pnpm workspace has not landed yet.
 
 - Rust: `cargo check -p gpjs-ui --all-targets` (the `--all-targets` also
   compile-checks `examples/`, which has no automated test of its own — see
-  `crates/gpjs-ui/examples/gpui/hello_world.rs`'s doc comment), `cargo test
-  -p gpjs-ui`.
+  `crates/gpjs-ui/examples/hello_world.rs`'s doc comment), `cargo test -p
+  gpjs-ui`.
 
 Keep these commands accurate as real logic lands — don't let this section go stale.
 

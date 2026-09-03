@@ -1,10 +1,11 @@
 // Copyright (c) 2026 tom96da
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Layout-parity test for Unit v (`crates/gpjs-ui/src/render/element.rs`):
-//! builds the same box structure two ways — directly with `gpui`'s own
-//! builder API, and through a `VirtualTree` via `render_tree` — and asserts
-//! the computed layout (not pixels; see `docs/PLAN.md`) matches. Modeled on
+//! Layout-parity test for `gpjs_ui::render::element`'s `VirtualTree` →
+//! `gpui` conversion: builds the same box structure two ways — directly
+//! with `gpui`'s own builder API, and through a
+//! `VirtualTree` via `render_tree` — and asserts the computed layout (sizes
+//! and positions, not pixel content) matches. Modeled on
 //! `examples/gpui/hello_world.rs`'s shape (a bordered, centered column
 //! containing a text line and a row of six bordered squares), not a literal
 //! copy of it (that's a binary example, not importable, and its
