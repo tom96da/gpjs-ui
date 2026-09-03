@@ -29,10 +29,10 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
 
 ### Phase 2 landing spot (scaffolding only, no renderer logic yet)
 
-- [ ] `pnpm-workspace.yaml` + root `package.json`
-- [ ] `packages/vue` placeholder package (npm name `@gpjs-ui/vue`)
-- [ ] `packages/gpjs-ui` placeholder package (framework-agnostic; deferred — scaffold when Phase 2 implementation begins)
-- [ ] `examples/hello-vue` placeholder package (deferred — needs `@gpjs-ui/vue` to have real content first)
+- [x] `pnpm-workspace.yaml` + root `package.json`
+- [x] `packages/vue` placeholder package (npm name `@gpjs-ui/vue`)
+- [x] `packages/gpjs-ui` placeholder package (framework-agnostic; deferred — scaffold when Phase 2 implementation begins)
+- [ ] `examples/hello-vue` placeholder package (deferred — needs `@gpjs-ui/vue` to have real content first) — lands as part of Phase 2 Unit iv
 
 ### Unit i — VirtualNode arena
 
@@ -130,6 +130,131 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
 
 - [x] Update `docs/STRUCTURE.md` and `AGENTS.md`'s Status section to match
       what actually landed
+
+## Phase 2: JS core bridge (`gpjs-ui`) & Vue 3 custom renderer (`@gpjs-ui/vue`)
+
+See [docs/ROADMAP.md#phase-2](./ROADMAP.md#phase-2-js-core-bridge-gpjs-ui--vue-3-custom-renderer-gpjs-uivue)
+and [docs/FFI.md](./FFI.md) for the design this implements.
+
+Scope grew beyond ROADMAP.md's four bullet points once planning dug into
+the actual `@vue/runtime-core` `createRenderer` API surface: the native
+bridge has two real gaps that block a working custom renderer, not just
+missing polish — see Prerequisites.
+
+### Prerequisites — native bridge gap fixes (Rust, `crates/gpjs-ui`)
+
+`setAttribute` is currently the only JS-bound setter — there's no
+JS-reachable way to touch `style_props`, even though rendering
+(`element.rs`) reads style exclusively from there. And `appendChild` only
+appends at the end (`Vec::push`) — `RendererOptions.insert(el, parent,
+anchor)` needs to insert before a specific sibling for correct Vue list
+(`v-for`) diffing.
+
+- [ ] Add `setStyle(nodeId, key, value)` to `__gpjsui_native__`
+      (`src/js/bindings.rs`), mirroring `setAttribute`'s validation/
+      error-mapping pattern, calling `VirtualTree::set_style`
+- [ ] Tests mirroring `setAttribute`'s existing ones (happy path, unknown
+      node id, non-primitive value)
+- [ ] Add `VirtualTree::insert_before(parent_id, child_id, anchor_id:
+      Option<NodeId>)` in `src/tree.rs` (`None` anchor = append at end,
+      so `append_child` becomes a thin wrapper over it)
+- [ ] Bind it as `insertBefore(parentId, childId, anchorId | null)` in
+      `bindings.rs`, same error-mapping pattern as `appendChild`
+- [ ] Tests: insert at start/middle/end, unknown parent/child/anchor id
+- [ ] Update `docs/FFI.md`'s binding function table and prose to add
+      `setStyle`/`insertBefore`, and correct the note that folds style
+      into `setAttribute`
+
+### Unit i — TS tooling scaffolding
+
+- [ ] Root or per-package `tsconfig.json` (none exists yet) — shared base
+      config extended by `packages/gpjs-ui` and `packages/vue`
+- [ ] Vite library-mode build for both packages (ESM output,
+      `types`/`exports` fields in each `package.json`)
+
+### Unit ii — `gpjs-ui` core package (`packages/gpjs-ui`)
+
+- [ ] Typed wrapper functions over `globalThis.__gpjsui_native__`:
+      `createNode`, `appendChild`, `insertBefore` (new), `removeChild`,
+      `setAttribute`, `setStyle` (new), `addEventListener`
+- [ ] Callback registry owning the `globalThis.__gpjsui_callbacks__[id]`
+      convention internally (id allocation/cleanup) — `@gpjs-ui/vue`
+      should never touch that raw contract itself
+- [ ] TS types for the `docs/FFI.md`-documented style-prop and tag
+      vocabulary (compile-time safety on top of the native bridge's
+      stringly-typed calls)
+- [ ] Vitest unit tests: each wrapper call forwards correctly to a mocked
+      `__gpjsui_native__`; callback registry id lifecycle
+
+### Unit iii — `@gpjs-ui/vue` custom renderer (`packages/vue`)
+
+`nodeOps` implements `@vue/runtime-core`'s `RendererOptions<HostNode,
+HostElement>` — its 9 required methods (`createElement`, `createText`,
+`createComment`, `insert`, `remove`, `setText`, `setElementText`,
+`parentNode`, `nextSibling`); the 4 optional ones (`querySelector`,
+`setScopeId`, `cloneNode`, `insertStaticContent`) are out of scope, not
+needed without SSR/hydration. Built on `packages/gpjs-ui`, never on
+`__gpjsui_native__` directly.
+
+- [ ] `createElement`/`insert`/`remove` — the core node lifecycle, built
+      on `packages/gpjs-ui`'s `createNode`/`insertBefore`/`removeChild`
+- [ ] `createText`/`setText`/`setElementText` map to a `tag: "text"` node
+      + `setAttribute(id, "value", text)`, matching `hello_world.rs`'s
+      existing text-leaf convention
+- [ ] `createComment` maps to a hidden node (`createNode("div")` +
+      `setStyle(id, "display", "none")`) — `display: none` is already in
+      the style vocab, so this needs no render/`element.rs` change
+- [ ] JS-side parent/sibling bookkeeping map maintained as `nodeOps`
+      processes `insert`/`remove`, answering `parentNode`/`nextSibling`
+      and giving `remove(el)` the parent id `removeChild` needs (the
+      native tree has no parent pointers, and `RendererOptions.remove`
+      doesn't pass one)
+- [ ] `patchProp`: `key === "style"` (an object, per Vue's
+      `:style="{...}"` binding) → one `setStyle` call per entry, unknown
+      keys silently ignored (matching `docs/FFI.md`'s existing
+      "malformed/unrecognized → ignored" policy)
+- [ ] `patchProp`: `isOn`-prefixed keys (`onClick`, ...) → register via
+      the callback registry + `addEventListener` — only `"click"` is
+      wired to real input today (`docs/FFI.md` v1), other `on*` props are
+      inert for now
+- [ ] `patchProp`: everything else → `setAttribute`
+- [ ] `createGpjsuiApp(App)` convenience wrapper around
+      `createRenderer(nodeOps).createApp` — mounts against a
+      `HostElement`-typed root handle (see Unit iv for how the Rust host
+      supplies the root node id)
+- [ ] Vitest tests asserting the create/insert/patchProp/remove call
+      sequence against a mocked `gpjs-ui` core (mirroring the pattern
+      `@vue/runtime-test`'s reference renderer uses for its own tests)
+
+### Unit iv — `examples/hello-vue` + one-shot Rust loader (manual GUI check)
+
+The `.vue` SFC compiles via a minimal one-shot `@vue/compiler-sfc` script —
+no Vite yet (that's Phase 3's job, but these compiler calls carry forward
+unchanged when Phase 3 swaps in Vite's dev pipeline; only the thin "invoke
+once" wrapper becomes obsolete then).
+
+- [ ] `examples/hello-vue` package: a real `.vue` SFC recreating the
+      existing `hello_world`/`click_counter` look (bordered box, text
+      label, click-to-increment), written against `@gpjs-ui/vue`
+- [ ] One-shot `@vue/compiler-sfc` build script: `compileScript({
+      inlineTemplate: true })` for `<script setup>` SFCs, falling back to
+      explicit `compileTemplate` for template-only files (no `<style>`
+      handling needed, GPUI has no CSS concept)
+- [ ] Bundle the compiled SFC together with `packages/gpjs-ui`/
+      `packages/vue` into one JS file consumable by QuickJS
+- [ ] New `crates/gpjs-ui/examples/gpui/hello_vue.rs`: Rust creates one
+      root `VirtualNode` (matching `click_counter.rs`'s pattern),
+      installs `__gpjsui_native__` bindings, reads the compiled bundle
+      from disk, and `Engine::eval`s it with the root node id exposed to
+      JS (same id-interpolation convention `click_counter.rs` already
+      uses), rendering via `render_tree_with_events` each frame
+- [ ] Manual: run the example and look at the window — see
+      `docs/MANUAL_GUI_CHECK.md`; once confirmed, update that doc to list
+      this as a verified 4th example alongside the existing three
+
+### Docs
+
+- [ ] Update `AGENTS.md`'s Status section once Phase 2 lands
 
 ## Evergreen checklists
 
