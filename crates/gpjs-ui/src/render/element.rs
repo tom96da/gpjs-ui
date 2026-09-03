@@ -26,6 +26,13 @@ use crate::tree::{AttributeValue, NodeId, VirtualTree};
 /// Only two kinds exist for now — there's no per-tag dispatch table, since
 /// there's exactly one container builder to pick from until a real second
 /// element kind is designed.
+///
+/// Text is deliberately never allowed as a bare string child mixed into a
+/// container's children — it's always its own dedicated leaf node with a
+/// stable id. That keeps every rendered text run addressable by [`NodeId`],
+/// which later work (text selection, hit-testing, per-run event handling)
+/// will need — a container that could also hold ad-hoc string children
+/// would make some rendered text invisible to that addressing.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ElementTag {
     /// Any tag name other than `"text"`: a generic styled box.
@@ -123,6 +130,34 @@ fn as_number(value: &AttributeValue) -> Option<f64> {
     }
 }
 
+/// Parses a `0xRRGGBB` number or a `"#rrggbb"`/`"#rgb"` string into a
+/// `0xRRGGBB` color, whichever form `value` is. Any other shape (wrong hex
+/// digit count, missing `#`, non-hex characters, a bool, ...) is ignored,
+/// not an error — same tolerance as every other style value.
+fn as_color(value: &AttributeValue) -> Option<u32> {
+    match value {
+        AttributeValue::Number(n) => Some(*n as u32),
+        AttributeValue::String(s) => parse_hex_color(s),
+        AttributeValue::Bool(_) => None,
+    }
+}
+
+fn parse_hex_color(s: &str) -> Option<u32> {
+    let hex = s.strip_prefix('#')?;
+    match hex.len() {
+        6 => u32::from_str_radix(hex, 16).ok(),
+        3 => {
+            let mut expanded = String::with_capacity(6);
+            for c in hex.chars() {
+                expanded.push(c);
+                expanded.push(c);
+            }
+            u32::from_str_radix(&expanded, 16).ok()
+        }
+        _ => None,
+    }
+}
+
 fn length_spec_from(value: &AttributeValue) -> Option<LengthSpec> {
     match value {
         AttributeValue::Number(n) => Some(LengthSpec::Px(*n)),
@@ -177,10 +212,10 @@ fn style_spec_from_props(props: &HashMap<String, AttributeValue>) -> StyleSpec {
             "width" => style.width = length_spec_from(value),
             "height" => style.height = length_spec_from(value),
             "border_width" => style.border_width = as_number(value),
-            "background" => style.background = as_number(value).map(|n| n as u32),
-            "border_color" => style.border_color = as_number(value).map(|n| n as u32),
+            "background" => style.background = as_color(value),
+            "border_color" => style.border_color = as_color(value),
             "corner_radius" => style.corner_radius = as_number(value),
-            "text_color" => style.text_color = as_number(value).map(|n| n as u32),
+            "text_color" => style.text_color = as_color(value),
             "text_size" => style.text_size = as_number(value),
             _ => {}
         }
@@ -445,6 +480,32 @@ mod tests {
 
             let spec = build_spec(&tree, id).unwrap();
             assert_eq!(spec.style.display, None);
+        }
+
+        #[test]
+        fn color_accepts_hex_strings_as_well_as_numbers() {
+            let mut tree = VirtualTree::new();
+            let id = tree.create_node("div");
+            tree.set_style(id, "background", "#505050").unwrap();
+            tree.set_style(id, "border_color", "#00f").unwrap();
+
+            let spec = build_spec(&tree, id).unwrap();
+            assert_eq!(spec.style.background, Some(0x505050));
+            assert_eq!(
+                spec.style.border_color,
+                Some(0x0000ff),
+                "a 3-digit hex string must expand each digit, not zero-pad it"
+            );
+        }
+
+        #[test]
+        fn malformed_color_string_is_ignored_not_a_panic() {
+            let mut tree = VirtualTree::new();
+            let id = tree.create_node("div");
+            tree.set_style(id, "background", "not-a-color").unwrap();
+
+            let spec = build_spec(&tree, id).unwrap();
+            assert_eq!(spec.style.background, None);
         }
     }
 

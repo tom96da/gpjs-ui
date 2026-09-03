@@ -56,7 +56,7 @@ there's no channel to raise a catchable exception through.
 | `gap` | number (px) | `gap.width` & `gap.height` (uniform) |
 | `width` / `height` | number (px) or `"auto"` | `size.width` / `size.height` |
 | `border_width` | number (px) | all four `border_widths.*` (uniform) |
-| `background` / `border_color` / `text_color` | number, hex `0xRRGGBB` | `Fill`/`Hsla` |
+| `background` / `border_color` / `text_color` | number (hex `0xRRGGBB`) or string (`"#rrggbb"`/`"#rgb"`) | `Fill`/`Hsla` |
 | `corner_radius` | number (px) | all four `corner_radii.*` (uniform) |
 | `text_size` | number (px) | `text.font_size` |
 
@@ -66,8 +66,10 @@ their style from an ancestor container, exactly like GPUI's own
 
 Deliberately deferred, not yet implemented: percentage lengths, min/max
 size, margin/padding, flex-grow/shrink/basis, per-side border/corner
-values, box-shadow, and additional align/justify variants beyond the four
-above.
+values, box-shadow, `border_style` (solid vs. dashed — GPUI's own
+`Style::border_style`, distinct from `border_width`/`border_color`; unset
+always renders solid, GPUI's default), and additional align/justify
+variants beyond the four above.
 
 ## Binding functions
 
@@ -81,3 +83,12 @@ above.
 
 On each GPUI `render()` frame cycle, the host recursively converts the
 `VirtualNode` tree into GPUI `AnyElement` instances.
+
+`addEventListener`'s dispatch (Unit vi) is expected to need no thread-safe/
+cross-thread callback machinery: gpjs-ui's embedded QuickJS and the GPUI
+event loop already share one process and are driven synchronously (see
+`crates/gpjs-ui/src/js/engine.rs`'s `Context::with`), unlike an architecture
+where JS runs in a separate runtime that loads a native addon (JS and the
+native UI layer on different threads/processes). A GPUI event handler
+closure should be able to call directly into the registered
+`rquickjs::Function` in place.

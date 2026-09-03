@@ -90,6 +90,15 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
 ### Unit vi — event-driven JS invocation (zero-overhead render loop)
 
 - [ ] `crates/gpjs-ui/src/render/bridge.rs`
+- [ ] Give every container a real GPUI `ElementId` (e.g.
+      `ElementId::Integer(node_id as u64)`, reusing our existing stable
+      `NodeId`) before wiring up any interactivity. `build_element`
+      currently assigns none — harmless today (Unit v has no interactive
+      state), but a container with no id loses GPUI's
+      `InteractiveElementState` (hover/active/focus/pointer-capture) across
+      re-renders, since GPUI keys that state off the element's
+      `GlobalElementId`. (Cross-checked against a competing GPUI-based
+      framework that hit exactly this bug.)
 - [ ] Test: one simulated input event triggers exactly one JS call and
       one `cx.notify()`
 - [ ] Test: repeated renders with no new events touch the JS engine zero times
