@@ -104,10 +104,10 @@ later.
 ## Option B — from the devcontainer, forwarded to macOS via XQuartz
 
 Confirms the Linux backend (`gpui_linux`) instead, without leaving the
-container. **Untested end-to-end.** An agent's headless `Xvfb` attempt
-from inside the container (no XQuartz) rendered nothing — not even the
-background — for a reason not yet found, so this path may hit the same
-issue.
+container. Confirmed working end-to-end (2026-09-03, all three examples).
+Note this is distinct from an agent's headless `Xvfb` attempt from inside
+the container (no XQuartz), which rendered nothing — not even the
+background — for a reason not yet found.
 
 1. Install XQuartz on the Mac host (not inside the container):
    ```sh
@@ -120,18 +120,21 @@ issue.
 3. From that menu bar icon, open Settings → Security, and check "Allow
    connections from network clients." Quit and relaunch XQuartz for this to
    take effect.
-4. On the Mac host (not inside the container), allow incoming connections:
+4. On the Mac host (not inside the container), allow incoming connections.
+   Prefer scoping this to loopback rather than opening it to any host:
    ```sh
-   xhost +
+   xhost +127.0.0.1
    ```
-   (`xhost -` reverts this once you're done.)
-5. Inside the devcontainer:
+   This was confirmed to work through Docker Desktop for Mac's networking
+   (the container's connection to `host.docker.internal` reaches XQuartz as
+   if from `127.0.0.1`). If it doesn't work in your setup, the wider
+   `xhost +` (revert with `xhost -` once done) is the fallback.
+5. Inside the devcontainer, for examples:
    ```sh
-   DISPLAY=host.docker.internal:0 cargo run -p gpjs-ui --example gpui_hello_world
+   DISPLAY=host.docker.internal:0 cargo run -p gpjs-ui --example hello_world
    ```
 
-In principle, the same window should appear on the Mac desktop, rendered
-by XQuartz — but see the "Untested end-to-end" note above.
+The same window appears on the Mac desktop, rendered by XQuartz.
 
 ## Why an agent can't just do this
 
