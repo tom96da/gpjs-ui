@@ -145,20 +145,43 @@ impl VirtualTree {
         self.nodes.get(&id)
     }
 
-    /// Appends `child_id` to `parent_id`'s children. Does not check whether
-    /// `child_id` is already a child elsewhere (or already a child of
-    /// `parent_id`) — the tree is a plain multi-parent graph at this layer,
-    /// not a DOM-style single-parent tree; that invariant, if wanted, belongs
-    /// to a higher layer.
+    /// Appends `child_id` to `parent_id`'s children. Thin wrapper over
+    /// [`insert_before`](Self::insert_before) with no anchor.
     pub fn append_child(&mut self, parent_id: NodeId, child_id: NodeId) -> Result<(), TreeError> {
+        self.insert_before(parent_id, child_id, None)
+    }
+
+    /// Inserts `child_id` into `parent_id`'s children, before `anchor_id` if
+    /// given, or at the end if `None`. If `anchor_id` names a real node that
+    /// isn't (or is no longer) among `parent_id`'s children, falls back to
+    /// appending at the end, same as an absent `remove_child` target — only
+    /// a truly unknown/never-allocated `anchor_id` is an error. Does not
+    /// check whether `child_id` is already a child elsewhere (or already a
+    /// child of `parent_id`) — the tree is a plain multi-parent graph at
+    /// this layer, not a DOM-style single-parent tree; that invariant, if
+    /// wanted, belongs to a higher layer.
+    pub fn insert_before(
+        &mut self,
+        parent_id: NodeId,
+        child_id: NodeId,
+        anchor_id: Option<NodeId>,
+    ) -> Result<(), TreeError> {
         if !self.nodes.contains_key(&child_id) {
             return Err(TreeError::NodeNotFound(child_id));
+        }
+        if let Some(anchor_id) = anchor_id
+            && !self.nodes.contains_key(&anchor_id)
+        {
+            return Err(TreeError::NodeNotFound(anchor_id));
         }
         let parent = self
             .nodes
             .get_mut(&parent_id)
             .ok_or(TreeError::NodeNotFound(parent_id))?;
-        parent.children.push(child_id);
+        let index = anchor_id
+            .and_then(|anchor_id| parent.children.iter().position(|&id| id == anchor_id))
+            .unwrap_or(parent.children.len());
+        parent.children.insert(index, child_id);
         Ok(())
     }
 
@@ -234,6 +257,57 @@ mod tests {
         tree.append_child(parent, c).unwrap();
 
         assert_eq!(tree.get(parent).unwrap().children(), &[a, b, c]);
+    }
+
+    #[test]
+    fn insert_before_at_start_middle_end() {
+        let mut tree = VirtualTree::new();
+        let parent = tree.create_node("div");
+        let a = tree.create_node("span");
+        let b = tree.create_node("span");
+        let c = tree.create_node("span");
+
+        tree.insert_before(parent, b, None).unwrap(); // end: [b]
+        tree.insert_before(parent, a, Some(b)).unwrap(); // start: [a, b]
+        tree.insert_before(parent, c, None).unwrap(); // end: [a, b, c]
+
+        assert_eq!(tree.get(parent).unwrap().children(), &[a, b, c]);
+
+        let d = tree.create_node("span");
+        tree.insert_before(parent, d, Some(b)).unwrap(); // middle: [a, d, b, c]
+        assert_eq!(tree.get(parent).unwrap().children(), &[a, d, b, c]);
+    }
+
+    #[test]
+    fn insert_before_unknown_anchor_falls_back_to_append() {
+        let mut tree = VirtualTree::new();
+        let parent = tree.create_node("div");
+        let a = tree.create_node("span");
+        let stray_anchor = tree.create_node("span"); // real node, never attached here
+
+        tree.insert_before(parent, a, Some(stray_anchor)).unwrap();
+
+        assert_eq!(tree.get(parent).unwrap().children(), &[a]);
+    }
+
+    #[test]
+    fn insert_before_unknown_ids_error() {
+        let mut tree = VirtualTree::new();
+        let parent = tree.create_node("div");
+        let child = tree.create_node("span");
+
+        assert_eq!(
+            tree.insert_before(999, child, None).unwrap_err(),
+            TreeError::NodeNotFound(999)
+        );
+        assert_eq!(
+            tree.insert_before(parent, 999, None).unwrap_err(),
+            TreeError::NodeNotFound(999)
+        );
+        assert_eq!(
+            tree.insert_before(parent, child, Some(999)).unwrap_err(),
+            TreeError::NodeNotFound(999)
+        );
     }
 
     #[test]

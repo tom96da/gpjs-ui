@@ -150,18 +150,20 @@ appends at the end (`Vec::push`) — `RendererOptions.insert(el, parent,
 anchor)` needs to insert before a specific sibling for correct Vue list
 (`v-for`) diffing.
 
-- [ ] Add `setStyle(nodeId, key, value)` to `__gpjsui_native__`
+- [x] Add `setStyle(nodeId, key, value)` to `__gpjsui_native__`
       (`src/js/bindings.rs`), mirroring `setAttribute`'s validation/
       error-mapping pattern, calling `VirtualTree::set_style`
-- [ ] Tests mirroring `setAttribute`'s existing ones (happy path, unknown
+- [x] Tests mirroring `setAttribute`'s existing ones (happy path, unknown
       node id, non-primitive value)
-- [ ] Add `VirtualTree::insert_before(parent_id, child_id, anchor_id:
+- [x] Add `VirtualTree::insert_before(parent_id, child_id, anchor_id:
       Option<NodeId>)` in `src/tree.rs` (`None` anchor = append at end,
-      so `append_child` becomes a thin wrapper over it)
-- [ ] Bind it as `insertBefore(parentId, childId, anchorId | null)` in
+      so `append_child` becomes a thin wrapper over it) — an `anchor_id`
+      naming a real node that isn't currently a child falls back to
+      appending at the end, only a wholly unknown id errors
+- [x] Bind it as `insertBefore(parentId, childId, anchorId | null)` in
       `bindings.rs`, same error-mapping pattern as `appendChild`
-- [ ] Tests: insert at start/middle/end, unknown parent/child/anchor id
-- [ ] Update `docs/FFI.md`'s binding function table and prose to add
+- [x] Tests: insert at start/middle/end, unknown parent/child/anchor id
+- [x] Update `docs/FFI.md`'s binding function table and prose to add
       `setStyle`/`insertBefore`, and correct the note that folds style
       into `setAttribute`
 

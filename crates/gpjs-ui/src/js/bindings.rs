@@ -66,7 +66,7 @@ fn attribute_value_from_js<'js>(ctx: &Ctx<'js>, value: Value<'js>) -> JsResult<A
     }
     Err(Exception::throw_type(
         ctx,
-        "setAttribute value must be a string, number, or boolean",
+        "value must be a string, number, or boolean",
     ))
 }
 
@@ -94,6 +94,26 @@ pub fn install<'js>(ctx: &Ctx<'js>, host: Rc<RefCell<Host>>) -> JsResult<()> {
                     host.borrow_mut()
                         .tree
                         .append_child(parent_id, child_id)
+                        .map_err(|err| throw_tree_error(&ctx, err))
+                },
+            )?,
+        )?;
+    }
+
+    {
+        let host = Rc::clone(&host);
+        native.set(
+            "insertBefore",
+            Function::new(
+                ctx.clone(),
+                move |ctx: Ctx<'js>,
+                      parent_id: NodeId,
+                      child_id: NodeId,
+                      anchor_id: Option<NodeId>|
+                      -> JsResult<()> {
+                    host.borrow_mut()
+                        .tree
+                        .insert_before(parent_id, child_id, anchor_id)
                         .map_err(|err| throw_tree_error(&ctx, err))
                 },
             )?,
@@ -131,6 +151,27 @@ pub fn install<'js>(ctx: &Ctx<'js>, host: Rc<RefCell<Host>>) -> JsResult<()> {
                     host.borrow_mut()
                         .tree
                         .set_attribute(node_id, key, value)
+                        .map_err(|err| throw_tree_error(&ctx, err))
+                },
+            )?,
+        )?;
+    }
+
+    {
+        let host = Rc::clone(&host);
+        native.set(
+            "setStyle",
+            Function::new(
+                ctx.clone(),
+                move |ctx: Ctx<'js>,
+                      node_id: NodeId,
+                      key: String,
+                      value: Value<'js>|
+                      -> JsResult<()> {
+                    let value = attribute_value_from_js(&ctx, value)?;
+                    host.borrow_mut()
+                        .tree
+                        .set_style(node_id, key, value)
                         .map_err(|err| throw_tree_error(&ctx, err))
                 },
             )?,
@@ -188,9 +229,13 @@ mod tests {
                 __gpjsui_native__.appendChild(parent, stray);
                 __gpjsui_native__.removeChild(parent, stray);
 
+                const first = __gpjsui_native__.createNode('span');
+                __gpjsui_native__.insertBefore(parent, first, child);
+
                 __gpjsui_native__.setAttribute(child, 'label', 'hello');
                 __gpjsui_native__.setAttribute(child, 'count', 3);
                 __gpjsui_native__.setAttribute(child, 'visible', true);
+                __gpjsui_native__.setStyle(child, 'display', 'flex');
                 __gpjsui_native__.addEventListener(child, 'click', 7);
 
                 child;
@@ -202,9 +247,14 @@ mod tests {
         let parent = host.tree.get(0).unwrap();
         assert_eq!(parent.tag_name(), "div");
         assert_eq!(
-            parent.children(),
-            &[child_id],
+            parent.children().len(),
+            2,
             "the removed stray child must not remain attached"
+        );
+        assert_eq!(
+            parent.children()[1],
+            child_id,
+            "insertBefore(parent, first, child) must place `first` ahead of `child`"
         );
 
         let child = host.tree.get(child_id).unwrap();
@@ -220,6 +270,10 @@ mod tests {
         assert_eq!(
             child.attributes().get("visible"),
             Some(&AttributeValue::Bool(true))
+        );
+        assert_eq!(
+            child.style_props().get("display"),
+            Some(&AttributeValue::String("flex".into()))
         );
         assert_eq!(host.listeners.callbacks_for(child_id, "click"), &[7]);
     }
@@ -267,6 +321,78 @@ mod tests {
         assert!(
             caught,
             "a non-primitive attribute value must raise a catchable exception"
+        );
+    }
+
+    #[test]
+    fn set_style_unknown_node_id_raises_catchable_exception() {
+        let (engine, _host) = engine_with_bindings();
+
+        let caught: bool = engine
+            .eval(
+                r#"
+                let caught = false;
+                try {
+                    __gpjsui_native__.setStyle(999, 'display', 'flex');
+                } catch (e) {
+                    caught = true;
+                }
+                caught;
+                "#,
+            )
+            .unwrap();
+
+        assert!(caught, "an unknown node id must raise a catchable exception");
+    }
+
+    #[test]
+    fn set_style_non_primitive_value_raises_catchable_exception() {
+        let (engine, _host) = engine_with_bindings();
+
+        let caught: bool = engine
+            .eval(
+                r#"
+                const node = __gpjsui_native__.createNode('div');
+                let caught = false;
+                try {
+                    __gpjsui_native__.setStyle(node, 'bad', { nested: true });
+                } catch (e) {
+                    caught = true;
+                }
+                caught;
+                "#,
+            )
+            .unwrap();
+
+        assert!(
+            caught,
+            "a non-primitive style value must raise a catchable exception"
+        );
+    }
+
+    #[test]
+    fn insert_before_unknown_ids_raise_catchable_exception() {
+        let (engine, _host) = engine_with_bindings();
+
+        let caught: bool = engine
+            .eval(
+                r#"
+                const parent = __gpjsui_native__.createNode('div');
+                const child = __gpjsui_native__.createNode('span');
+                let caught = false;
+                try {
+                    __gpjsui_native__.insertBefore(parent, child, 999);
+                } catch (e) {
+                    caught = true;
+                }
+                caught;
+                "#,
+            )
+            .unwrap();
+
+        assert!(
+            caught,
+            "an unknown anchor id must raise a catchable exception"
         );
     }
 }

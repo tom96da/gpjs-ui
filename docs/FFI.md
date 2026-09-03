@@ -76,9 +76,11 @@ variants beyond the four above.
 | Function | Signature | Purpose |
 | --- | --- | --- |
 | `createNode` | `(tag: string) => number` | Allocate a `VirtualNode`, return its id. |
-| `appendChild` | `(parentId: number, childId: number) => void` | Attach a child node. |
+| `appendChild` | `(parentId: number, childId: number) => void` | Attach a child node at the end of `parentId`'s children. Thin wrapper over `insertBefore` with no anchor. |
+| `insertBefore` | `(parentId: number, childId: number, anchorId: number \| null) => void` | Attach a child node before `anchorId` (or at the end if `null`). If `anchorId` names a real node that isn't currently a child of `parentId`, falls back to appending at the end; only a wholly unknown `anchorId` throws. |
 | `removeChild` | `(parentId: number, childId: number) => void` | Detach a child node. |
-| `setAttribute` | `(nodeId: number, key: string, value: any) => void` | Set a style/attribute prop. |
+| `setAttribute` | `(nodeId: number, key: string, value: any) => void` | Set a non-style attribute prop. |
+| `setStyle` | `(nodeId: number, key: string, value: any) => void` | Set a style prop — the only JS-reachable way to touch `style_props`; `setAttribute` writes to the separate `attributes` map instead. |
 | `addEventListener` | `(nodeId: number, event: string, callbackId: number) => void` | Register a JS callback for a native input event. |
 
 On each GPUI `render()` frame cycle, the host recursively converts the
