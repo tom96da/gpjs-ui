@@ -67,7 +67,7 @@ gpjs-ui/
 │   ├── gpjs-ui/             # `gpjs-ui` — framework-agnostic host bridge wrapper (Phase 2)
 │   ├── vue/                 # `@gpjs-ui/vue` — Vue 3 custom renderer (Phase 2)
 │   ├── vite-runtime/        # `@gpjs-ui/vite-runtime` — Vite Runtime API integration for HMR (Phase 3)
-│   └── react/               # `@gpjs-ui/react` — React custom renderer, future (Phase 4)
+│   └── react/               # `@gpjs-ui/react` — React custom renderer, future (Phase 5)
 └── examples/
     └── hello-vue/           # sample Vue 3 app
 ```
