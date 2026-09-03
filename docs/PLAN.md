@@ -61,7 +61,7 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
       catch the class of bug this unit cares about. `cargo check -p
       gpjs-ui --all-targets` compile-checks the example instead.
 - [ ] Manual: run the example and look at the window — confirmed on macOS
-      only.
+      only so far; see [docs/MANUAL_GUI_CHECK.md](./MANUAL_GUI_CHECK.md).
 
 ### Unit v — VirtualNode → AnyElement conversion
 
