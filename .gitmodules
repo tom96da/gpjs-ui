@@ -6,3 +6,7 @@
 	path = third_party/rquickjs
 	url = https://github.com/DelSkayn/rquickjs.git
 	shallow = true
+[submodule "third_party/vue"]
+	path = third_party/vue
+	url = https://github.com/vuejs/core.git
+	shallow = true

@@ -34,8 +34,9 @@ gpjs-ui/
 │   └── gpjs-ui/             # Rust host: retained tree, QuickJS bridge, GPUI render (Phase 1, done)
 └── third_party/             # pinned upstream sources, as git submodules — see below
     ├── zed/                 # zed-industries/zed @ v1.17.2
-    └── rquickjs/            # DelSkayn/rquickjs @ v0.12.2
-        └── sys/quickjs/     # nested submodule: quickjs-ng @ the commit rquickjs v0.12.2 pins
+    ├── rquickjs/            # DelSkayn/rquickjs @ v0.12.2
+    │   └── sys/quickjs/     # nested submodule: quickjs-ng @ the commit rquickjs v0.12.2 pins
+    └── vue/                 # vuejs/core @ v3.5.42
 ```
 
 ## Status
@@ -85,6 +86,7 @@ These are **git submodules pinned to a specific tagged release commit**, not mov
 | `third_party/zed` | [zed-industries/zed](https://github.com/zed-industries/zed) | `v1.17.2` | Source of the `gpui` crate this project builds its rendering on. |
 | `third_party/rquickjs` | [DelSkayn/rquickjs](https://github.com/DelSkayn/rquickjs) | `v0.12.2` | Rust bindings to QuickJS this project uses as its JS runtime. |
 | `third_party/rquickjs/sys/quickjs` | [quickjs-ng/quickjs](https://github.com/quickjs-ng/quickjs) | commit pinned by rquickjs `v0.12.2` | rquickjs's own nested submodule — the actual QuickJS engine (the actively-maintained `quickjs-ng` fork, not Bellard's original `bellard/quickjs`). Not the same tree as `bellard/quickjs`; add that separately if it's ever needed for comparison. |
+| `third_party/vue` | [vuejs/core](https://github.com/vuejs/core) | `v3.5.42` | Reference source for `@vue/runtime-core`'s `createRenderer`/`RendererOptions` API and `runtime-dom`'s reference `nodeOps`/`patchProp` implementation — used while building `@gpjs-ui/vue`'s custom renderer (Phase 2). Matches the version `packages/vue/package.json` already depends on. |
 
 All are registered **shallow** (`submodule.<name>.shallow = true` in the relevant `.gitmodules`) since full history is large and irrelevant here.
 
