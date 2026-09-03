@@ -55,15 +55,19 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
 
 ### Unit iv — minimal gpui window
 
-- [ ] `crates/gpjs-ui/examples/smoke_window.rs`
-- [ ] `#[gpui::test]` headless smoke test
-- [ ] Manual: run the example and look at the window
+- [x] `crates/gpjs-ui/examples/gpui/hello_world.rs`
+- [ ] `#[gpui::test]` headless smoke test — tried, then removed: its
+      `TestPlatform` doesn't exercise real rendering or fonts, so it can't
+      catch the class of bug this unit cares about. `cargo check -p
+      gpjs-ui --all-targets` compile-checks the example instead.
+- [ ] Manual: run the example and look at the window — confirmed on macOS
+      only.
 
 ### Unit v — VirtualNode → AnyElement conversion
 
 - [ ] `crates/gpjs-ui/src/render/element.rs` (pure spec layer + thin gpui layer)
 - [ ] Tests for both layers
-- [ ] Manual: extend `smoke_window` to render a real tree
+- [ ] Manual: a new example rendering a real `VirtualTree` through gpjs-ui
 
 ### Unit vi — event-driven JS invocation (zero-overhead render loop)
 
@@ -71,8 +75,8 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
 - [ ] Test: one simulated input event triggers exactly one JS call and
       one `cx.notify()`
 - [ ] Test: repeated renders with no new events touch the JS engine zero times
-- [ ] Manual: clickable element in `smoke_window` mutates state via JS and
-      re-renders
+- [ ] Manual: clickable element in that Unit v example mutates state via JS
+      and re-renders
 
 ### Docs
 

@@ -41,7 +41,7 @@ gpjs-ui/
 
 This repository is at the scaffold stage: the Rust workspace and `crates/gpjs-ui` exist, but the crate is a placeholder with no real implementation yet. The pnpm/frontend workspace has not landed yet.
 
-- Rust: `cargo check -p gpjs-ui`, `cargo test -p gpjs-ui`.
+- Rust: `cargo check -p gpjs-ui --all-targets`, `cargo test -p gpjs-ui`.
 
 Update this file and [AGENTS.md](../AGENTS.md) as real crates, packages, commands, and ownership boundaries land — do not let either go stale.
 

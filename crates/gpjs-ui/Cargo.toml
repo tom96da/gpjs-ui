@@ -19,9 +19,21 @@ publish = false
 [lib]
 name = "gpjs_ui"
 
+[[example]]
+name = "gpui_hello_world"
+path = "examples/gpui/hello_world.rs"
+
 [dependencies]
 gpui.workspace = true
 rquickjs.workspace = true
 
 [dev-dependencies]
-gpui = { workspace = true, features = ["test-support"] }
+env_logger.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+# font-kit is required on macOS (gpui_macos) for any text to render at all —
+# without it, gpui_macos silently draws every other primitive but skips text.
+gpui_platform = { workspace = true, features = ["font-kit"] }
+
+[target.'cfg(any(target_os = "linux", target_os = "freebsd"))'.dependencies]
+gpui_platform = { workspace = true, features = ["wayland", "x11"] }
