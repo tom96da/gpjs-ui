@@ -58,6 +58,14 @@ Not started, and not begun until Vue 3 support (Phases 1–3) is stable. Adds
 `__gpjsui_native__` directly — see Phase 2), plus `@vitejs/plugin-react` for
 JSX/TSX compilation and HMR.
 
+## Phase 5: Cross-platform support (future)
+
+Not started, and not begun until the core Rust host design (Phases 1–2)
+is stable — same reasoning as Phase 4. macOS is the primary development
+target until then. This phase properly supports Linux (resolving the
+devcontainer's unconfirmed rendering — see docs/MANUAL_GUI_CHECK.md) and
+adds the `gpui_windows` platform backend for Windows.
+
 ## Implementation guidelines
 
 See [AGENTS.md](../AGENTS.md) for the guiding principles (memory safety at the

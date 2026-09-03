@@ -67,6 +67,11 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
 
 - [ ] `crates/gpjs-ui/src/render/element.rs` (pure spec layer + thin gpui layer)
 - [ ] Tests for both layers
+- [ ] Test: for each of gpui's own examples (starting with hello_world),
+      compare computed layout (not pixels) between the upstream version
+      and the same layout built via gpjs-ui's `VirtualTree` through JS —
+      should work headlessly, since layout computation alone doesn't need
+      real rendering/fonts (unlike Unit iv's removed test)
 - [ ] Manual: a new example rendering a real `VirtualTree` through gpjs-ui
 
 ### Unit vi — event-driven JS invocation (zero-overhead render loop)
