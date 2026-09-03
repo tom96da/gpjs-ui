@@ -29,6 +29,10 @@ rquickjs.workspace = true
 
 [dev-dependencies]
 env_logger.workspace = true
+# test-support gates gpui's TestPlatform/TestAppContext/#[gpui::test] — see
+# third_party/zed/crates/gpui/src/gpui.rs's `cfg(any(test, feature =
+# "test-support"))` gate.
+gpui = { workspace = true, features = ["test-support"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 # font-kit is required on macOS (gpui_macos) for any text to render at all —

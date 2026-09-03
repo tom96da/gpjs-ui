@@ -27,6 +27,48 @@ The Rust host keeps an in-memory, arena-allocated node structure
 | `attributes` | map | Non-style attributes/props. |
 | `children_ids` | `Vec<u32>` | Ordered child node handles. |
 
+### Tag vocabulary (v1)
+
+Implemented by `crates/gpjs-ui/src/render/element.rs` (Unit v). Only two
+kinds exist so far — there's no per-tag dispatch table yet, since there's
+exactly one container builder to pick from until a real second element kind
+is designed:
+
+| `tag_name` | Maps to |
+| --- | --- |
+| `"text"` | A leaf. Content comes from the `"value"` string attribute (missing/non-string → empty content, never a panic). |
+| anything else | A generic styled container (a GPUI `div()`). |
+
+### Style prop vocabulary (v1)
+
+Also implemented by `render/element.rs`. This is a deliberately small,
+initial set — exactly what's needed to express `examples/gpui/hello_world.rs`'s
+flex-box shapes and solid fills, not a full CSS surface. Unrecognized keys
+and malformed enum-string values are silently ignored (forward-compatible,
+never a panic) — this is a rendering path, not a JS call boundary, so
+there's no channel to raise a catchable exception through.
+
+| Key | Value | Maps to |
+| --- | --- | --- |
+| `display` | `"flex"`\|`"block"`\|`"grid"`\|`"none"` | `Style::display` |
+| `flex_direction` | `"row"`\|`"column"`\|`"row_reverse"`\|`"column_reverse"` | `flex_direction` |
+| `justify_content` / `align_items` | `"start"`\|`"end"`\|`"center"`\|`"stretch"` | resp. fields |
+| `gap` | number (px) | `gap.width` & `gap.height` (uniform) |
+| `width` / `height` | number (px) or `"auto"` | `size.width` / `size.height` |
+| `border_width` | number (px) | all four `border_widths.*` (uniform) |
+| `background` / `border_color` / `text_color` | number, hex `0xRRGGBB` | `Fill`/`Hsla` |
+| `corner_radius` | number (px) | all four `corner_radii.*` (uniform) |
+| `text_size` | number (px) | `text.font_size` |
+
+`text_color`/`text_size` only apply to containers — text leaves cascade
+their style from an ancestor container, exactly like GPUI's own
+`.text_color()`/`.text_size()`; there's no separate per-leaf text styling.
+
+Deliberately deferred, not yet implemented: percentage lengths, min/max
+size, margin/padding, flex-grow/shrink/basis, per-side border/corner
+values, box-shadow, and additional align/justify variants beyond the four
+above.
+
 ## Binding functions
 
 | Function | Signature | Purpose |

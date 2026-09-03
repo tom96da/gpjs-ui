@@ -65,14 +65,27 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
 
 ### Unit v — VirtualNode → AnyElement conversion
 
-- [ ] `crates/gpjs-ui/src/render/element.rs` (pure spec layer + thin gpui layer)
-- [ ] Tests for both layers
-- [ ] Test: for each of gpui's own examples (starting with hello_world),
+- [x] `crates/gpjs-ui/src/render/element.rs` (pure spec layer + thin gpui layer)
+- [x] Tests for both layers
+- [x] Test: for each of gpui's own examples (starting with hello_world),
       compare computed layout (not pixels) between the upstream version
       and the same layout built via gpjs-ui's `VirtualTree` through JS —
       should work headlessly, since layout computation alone doesn't need
-      real rendering/fonts (unlike Unit iv's removed test)
-- [ ] Manual: a new example rendering a real `VirtualTree` through gpjs-ui
+      real rendering/fonts (unlike Unit iv's removed test) — landed as
+      `crates/gpjs-ui/tests/layout_parity.rs`, reproducing hello_world's
+      shape (not a literal copy: that's a binary example, not importable);
+      only hello_world's shape is covered so far, not gpui's other examples
+- [x] Manual: a new example rendering a real `VirtualTree` through gpjs-ui —
+      `crates/gpjs-ui/examples/hello_world.rs`; confirmed on macOS by
+      comparing side-by-side against `examples/gpui/hello_world.rs`. Layout,
+      colors, and text all matched; the six squares' dashed borders didn't —
+      GPUI's `border_style` (solid vs. dashed) isn't in the v1 style
+      vocabulary yet, so it always renders solid
+- [ ] The v1 style vocabulary (`docs/FFI.md`) is deliberately incomplete:
+      percentage lengths, min/max size, margin/padding,
+      flex-grow/shrink/basis, per-side border/corner values, box-shadow, and
+      align/justify variants beyond start/end/center/stretch are not yet
+      implemented — add as real usage needs them
 
 ### Unit vi — event-driven JS invocation (zero-overhead render loop)
 
