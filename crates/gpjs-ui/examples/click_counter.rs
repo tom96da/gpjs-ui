@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! Manual example for the full JS → native tree → GPUI element round trip:
-//! a real QuickJS engine drives a `VirtualTree` through `__gpjsui_native__`,
+//! a real `QuickJS` engine drives a `VirtualTree` through `__gpjsui_native__`,
 //! and clicking the box calls a real JS callback that updates the label
 //! through `__gpjsui_native__.setAttribute`. Needs a human to look at it:
 //! click the box and the label should count up.
+
+#![allow(clippy::unwrap_used)]
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -38,13 +40,13 @@ fn build_tree(tree: &mut VirtualTree) -> (NodeId, NodeId) {
     tree.set_style(outer, "align_items", "center").unwrap();
     tree.set_style(outer, "width", 300.0).unwrap();
     tree.set_style(outer, "height", 150.0).unwrap();
-    tree.set_style(outer, "background", 0x505050 as f64)
+    tree.set_style(outer, "background", f64::from(0x505050))
         .unwrap();
     tree.set_style(outer, "border_width", 1.0).unwrap();
-    tree.set_style(outer, "border_color", 0x0000ff as f64)
+    tree.set_style(outer, "border_color", f64::from(0x0000ff))
         .unwrap();
     tree.set_style(outer, "corner_radius", 8.0).unwrap();
-    tree.set_style(outer, "text_color", 0xffffff as f64)
+    tree.set_style(outer, "text_color", f64::from(0xffffff))
         .unwrap();
     tree.set_style(outer, "text_size", 20.0).unwrap();
 
@@ -85,7 +87,7 @@ fn run_example() {
         let (outer, label) = build_tree(&mut host.borrow_mut().tree);
 
         let engine = Engine::new().unwrap();
-        engine.with(|ctx| install(&ctx, Rc::clone(&host))).unwrap();
+        engine.with(|ctx| install(&ctx, &host)).unwrap();
         install_click_handler(&engine, outer, label);
         let dispatcher = EventDispatcher::new(Rc::new(engine), Rc::clone(&host));
 

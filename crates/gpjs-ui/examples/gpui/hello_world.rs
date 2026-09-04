@@ -7,6 +7,8 @@
 //! at it; if it doesn't render, set `RUST_LOG=warn` to surface gpui's
 //! diagnostics.
 
+#![allow(clippy::unwrap_used)]
+
 use gpui::{
     App, Bounds, Context, SharedString, Window, WindowBounds, WindowOptions, div, prelude::*, px,
     rgb, size,

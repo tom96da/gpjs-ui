@@ -140,6 +140,11 @@ fn as_number(value: &AttributeValue) -> Option<f64> {
 /// not an error — same tolerance as every other style value.
 fn as_color(value: &AttributeValue) -> Option<u32> {
     match value {
+        // Out-of-range/negative numbers truncate or wrap rather than being
+        // rejected — same "malformed input is tolerated, not an error" policy
+        // as this whole module's other conversions (see this fn's doc
+        // comment).
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         AttributeValue::Number(n) => Some(*n as u32),
         AttributeValue::String(s) => parse_hex_color(s),
         AttributeValue::Bool(_) => None,
@@ -208,10 +213,10 @@ fn style_spec_from_props(props: &HashMap<String, AttributeValue>) -> StyleSpec {
         match key.as_str() {
             "display" => style.display = as_str(value).and_then(display_spec_from_str),
             "flex_direction" => {
-                style.flex_direction = as_str(value).and_then(flex_direction_spec_from_str)
+                style.flex_direction = as_str(value).and_then(flex_direction_spec_from_str);
             }
             "justify_content" => {
-                style.justify_content = as_str(value).and_then(align_spec_from_str)
+                style.justify_content = as_str(value).and_then(align_spec_from_str);
             }
             "align_items" => style.align_items = as_str(value).and_then(align_spec_from_str),
             "gap" => style.gap = as_number(value),
@@ -235,6 +240,7 @@ fn style_spec_from_props(props: &HashMap<String, AttributeValue>) -> StyleSpec {
 /// `VirtualTree`'s own API guarantees this can't actually happen (nodes are
 /// never deallocated), but this is ultimately fed by JS-supplied data, so
 /// the render path stays defensive anyway.
+#[must_use]
 pub fn build_spec(tree: &VirtualTree, root: NodeId) -> Option<ElementSpec> {
     let node = tree.get(root)?;
 
@@ -263,6 +269,9 @@ pub fn build_spec(tree: &VirtualTree, root: NodeId) -> Option<ElementSpec> {
     })
 }
 
+// f64 -> f32 for `gpui`'s `Pixels` type: real UI dimensions never carry
+// enough precision or magnitude for this narrowing to matter.
+#[allow(clippy::cast_possible_truncation)]
 fn length_from_spec(spec: LengthSpec) -> Length {
     match spec {
         LengthSpec::Px(n) => px(n as f32).into(),
@@ -274,6 +283,9 @@ fn length_from_spec(spec: LengthSpec) -> Length {
 /// field assignment rather than `gpui`'s named Tailwind-scale builder
 /// methods (`.gap_3()`, `.size_8()`, ...) — those only cover fixed steps,
 /// not the arbitrary numbers this spec carries.
+// f64 -> f32 for `gpui`'s `Pixels` type: real UI dimensions never carry
+// enough precision or magnitude for this narrowing to matter.
+#[allow(clippy::cast_possible_truncation)]
 fn apply_style(style: &mut StyleRefinement, spec: &StyleSpec) {
     if let Some(display) = spec.display {
         style.display = Some(match display {
@@ -368,7 +380,7 @@ fn build_element_inner(spec: &ElementSpec, dispatch: Option<&EventDispatcher>) -
         ElementTag::Container => {
             let id = spec.id;
             let mut element = div()
-                .id(ElementId::Integer(id as u64))
+                .id(ElementId::Integer(u64::from(id)))
                 .debug_selector(move || format!("node-{id}"));
             if let Some(dispatch) = dispatch {
                 let dispatch = dispatch.clone();
@@ -388,12 +400,14 @@ fn build_element_inner(spec: &ElementSpec, dispatch: Option<&EventDispatcher>) -
 /// Recursively converts an [`ElementSpec`] into a real `gpui` [`AnyElement`],
 /// with no event wiring — see [`build_element_with_events`] for a version
 /// whose containers dispatch `"click"` into JS.
+#[must_use]
 pub fn build_element(spec: &ElementSpec) -> AnyElement {
     build_element_inner(spec, None)
 }
 
 /// Like [`build_element`], but every container's click dispatches into JS
 /// via `dispatch` (see `render/bridge.rs`).
+#[must_use]
 pub fn build_element_with_events(spec: &ElementSpec, dispatch: &EventDispatcher) -> AnyElement {
     build_element_inner(spec, Some(dispatch))
 }
@@ -401,12 +415,14 @@ pub fn build_element_with_events(spec: &ElementSpec, dispatch: &EventDispatcher)
 /// Composes [`build_spec`] and [`build_element`]: builds `root` and its
 /// whole subtree from `tree` into a real `gpui` element. `None` if `root`
 /// doesn't resolve.
+#[must_use]
 pub fn render_tree(tree: &VirtualTree, root: NodeId) -> Option<AnyElement> {
     build_spec(tree, root).map(|spec| build_element(&spec))
 }
 
 /// Like [`render_tree`], but every container's click dispatches into JS via
 /// `dispatch` (see [`build_element_with_events`]).
+#[must_use]
 pub fn render_tree_with_events(
     tree: &VirtualTree,
     root: NodeId,
@@ -416,6 +432,7 @@ pub fn render_tree_with_events(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -482,10 +499,13 @@ mod tests {
             tree.set_style(id, "width", 120.0).unwrap();
             tree.set_style(id, "height", "auto").unwrap();
             tree.set_style(id, "border_width", 1.0).unwrap();
-            tree.set_style(id, "background", 0x505050 as f64).unwrap();
-            tree.set_style(id, "border_color", 0x0000ff as f64).unwrap();
+            tree.set_style(id, "background", f64::from(0x505050))
+                .unwrap();
+            tree.set_style(id, "border_color", f64::from(0x0000ff))
+                .unwrap();
             tree.set_style(id, "corner_radius", 4.0).unwrap();
-            tree.set_style(id, "text_color", 0xffffff as f64).unwrap();
+            tree.set_style(id, "text_color", f64::from(0xffffff))
+                .unwrap();
             tree.set_style(id, "text_size", 20.0).unwrap();
 
             let spec = build_spec(&tree, id).unwrap();

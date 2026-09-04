@@ -37,8 +37,7 @@ impl EventListeners {
         self.by_node
             .get(&node_id)
             .and_then(|events| events.get(event))
-            .map(Vec::as_slice)
-            .unwrap_or(&[])
+            .map_or(&[], Vec::as_slice)
     }
 }
 
@@ -50,11 +49,11 @@ pub struct Host {
     pub listeners: EventListeners,
 }
 
-fn throw_tree_error<'js>(ctx: &Ctx<'js>, err: TreeError) -> rquickjs::Error {
+fn throw_tree_error(ctx: &Ctx<'_>, err: TreeError) -> rquickjs::Error {
     Exception::throw_type(ctx, &err.to_string())
 }
 
-fn attribute_value_from_js<'js>(ctx: &Ctx<'js>, value: Value<'js>) -> JsResult<AttributeValue> {
+fn attribute_value_from_js<'js>(ctx: &Ctx<'js>, value: &Value<'js>) -> JsResult<AttributeValue> {
     if value.is_string() {
         return value.get::<String>().map(AttributeValue::String);
     }
@@ -71,11 +70,19 @@ fn attribute_value_from_js<'js>(ctx: &Ctx<'js>, value: Value<'js>) -> JsResult<A
 }
 
 /// Installs `globalThis.__gpjsui_native__` into `ctx`, wired to `host`.
-pub fn install<'js>(ctx: &Ctx<'js>, host: Rc<RefCell<Host>>) -> JsResult<()> {
+///
+/// # Errors
+///
+/// Returns an error if defining `globalThis.__gpjsui_native__` or any of its
+/// methods on `ctx` fails.
+// Long from repeating one registration block 7 times, not from complexity —
+// splitting it up would just spread that same list across more functions.
+#[allow(clippy::too_many_lines)]
+pub fn install<'js>(ctx: &Ctx<'js>, host: &Rc<RefCell<Host>>) -> JsResult<()> {
     let native = Object::new(ctx.clone())?;
 
     {
-        let host = Rc::clone(&host);
+        let host = Rc::clone(host);
         native.set(
             "createNode",
             Function::new(ctx.clone(), move |tag_name: String| -> NodeId {
@@ -85,7 +92,7 @@ pub fn install<'js>(ctx: &Ctx<'js>, host: Rc<RefCell<Host>>) -> JsResult<()> {
     }
 
     {
-        let host = Rc::clone(&host);
+        let host = Rc::clone(host);
         native.set(
             "appendChild",
             Function::new(
@@ -101,7 +108,7 @@ pub fn install<'js>(ctx: &Ctx<'js>, host: Rc<RefCell<Host>>) -> JsResult<()> {
     }
 
     {
-        let host = Rc::clone(&host);
+        let host = Rc::clone(host);
         native.set(
             "insertBefore",
             Function::new(
@@ -121,7 +128,7 @@ pub fn install<'js>(ctx: &Ctx<'js>, host: Rc<RefCell<Host>>) -> JsResult<()> {
     }
 
     {
-        let host = Rc::clone(&host);
+        let host = Rc::clone(host);
         native.set(
             "removeChild",
             Function::new(
@@ -137,7 +144,7 @@ pub fn install<'js>(ctx: &Ctx<'js>, host: Rc<RefCell<Host>>) -> JsResult<()> {
     }
 
     {
-        let host = Rc::clone(&host);
+        let host = Rc::clone(host);
         native.set(
             "setAttribute",
             Function::new(
@@ -147,7 +154,7 @@ pub fn install<'js>(ctx: &Ctx<'js>, host: Rc<RefCell<Host>>) -> JsResult<()> {
                       key: String,
                       value: Value<'js>|
                       -> JsResult<()> {
-                    let value = attribute_value_from_js(&ctx, value)?;
+                    let value = attribute_value_from_js(&ctx, &value)?;
                     host.borrow_mut()
                         .tree
                         .set_attribute(node_id, key, value)
@@ -158,7 +165,7 @@ pub fn install<'js>(ctx: &Ctx<'js>, host: Rc<RefCell<Host>>) -> JsResult<()> {
     }
 
     {
-        let host = Rc::clone(&host);
+        let host = Rc::clone(host);
         native.set(
             "setStyle",
             Function::new(
@@ -168,7 +175,7 @@ pub fn install<'js>(ctx: &Ctx<'js>, host: Rc<RefCell<Host>>) -> JsResult<()> {
                       key: String,
                       value: Value<'js>|
                       -> JsResult<()> {
-                    let value = attribute_value_from_js(&ctx, value)?;
+                    let value = attribute_value_from_js(&ctx, &value)?;
                     host.borrow_mut()
                         .tree
                         .set_style(node_id, key, value)
@@ -179,7 +186,7 @@ pub fn install<'js>(ctx: &Ctx<'js>, host: Rc<RefCell<Host>>) -> JsResult<()> {
     }
 
     {
-        let host = Rc::clone(&host);
+        let host = Rc::clone(host);
         native.set(
             "addEventListener",
             Function::new(
@@ -205,6 +212,7 @@ pub fn install<'js>(ctx: &Ctx<'js>, host: Rc<RefCell<Host>>) -> JsResult<()> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::js::engine::Engine;
@@ -212,7 +220,7 @@ mod tests {
     fn engine_with_bindings() -> (Engine, Rc<RefCell<Host>>) {
         let engine = Engine::new().unwrap();
         let host = Rc::new(RefCell::new(Host::default()));
-        engine.with(|ctx| install(&ctx, Rc::clone(&host))).unwrap();
+        engine.with(|ctx| install(&ctx, &host)).unwrap();
         (engine, host)
     }
 
@@ -222,7 +230,7 @@ mod tests {
 
         let child_id: NodeId = engine
             .eval(
-                r#"
+                r"
                 const parent = __gpjsui_native__.createNode('div');
                 const child = __gpjsui_native__.createNode('span');
                 __gpjsui_native__.appendChild(parent, child);
@@ -241,7 +249,7 @@ mod tests {
                 __gpjsui_native__.addEventListener(child, 'click', 7);
 
                 child;
-                "#,
+                ",
             )
             .unwrap();
 
@@ -286,7 +294,7 @@ mod tests {
 
         let caught: bool = engine
             .eval(
-                r#"
+                r"
                 let caught = false;
                 try {
                     __gpjsui_native__.appendChild(999, 1000);
@@ -294,7 +302,7 @@ mod tests {
                     caught = true;
                 }
                 caught;
-                "#,
+                ",
             )
             .unwrap();
 
@@ -310,7 +318,7 @@ mod tests {
 
         let caught: bool = engine
             .eval(
-                r#"
+                r"
                 const node = __gpjsui_native__.createNode('div');
                 let caught = false;
                 try {
@@ -319,7 +327,7 @@ mod tests {
                     caught = true;
                 }
                 caught;
-                "#,
+                ",
             )
             .unwrap();
 
@@ -335,7 +343,7 @@ mod tests {
 
         let caught: bool = engine
             .eval(
-                r#"
+                r"
                 let caught = false;
                 try {
                     __gpjsui_native__.setStyle(999, 'display', 'flex');
@@ -343,7 +351,7 @@ mod tests {
                     caught = true;
                 }
                 caught;
-                "#,
+                ",
             )
             .unwrap();
 
@@ -359,7 +367,7 @@ mod tests {
 
         let caught: bool = engine
             .eval(
-                r#"
+                r"
                 const node = __gpjsui_native__.createNode('div');
                 let caught = false;
                 try {
@@ -368,7 +376,7 @@ mod tests {
                     caught = true;
                 }
                 caught;
-                "#,
+                ",
             )
             .unwrap();
 
@@ -384,7 +392,7 @@ mod tests {
 
         let caught: bool = engine
             .eval(
-                r#"
+                r"
                 const parent = __gpjsui_native__.createNode('div');
                 const child = __gpjsui_native__.createNode('span');
                 let caught = false;
@@ -394,7 +402,7 @@ mod tests {
                     caught = true;
                 }
                 caught;
-                "#,
+                ",
             )
             .unwrap();
 

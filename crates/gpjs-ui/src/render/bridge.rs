@@ -83,6 +83,7 @@ impl EventDispatcher {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::js::bindings::install;
@@ -91,7 +92,7 @@ mod tests {
     fn dispatcher_with_engine() -> (EventDispatcher, Rc<RefCell<Host>>) {
         let engine = Rc::new(Engine::new().unwrap());
         let host = Rc::new(RefCell::new(Host::default()));
-        engine.with(|ctx| install(&ctx, Rc::clone(&host))).unwrap();
+        engine.with(|ctx| install(&ctx, &host)).unwrap();
         (EventDispatcher::new(engine, Rc::clone(&host)), host)
     }
 

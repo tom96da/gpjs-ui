@@ -26,3 +26,8 @@ env_logger = "0.11"
 gpui = { git = "https://github.com/zed-industries/zed", tag = "v1.17.2" }
 gpui_platform = { git = "https://github.com/zed-industries/zed", tag = "v1.17.2" }
 rquickjs = { version = "0.12.2", default-features = false, features = ["std"] }
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "warn"
+unreadable_literal = "allow"

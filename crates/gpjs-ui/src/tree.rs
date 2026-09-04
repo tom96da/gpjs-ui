@@ -74,23 +74,28 @@ impl VirtualNode {
         }
     }
 
+    #[must_use]
     pub fn id(&self) -> NodeId {
         self.id
     }
 
+    #[must_use]
     pub fn tag_name(&self) -> &str {
         &self.tag_name
     }
 
+    #[must_use]
     pub fn style_props(&self) -> &HashMap<String, AttributeValue> {
         &self.style_props
     }
 
+    #[must_use]
     pub fn attributes(&self) -> &HashMap<String, AttributeValue> {
         &self.attributes
     }
 
     /// Ordered child handles. Order is append order, not insertion-sorted.
+    #[must_use]
     pub fn children(&self) -> &[NodeId] {
         &self.children
     }
@@ -115,7 +120,7 @@ impl fmt::Display for TreeError {
 
 impl std::error::Error for TreeError {}
 
-/// Owns the whole retained tree. One instance per QuickJS engine/document —
+/// Owns the whole retained tree. One instance per `QuickJS` engine/document —
 /// ids from one `VirtualTree` are meaningless in another.
 #[derive(Debug, Default)]
 pub struct VirtualTree {
@@ -124,6 +129,7 @@ pub struct VirtualTree {
 }
 
 impl VirtualTree {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -131,6 +137,10 @@ impl VirtualTree {
     /// Allocates a new node and returns its id. Ids are assigned
     /// sequentially starting at 0 and are never reused, even after the node
     /// they named is detached from every parent.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the id space is exhausted (`u32::MAX` nodes ever created).
     pub fn create_node(&mut self, tag_name: impl Into<String>) -> NodeId {
         let id = self.next_id;
         self.next_id = self
@@ -141,12 +151,18 @@ impl VirtualTree {
         id
     }
 
+    #[must_use]
     pub fn get(&self, id: NodeId) -> Option<&VirtualNode> {
         self.nodes.get(&id)
     }
 
     /// Appends `child_id` to `parent_id`'s children. Thin wrapper over
     /// [`insert_before`](Self::insert_before) with no anchor.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TreeError::NodeNotFound`] if `parent_id` or `child_id`
+    /// names no node.
     pub fn append_child(&mut self, parent_id: NodeId, child_id: NodeId) -> Result<(), TreeError> {
         self.insert_before(parent_id, child_id, None)
     }
@@ -160,6 +176,11 @@ impl VirtualTree {
     /// child of `parent_id`) — the tree is a plain multi-parent graph at
     /// this layer, not a DOM-style single-parent tree; that invariant, if
     /// wanted, belongs to a higher layer.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TreeError::NodeNotFound`] if `parent_id` or `child_id`
+    /// names no node, or if `anchor_id` is `Some` and names no node.
     pub fn insert_before(
         &mut self,
         parent_id: NodeId,
@@ -189,6 +210,10 @@ impl VirtualTree {
     /// not being (or no longer being) a child of `parent_id` is a no-op, not
     /// an error — only an unknown `parent_id` is. The child node itself is
     /// never deallocated by this call.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TreeError::NodeNotFound`] if `parent_id` names no node.
     pub fn remove_child(&mut self, parent_id: NodeId, child_id: NodeId) -> Result<(), TreeError> {
         let parent = self
             .nodes
@@ -199,6 +224,10 @@ impl VirtualTree {
     }
 
     /// Sets (inserting or overwriting) one attribute prop.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TreeError::NodeNotFound`] if `node_id` names no node.
     pub fn set_attribute(
         &mut self,
         node_id: NodeId,
@@ -214,6 +243,10 @@ impl VirtualTree {
     }
 
     /// Sets (inserting or overwriting) one style prop.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TreeError::NodeNotFound`] if `node_id` names no node.
     pub fn set_style(
         &mut self,
         node_id: NodeId,
@@ -230,6 +263,7 @@ impl VirtualTree {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

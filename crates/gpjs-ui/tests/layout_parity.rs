@@ -13,6 +13,8 @@
 //! amounts) — this uses its own literal pixel values instead, applied to
 //! both sides identically.
 
+#![allow(clippy::unwrap_used)]
+
 use gpui::prelude::*;
 use gpui::{
     AlignItems, AnyElement, Bounds, Display, FlexDirection, JustifyContent, Pixels, TestAppContext,

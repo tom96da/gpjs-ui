@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! Integration tests for `gpjs_ui::render::bridge`'s event dispatch: a real
-//! `VirtualTree`, wired to a real QuickJS callback via the
+//! `VirtualTree`, wired to a real `QuickJS` callback via the
 //! `__gpjsui_callbacks__` convention (see `EventDispatcher`'s doc comment),
 //! rendered through `render_tree_with_events`.
+
+#![allow(clippy::unwrap_used, clippy::float_cmp)]
 
 use std::cell::RefCell;
 use std::rc::Rc;

@@ -1,9 +1,9 @@
 // Copyright (c) 2026 tom96da
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! QuickJS runtime bootstrap.
+//! `QuickJS` runtime bootstrap.
 //!
-//! An [`Engine`] pairs one QuickJS runtime with one execution context. Each
+//! An [`Engine`] pairs one `QuickJS` runtime with one execution context. Each
 //! `Engine` is fully independent: creating a global on one has no effect on
 //! any other `Engine`, since they don't share a runtime or a heap.
 
@@ -22,9 +22,14 @@ pub struct Engine {
 }
 
 impl Engine {
-    /// Creates a new engine with a fresh QuickJS runtime and context, with
+    /// Creates a new engine with a fresh `QuickJS` runtime and context, with
     /// the standard set of built-in JS intrinsics (`Array`, `JSON`, ...)
     /// enabled.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the underlying `QuickJS` runtime or context fails
+    /// to initialize.
     pub fn new() -> EngineResult<Self> {
         let runtime = Runtime::new()?;
         let context = Context::full(&runtime)?;
@@ -37,6 +42,11 @@ impl Engine {
     /// Evaluates `source` as a JS script and converts its completion value
     /// to `V`. A syntax error, a thrown exception, or a value that can't
     /// convert to `V` are all returned as an `Err`, never a panic.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a JS syntax error, an uncaught thrown exception,
+    /// or a completion value that doesn't convert to `V`.
     pub fn eval<V>(&self, source: &str) -> EngineResult<V>
     where
         V: for<'js> FromJs<'js>,
@@ -56,6 +66,7 @@ impl Engine {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
