@@ -32,9 +32,12 @@ real usage needs them). The one item nobody in this container can do is the
 manual visual check (no display attached — see
 [docs/MANUAL_GUI_CHECK.md](./docs/MANUAL_GUI_CHECK.md)).
 [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and
-[docs/ROADMAP.md](./docs/ROADMAP.md)'s Phase 2 onward (JS packages, the Vue
-3 custom renderer, HMR) are still *planned* target design, not landed code.
-The frontend/pnpm workspace has not landed yet.
+[docs/ROADMAP.md](./docs/ROADMAP.md)'s Phase 2 is partway landed per
+[docs/PLAN.md](./docs/PLAN.md): the pnpm workspace and `packages/gpjs-ui`'s
+typed wrapper around `__gpjsui_native__` (Units i–ii) are done and tested.
+`packages/vue`'s custom renderer (Unit iii onward), the Vite/HMR bridge
+(Phase 3), and everything after are still *planned* target design, not
+landed code.
 
 - Rust: `cargo check -p gpjs-ui --all-targets` (the `--all-targets` also
   compile-checks `examples/`, which has no automated test of its own — see
@@ -48,6 +51,7 @@ Keep these commands accurate as real logic lands — don't let this section go s
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — tech stack, system diagram, and how HMR is delivered into the embedded QuickJS runtime.
 - [docs/ROADMAP.md](./docs/ROADMAP.md) — the phased build-out plan (Vue 3 first, React later as an additive package).
 - [docs/FFI.md](./docs/FFI.md) — the JS↔Rust host bridge function surface.
+- [docs/TESTING.md](./docs/TESTING.md) — where tests live and what kind of test goes where, for both Rust and TypeScript.
 
 ### Guiding principles
 
@@ -68,4 +72,5 @@ See [docs/STRUCTURE.md](./docs/STRUCTURE.md) for the full directory map, includi
   ```
 - **Dev container**: `.devcontainer/Dockerfile` builds on `mcr.microsoft.com/devcontainers/rust:2-1-trixie`, adding the native build/runtime dependencies `gpui` needs (windowing, Vulkan, fontconfig — see the Dockerfile's comment), plus the `node` devcontainer feature. Use `pnpm` for any JS/frontend tooling — Vite's officially supported and tested runtime is Node.js, and this project's HMR bridge builds directly on Vite's less battle-tested Runtime API (`vite/module-runner`), so avoid introducing a second, less-proven runtime (e.g. Bun) there.
 - **Git & commits**: see [docs/GIT.md](./docs/GIT.md) for the commit message format and, most importantly, the review policy — never run `git commit`/`git commit --amend` without first showing the exact diff and message for explicit approval.
+- **Testing & tooling**: see [docs/TESTING.md](./docs/TESTING.md) for where tests live and the full set of checks (lint, format, type-check, tests) that must pass, for both Rust and TypeScript.
 - Keep this file (not just README.md) up to date as real architecture, module boundaries, and commands land — this is the file agents read first.

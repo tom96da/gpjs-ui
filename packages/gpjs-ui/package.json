@@ -35,6 +35,7 @@
   },
   "scripts": {
     "build": "vite build",
+    "pretest": "oxlint --type-aware --type-check && oxfmt --check .",
     "test": "vitest run",
     "lint": "oxlint",
     "format": "oxfmt --check .",

@@ -242,8 +242,14 @@ needed without SSR/hydration. Built on `packages/gpjs-ui`, never on
 
 - [ ] `createElement`/`insert`/`remove` — the core node lifecycle, built
       on `packages/gpjs-ui`'s `createNode`/`insertBefore`/`removeChild`
-- [ ] `createText`/`setText`/`setElementText` map to a `tag: "text"` node
-      + `setAttribute(id, "value", text)`, matching `hello_world.rs`'s
+- [ ] Add `disposeNode(nodeId)` to `packages/gpjs-ui` (closes the gap
+      Unit ii's callback registry left open — see its notes above): purges
+      every callback id registered for `nodeId` from
+      `registeredCallbackIds`/`__gpjsui_callbacks__`, across all event
+      names, not just the one currently patched. `nodeOps.remove(el)`
+      calls it alongside `removeChild` — this is the first point in the
+      stack that actually knows a node is gone for good
+- [ ] `createText`/`setText`/`setElementText` map to a `tag: "text"` node + `setAttribute(id, "value", text)`, matching `hello_world.rs`'s
       existing text-leaf convention
 - [ ] `createComment` maps to a hidden node (`createNode("div")` +
       `setStyle(id, "display", "none")`) — `display: none` is already in
@@ -284,14 +290,30 @@ once" wrapper becomes obsolete then).
       inlineTemplate: true })` for `<script setup>` SFCs, falling back to
       explicit `compileTemplate` for template-only files (no `<style>`
       handling needed, GPUI has no CSS concept)
-- [ ] Bundle the compiled SFC together with `packages/gpjs-ui`/
-      `packages/vue` into one JS file consumable by QuickJS
+- [ ] Add an `eval_module`-style method to `Engine` (`src/js/engine.rs`):
+      `rquickjs::Module::declare` + `.eval()` inside the existing
+      `Context::with` closure, draining pending jobs until the returned
+      `Promise` settles, then reading the needed exports back via
+      `Module::get`/`.namespace()` — no `ModuleLoader`/resolver needed,
+      since the bundle this evaluates is fully self-contained (only
+      `export`s, no unresolved `import`s)
+- [ ] Bundle the compiled SFC together with `packages/gpjs-ui`'s and
+      `packages/vue`'s existing ESM output (`formats: ["es"]`) into one
+      self-contained JS file (no unresolved imports) consumable by
+      `Engine::eval_module`
+- [ ] `crates/gpjs-ui/tests/js_core_integration.rs`: install real
+      `__gpjsui_native__` bindings via `bindings::install`,
+      `Engine::eval_module` the bundled `packages/gpjs-ui` output, call
+      its exported wrapper functions, and assert against the resulting
+      `VirtualTree` state — same pattern as `bindings.rs`'s own tests,
+      but exercising the package's actual compiled output instead of
+      hand-written JS strings
 - [ ] New `crates/gpjs-ui/examples/gpui/hello_vue.rs`: Rust creates one
       root `VirtualNode` (matching `click_counter.rs`'s pattern),
       installs `__gpjsui_native__` bindings, reads the compiled bundle
-      from disk, and `Engine::eval`s it with the root node id exposed to
-      JS (same id-interpolation convention `click_counter.rs` already
-      uses), rendering via `render_tree_with_events` each frame
+      from disk, and `Engine::eval_module`s it with the root node id
+      exposed to JS (same id-interpolation convention `click_counter.rs`
+      already uses), rendering via `render_tree_with_events` each frame
 - [ ] Manual: run the example and look at the window — see
       `docs/MANUAL_GUI_CHECK.md`; once confirmed, update that doc to list
       this as a verified 4th example alongside the existing three
