@@ -1,7 +1,12 @@
 {
   "name": "@gpjs-ui/vue",
   "version": "0.0.0-0",
+  "description": "Vue 3 custom renderer for gpjs-ui, mapping createRenderer's lifecycle methods to gpjs-ui core calls.",
   "private": true,
+  "type": "module",
+  "files": ["dist"],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.mts",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tom96da/gpjs-ui.git",
@@ -16,8 +21,19 @@
     "desktop-app",
     "gui"
   ],
-  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
-    "@vue/runtime-core": "^3.5.42"
+    "@vue/runtime-core": "^3.5.42",
+    "gpjs-ui": "workspace:*"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.js"
+    }
   }
 }

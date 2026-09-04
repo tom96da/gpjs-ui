@@ -1,6 +1,8 @@
 {
   "name": "@gpjs-ui/monorepo",
+  "description": "A lightweight Webview-free desktop application framework powered by GPUI and QuickJS.",
   "private": true,
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tom96da/gpjs-ui.git"
@@ -19,7 +21,19 @@
     "electron-alternative",
     "tauri-alternative"
   ],
-  "type": "module",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "unplugin-dts": "^1.1.0",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
+  },
   "engines": {
     "node": ">=26"
   },

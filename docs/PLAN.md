@@ -169,10 +169,22 @@ anchor)` needs to insert before a specific sibling for correct Vue list
 
 ### Unit i — TS tooling scaffolding
 
-- [ ] Root or per-package `tsconfig.json` (none exists yet) — shared base
-      config extended by `packages/gpjs-ui` and `packages/vue`
-- [ ] Vite library-mode build for both packages (ESM output,
-      `types`/`exports` fields in each `package.json`)
+- [x] Root `tsconfig.base.json`, extended by each package's own
+      `tsconfig.json` (`.mts` sources, `module`/`moduleResolution:
+      NodeNext`)
+- [x] Vite library-mode build for both packages (`vite.config.mts`, ESM
+      output, `types`/`exports` fields in each `package.json`) — verified
+      end-to-end: `pnpm -r typecheck`/`build`/`test` all pass against a
+      placeholder `src/index.mts`
+- [x] TypeScript 7's native compiler (`typescript@^7.0.2`, no
+      programmatic API until 7.1) is used for the fast `tsc --noEmit`
+      typecheck; `typescript` itself is npm-aliased to
+      `@typescript/typescript6@^6.0.2` (its `tsc6` binary + full API) so
+      API-consuming tooling (`unplugin-dts`) keeps working — the real
+      native package lives under the `@typescript/native` alias instead
+- [x] Declaration output via `unplugin-dts/vite` (not `vite-plugin-dts`,
+      which is now just a thin, deprecated wrapper around it — see
+      https://github.com/qmhc/unplugin-dts/blob/main/docs/en/usage.md)
 
 ### Unit ii — `gpjs-ui` core package (`packages/gpjs-ui`)
 
