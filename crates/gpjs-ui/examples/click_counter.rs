@@ -38,11 +38,14 @@ fn build_tree(tree: &mut VirtualTree) -> (NodeId, NodeId) {
     tree.set_style(outer, "align_items", "center").unwrap();
     tree.set_style(outer, "width", 300.0).unwrap();
     tree.set_style(outer, "height", 150.0).unwrap();
-    tree.set_style(outer, "background", 0x505050 as f64).unwrap();
+    tree.set_style(outer, "background", 0x505050 as f64)
+        .unwrap();
     tree.set_style(outer, "border_width", 1.0).unwrap();
-    tree.set_style(outer, "border_color", 0x0000ff as f64).unwrap();
+    tree.set_style(outer, "border_color", 0x0000ff as f64)
+        .unwrap();
     tree.set_style(outer, "corner_radius", 8.0).unwrap();
-    tree.set_style(outer, "text_color", 0xffffff as f64).unwrap();
+    tree.set_style(outer, "text_color", 0xffffff as f64)
+        .unwrap();
     tree.set_style(outer, "text_size", 20.0).unwrap();
 
     let label = tree.create_node("text");

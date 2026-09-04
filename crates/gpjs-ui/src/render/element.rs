@@ -210,7 +210,9 @@ fn style_spec_from_props(props: &HashMap<String, AttributeValue>) -> StyleSpec {
             "flex_direction" => {
                 style.flex_direction = as_str(value).and_then(flex_direction_spec_from_str)
             }
-            "justify_content" => style.justify_content = as_str(value).and_then(align_spec_from_str),
+            "justify_content" => {
+                style.justify_content = as_str(value).and_then(align_spec_from_str)
+            }
             "align_items" => style.align_items = as_str(value).and_then(align_spec_from_str),
             "gap" => style.gap = as_number(value),
             "width" => style.width = length_spec_from(value),
@@ -521,7 +523,8 @@ mod tests {
         fn malformed_enum_value_is_ignored_not_a_panic() {
             let mut tree = VirtualTree::new();
             let id = tree.create_node("div");
-            tree.set_style(id, "display", "not-a-real-display-value").unwrap();
+            tree.set_style(id, "display", "not-a-real-display-value")
+                .unwrap();
 
             let spec = build_spec(&tree, id).unwrap();
             assert_eq!(spec.style.display, None);

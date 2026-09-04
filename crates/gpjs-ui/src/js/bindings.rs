@@ -184,7 +184,11 @@ pub fn install<'js>(ctx: &Ctx<'js>, host: Rc<RefCell<Host>>) -> JsResult<()> {
             "addEventListener",
             Function::new(
                 ctx.clone(),
-                move |ctx: Ctx<'js>, node_id: NodeId, event: String, callback_id: u32| -> JsResult<()> {
+                move |ctx: Ctx<'js>,
+                      node_id: NodeId,
+                      event: String,
+                      callback_id: u32|
+                      -> JsResult<()> {
                     let mut host = host.borrow_mut();
                     if host.tree.get(node_id).is_none() {
                         return Err(throw_tree_error(&ctx, TreeError::NodeNotFound(node_id)));
@@ -208,9 +212,7 @@ mod tests {
     fn engine_with_bindings() -> (Engine, Rc<RefCell<Host>>) {
         let engine = Engine::new().unwrap();
         let host = Rc::new(RefCell::new(Host::default()));
-        engine
-            .with(|ctx| install(&ctx, Rc::clone(&host)))
-            .unwrap();
+        engine.with(|ctx| install(&ctx, Rc::clone(&host))).unwrap();
         (engine, host)
     }
 
@@ -296,7 +298,10 @@ mod tests {
             )
             .unwrap();
 
-        assert!(caught, "an unknown node id must raise a catchable exception");
+        assert!(
+            caught,
+            "an unknown node id must raise a catchable exception"
+        );
     }
 
     #[test]
@@ -342,7 +347,10 @@ mod tests {
             )
             .unwrap();
 
-        assert!(caught, "an unknown node id must raise a catchable exception");
+        assert!(
+            caught,
+            "an unknown node id must raise a catchable exception"
+        );
     }
 
     #[test]

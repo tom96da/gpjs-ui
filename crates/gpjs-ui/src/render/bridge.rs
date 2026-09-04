@@ -57,7 +57,12 @@ impl EventDispatcher {
     /// itself are all silently skipped rather than propagated — a bad
     /// listener must not take down the host.
     pub fn dispatch(&self, node_id: NodeId, event: &str, window: &mut Window) {
-        let callback_ids = self.host.borrow().listeners.callbacks_for(node_id, event).to_vec();
+        let callback_ids = self
+            .host
+            .borrow()
+            .listeners
+            .callbacks_for(node_id, event)
+            .to_vec();
         if callback_ids.is_empty() {
             return;
         }
@@ -118,7 +123,9 @@ mod tests {
         host.borrow_mut().listeners.register(node_id, "click", 0);
         dispatcher
             .engine
-            .eval::<()>("globalThis.__gpjsui_callbacks__ = { 0: () => { throw new Error('boom'); } };")
+            .eval::<()>(
+                "globalThis.__gpjsui_callbacks__ = { 0: () => { throw new Error('boom'); } };",
+            )
             .unwrap();
 
         let cx = cx.add_empty_window();

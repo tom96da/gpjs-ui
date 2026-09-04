@@ -6,8 +6,8 @@
 [workspace]
 resolver = "3"
 members = [
-    "crates/gpjs-ui",
-    # gpjs-ui-cli, gpjs-ui-macros land in Phase 3 / on-demand — see docs/ROADMAP.md
+  "crates/gpjs-ui",
+  # gpjs-ui-cli, gpjs-ui-macros land in Phase 3 / on-demand — see docs/ROADMAP.md
 ]
 default-members = ["crates/gpjs-ui"]
 

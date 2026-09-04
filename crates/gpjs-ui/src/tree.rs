@@ -241,7 +241,11 @@ mod tests {
         let mut sorted = ids.clone();
         sorted.sort_unstable();
         sorted.dedup();
-        assert_eq!(sorted.len(), ids.len(), "create_node must never reuse an id");
+        assert_eq!(
+            sorted.len(),
+            ids.len(),
+            "create_node must never reuse an id"
+        );
     }
 
     #[test]

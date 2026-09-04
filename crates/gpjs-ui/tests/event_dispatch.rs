@@ -9,7 +9,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use gpui::{Context, Modifiers, Render, TestAppContext, VisualTestContext, Window, point, px, prelude::*};
+use gpui::{
+    Context, Modifiers, Render, TestAppContext, VisualTestContext, Window, point, prelude::*, px,
+};
 
 use gpjs_ui::{Engine, EventDispatcher, Host, NodeId, render_tree_with_events};
 
@@ -94,7 +96,11 @@ fn click_dispatches_to_js_exactly_once(cx: &mut TestAppContext) {
 
     cx.update_window(window.into(), |_, window, cx| window.draw(cx).clear(cx))
         .unwrap();
-    assert_eq!(clicks(&engine), 0.0, "mounting must never touch the JS engine");
+    assert_eq!(
+        clicks(&engine),
+        0.0,
+        "mounting must never touch the JS engine"
+    );
 
     let mut cx = VisualTestContext::from_window(window.into(), cx);
     cx.simulate_click(point(px(10.0), px(10.0)), Modifiers::none());

@@ -35,14 +35,18 @@ fn build_tree() -> (VirtualTree, NodeId) {
     tree.set_style(outer, "height", 500.0).unwrap();
     tree.set_style(outer, "justify_content", "center").unwrap();
     tree.set_style(outer, "align_items", "center").unwrap();
-    tree.set_style(outer, "background", 0x505050 as f64).unwrap();
+    tree.set_style(outer, "background", 0x505050 as f64)
+        .unwrap();
     tree.set_style(outer, "border_width", 1.0).unwrap();
-    tree.set_style(outer, "border_color", 0x0000ff as f64).unwrap();
-    tree.set_style(outer, "text_color", 0xffffff as f64).unwrap();
+    tree.set_style(outer, "border_color", 0x0000ff as f64)
+        .unwrap();
+    tree.set_style(outer, "text_color", 0xffffff as f64)
+        .unwrap();
     tree.set_style(outer, "text_size", 20.0).unwrap();
 
     let label = tree.create_node("text");
-    tree.set_attribute(label, "value", "Hello, gpjs-ui!").unwrap();
+    tree.set_attribute(label, "value", "Hello, gpjs-ui!")
+        .unwrap();
     tree.append_child(outer, label).unwrap();
 
     let inner = tree.create_node("div");
@@ -58,7 +62,8 @@ fn build_tree() -> (VirtualTree, NodeId) {
         tree.set_style(square, "height", 32.0).unwrap();
         tree.set_style(square, "background", color as f64).unwrap();
         tree.set_style(square, "border_width", 1.0).unwrap();
-        tree.set_style(square, "border_color", 0xffffff as f64).unwrap();
+        tree.set_style(square, "border_color", 0xffffff as f64)
+            .unwrap();
         tree.set_style(square, "corner_radius", 4.0).unwrap();
         tree.append_child(inner, square).unwrap();
     }
