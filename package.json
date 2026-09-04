@@ -1,35 +1,35 @@
 {
   "name": "@gpjs-ui/monorepo",
-  "description": "A lightweight Webview-free desktop application framework powered by GPUI and QuickJS.",
   "private": true,
-  "type": "module",
+  "description": "A lightweight Webview-free desktop application framework powered by GPUI and QuickJS.",
+  "keywords": [
+    "cross-platform",
+    "desktop-app",
+    "electron-alternative",
+    "gpui",
+    "gui",
+    "quickjs",
+    "rust",
+    "tauri-alternative",
+    "vite",
+    "vue",
+    "webview-free"
+  ],
+  "license": "(MIT OR Apache-2.0)",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tom96da/gpjs-ui.git"
   },
-  "license": "(MIT OR Apache-2.0)",
-  "keywords": [
-    "gpui",
-    "quickjs",
-    "desktop-app",
-    "gui",
-    "webview-free",
-    "rust",
-    "vue",
-    "vite",
-    "cross-platform",
-    "electron-alternative",
-    "tauri-alternative"
-  ],
+  "type": "module",
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
-    "format": "oxfmt --check . '!third_party/**'",
-    "format:write": "oxfmt --write . '!third_party/**'",
-    "check": "oxlint && oxfmt --check . '!third_party/**'",
-    "typecheck": "oxlint --type-aware --type-check"
+    "format": "oxfmt --check .",
+    "format:write": "oxfmt --write .",
+    "check": "oxlint && oxfmt --check .",
+    "typecheck": "oxlint -A all --type-aware --type-check"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
@@ -42,15 +42,15 @@
     "vite": "^8.2.2",
     "vitest": "^5.0.0"
   },
-  "engines": {
-    "node": ">=26"
-  },
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
       "version": "12.2.1",
       "onFail": "download"
     }
+  },
+  "engines": {
+    "node": ">=26"
   },
   "packageManager": "pnpm@12.2.1"
 }

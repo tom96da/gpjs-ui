@@ -15,13 +15,13 @@ import {
 
 function installMockNative() {
   const native = {
-    createNode: vi.fn((_tag: string) => 1),
-    appendChild: vi.fn(),
-    insertBefore: vi.fn(),
-    removeChild: vi.fn(),
-    setAttribute: vi.fn(),
-    setStyle: vi.fn(),
-    addEventListener: vi.fn(),
+    createNode: vi.fn<(tag: string) => number>((_tag: string) => 1),
+    appendChild: vi.fn<(parentId: number, childId: number) => void>(),
+    insertBefore: vi.fn<(parentId: number, childId: number, anchorId: number | null) => void>(),
+    removeChild: vi.fn<(parentId: number, childId: number) => void>(),
+    setAttribute: vi.fn<(nodeId: number, key: string, value: unknown) => void>(),
+    setStyle: vi.fn<(nodeId: number, key: string, value: unknown) => void>(),
+    addEventListener: vi.fn<(nodeId: number, event: string, callbackId: number) => void>(),
   };
   globalThis.__gpjsui_native__ = native;
   return native;
@@ -78,7 +78,7 @@ describe("wrapper functions forward to __gpjsui_native__", () => {
 describe("addEventListener's callback registry", () => {
   it("stores the listener at __gpjsui_callbacks__[id] and forwards that id natively", () => {
     const native = installMockNative();
-    const listener = vi.fn();
+    const listener = vi.fn<() => void>();
 
     addEventListener(1, "click", listener);
 
