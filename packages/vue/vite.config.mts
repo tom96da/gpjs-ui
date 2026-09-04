@@ -17,7 +17,7 @@ export default defineConfig({
       external: ["@vue/runtime-core"],
     },
   },
-  plugins: [dts({ include: ["src"] })],
+  plugins: [dts({ include: ["src"], exclude: ["src/**/*.test.mts"] })],
   test: {
     passWithNoTests: true,
   },

@@ -4,6 +4,7 @@
   "description": "Framework-agnostic JS core for gpjs-ui — a typed wrapper around the native host bridge, shared by every framework adapter.",
   "private": true,
   "type": "module",
+  "sideEffects": false,
   "files": ["dist"],
   "main": "./dist/index.js",
   "types": "./dist/index.d.mts",

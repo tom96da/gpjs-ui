@@ -170,8 +170,13 @@ anchor)` needs to insert before a specific sibling for correct Vue list
 ### Unit i — TS tooling scaffolding
 
 - [x] Root `tsconfig.base.json`, extended by each package's own
-      `tsconfig.json` (`.mts` sources, `module`/`moduleResolution:
-      NodeNext`)
+      `tsconfig.json` (`.mts` sources, `module: "preserve"` — the
+      Vite-recommended setting for library builds, whose implied
+      `moduleResolution: "bundler"` still requires an `.mts` file's own
+      relative imports to name a real extension — neither extensionless
+      nor a `.js`/`.mjs` specifier resolves to a sibling `.mts` file
+      under this mode, only the literal `.mts` extension does (see Unit
+      ii for the `allowImportingTsExtensions` flag that permits it)
 - [x] Vite library-mode build for both packages (`vite.config.mts`, ESM
       output, `types`/`exports` fields in each `package.json`) — verified
       end-to-end: `pnpm -r typecheck`/`build`/`test` all pass against a
@@ -188,17 +193,42 @@ anchor)` needs to insert before a specific sibling for correct Vue list
 
 ### Unit ii — `gpjs-ui` core package (`packages/gpjs-ui`)
 
-- [ ] Typed wrapper functions over `globalThis.__gpjsui_native__`:
+- [x] Typed wrapper functions over `globalThis.__gpjsui_native__`:
       `createNode`, `appendChild`, `insertBefore` (new), `removeChild`,
       `setAttribute`, `setStyle` (new), `addEventListener`
-- [ ] Callback registry owning the `globalThis.__gpjsui_callbacks__[id]`
+- [x] Callback registry owning the `globalThis.__gpjsui_callbacks__[id]`
       convention internally (id allocation/cleanup) — `@gpjs-ui/vue`
-      should never touch that raw contract itself
-- [ ] TS types for the `docs/FFI.md`-documented style-prop and tag
+      should never touch that raw contract itself — re-registering the
+      same `(nodeId, event)` frees its previous callback id; a stale id
+      left behind in Rust's `EventListeners` is harmless once its
+      JS-side entry is gone (dispatch just finds nothing, per
+      `docs/FFI.md`'s event dispatch section). Not yet handled: a
+      removed node's own listeners are never freed (`NodeId`s are never
+      reused — `tree.rs`'s `create_node` — and there's no native
+      "node removed" hook to react to), so this only bounds growth for
+      handlers that get replaced in place, not ones whose node goes
+      away — revisit once Unit iii's `remove(el)` needs it
+- [x] TS types for the `docs/FFI.md`-documented style-prop and tag
       vocabulary (compile-time safety on top of the native bridge's
-      stringly-typed calls)
-- [ ] Vitest unit tests: each wrapper call forwards correctly to a mocked
-      `__gpjsui_native__`; callback registry id lifecycle
+      stringly-typed calls) — `setStyle` is overloaded so known
+      `StyleProps` keys get a typed value while unrecognized keys still
+      fall back to the raw `AttributeValue` signature
+- [x] Vitest unit tests: each wrapper call forwards correctly to a mocked
+      `__gpjsui_native__`; callback registry id lifecycle — landed as
+      `packages/gpjs-ui/src/index.test.mts`
+- [x] Root `tsconfig.base.json` needed `allowImportingTsExtensions` once
+      a real intra-package `.mts` import showed up (the test file
+      importing `./index.mts`) — confirmed by elimination: with the flag
+      off, an extensionless specifier and a `.js`/`.mjs` one both fail
+      with `TS2307` (`module: "preserve"`'s implied `moduleResolution:
+      "bundler"` doesn't extend `NodeNext`'s `.js`→`.ts`/`.mjs`→`.mts`
+      mapping to this mode), so the literal `.mts` extension plus this
+      flag is the only working spelling; the flag's own precondition
+      (`noEmit`/`emitDeclarationOnly`) already holds via `noEmit: true`
+- [x] `unplugin-dts`'s `include: ["src"]` also picked up `*.test.mts`
+      files, emitting a stray `dist/index.test.d.mts` — fixed by adding
+      `exclude: ["src/**/*.test.mts"]` to both packages'
+      `vite.config.mts`
 
 ### Unit iii — `@gpjs-ui/vue` custom renderer (`packages/vue`)
 

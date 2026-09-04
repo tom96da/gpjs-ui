@@ -14,7 +14,7 @@ export default defineConfig({
       fileName: "index",
     },
   },
-  plugins: [dts({ include: ["src"] })],
+  plugins: [dts({ include: ["src"], exclude: ["src/**/*.test.mts"] })],
   test: {
     passWithNoTests: true,
   },
