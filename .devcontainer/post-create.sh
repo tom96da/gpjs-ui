@@ -57,6 +57,7 @@ main() {
     change_ownership "$HOME/.claude/"
     change_ownership "$HOME/.claude.json"
     change_ownership "$CARGO_HOME"
+    change_ownership "$WORKSPACE_FOLDER/target/"
     change_ownership "$WORKSPACE_FOLDER/node_modules/"
 
     # Install dependencies
