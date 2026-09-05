@@ -45,6 +45,10 @@
   // Configure tool-specific properties.
   "customizations": {
     "vscode": {
+      "settings": {
+        "rust-analyzer.files.watcher": "server",
+        "rust-analyzer.check.workspace": false
+      },
       "extensions": [
         // Common extensions.
         "editorconfig.editorconfig",
