@@ -7,6 +7,7 @@ import {
   addEventListener,
   appendChild,
   createNode,
+  disposeNode,
   insertBefore,
   removeChild,
   setAttribute,
@@ -111,5 +112,36 @@ describe("addEventListener's callback registry", () => {
     expect(secondId).not.toBe(firstId);
     expect(globalThis.__gpjsui_callbacks__[firstId]).toBeUndefined();
     expect(Object.keys(globalThis.__gpjsui_callbacks__)).toHaveLength(1);
+  });
+});
+
+describe("disposeNode", () => {
+  it("frees every callback id registered for a node, across all event names", () => {
+    installMockNative();
+
+    addEventListener(1, "click", vi.fn());
+    addEventListener(1, "hover", vi.fn());
+    addEventListener(2, "click", vi.fn());
+
+    disposeNode(1);
+
+    expect(Object.keys(globalThis.__gpjsui_callbacks__)).toHaveLength(1);
+  });
+
+  it("re-registering (nodeId, event) after dispose allocates a fresh id, not a stale one", () => {
+    const native = installMockNative();
+
+    addEventListener(1, "click", vi.fn());
+    disposeNode(1);
+    addEventListener(1, "click", vi.fn());
+
+    const secondId = native.addEventListener.mock.calls[1]![2];
+    expect(globalThis.__gpjsui_callbacks__[secondId]).toBeDefined();
+    expect(Object.keys(globalThis.__gpjsui_callbacks__)).toHaveLength(1);
+  });
+
+  it("is a no-op for a node with no registered listeners", () => {
+    installMockNative();
+    expect(() => disposeNode(999)).not.toThrow();
   });
 });

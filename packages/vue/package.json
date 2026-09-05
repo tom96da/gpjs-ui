@@ -1,39 +1,48 @@
 {
   "name": "@gpjs-ui/vue",
   "version": "0.0.0-0",
-  "description": "Vue 3 custom renderer for gpjs-ui, mapping createRenderer's lifecycle methods to gpjs-ui core calls.",
   "private": true,
-  "type": "module",
-  "files": ["dist"],
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.mts",
+  "description": "Vue 3 custom renderer for gpjs-ui, mapping createRenderer's lifecycle methods to gpjs-ui core calls.",
+  "keywords": [
+    "custom-renderer",
+    "desktop-app",
+    "gpjs-ui",
+    "gui",
+    "vue",
+    "vue3"
+  ],
+  "license": "(MIT OR Apache-2.0)",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tom96da/gpjs-ui.git",
     "directory": "packages/vue"
   },
-  "license": "(MIT OR Apache-2.0)",
-  "keywords": [
-    "vue",
-    "vue3",
-    "custom-renderer",
-    "gpjs-ui",
-    "desktop-app",
-    "gui"
+  "files": [
+    "dist"
   ],
-  "scripts": {
-    "build": "vite build",
-    "test": "vitest run",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@vue/runtime-core": "^3.5.42",
-    "gpjs-ui": "workspace:*"
-  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
       "import": "./dist/index.js"
     }
+  },
+  "scripts": {
+    "build": "vite build",
+    "pretest": "oxlint --type-aware --type-check && oxfmt --check .",
+    "test": "vitest run",
+    "lint": "oxlint",
+    "format": "oxfmt --check .",
+    "typecheck": "oxlint -A all --type-aware --type-check"
+  },
+  "dependencies": {
+    "@vue/runtime-core": "^3.5.42",
+    "gpjs-ui": "workspace:*"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.66.0",
+    "oxlint": "^1.81.0"
   }
 }

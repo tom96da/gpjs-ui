@@ -50,11 +50,13 @@ Mirrors the Rust split above, using Vitest:
   pattern (install a mock native object, assert the wrapper forwards to
   it correctly).
 - **Integration tests**: a `tests/` directory at the package root, for
-  tests that exercise real cross-module wiring instead of a mock — e.g.
-  `@gpjs-ui/vue`'s `createRenderer` driven end-to-end through `nodeOps`
-  against a real `packages/gpjs-ui`, not a mocked one. Not needed yet;
-  add it when Phase 2 Unit iii's renderer tests need it (see
-  [docs/PLAN.md](./PLAN.md)).
+  tests that exercise real cross-module wiring against a real (unmocked)
+  `packages/gpjs-ui` instead of a mock — e.g.
+  `packages/vue/tests/renderer.test.mts`, which drives `createGpjsuiApp`
+  end-to-end against a small in-memory fake standing in for
+  `globalThis.__gpjsui_native__`, asserting on that fake's resulting tree
+  state rather than on individual host-node-lifecycle calls the way the
+  co-located unit tests do.
 
 ### Required checks
 
@@ -92,8 +94,9 @@ modes are the only output-shaping options it has.
   Apply the same pattern to any new package's `vite.config.mts`.
 - `vitest.config`'s `test.passWithNoTests: true` (already set in every
   package's `vite.config.mts`) lets `pnpm -r test` succeed for a package
-  that hasn't landed its first test yet (e.g. `packages/vue`, until Unit
-  iii's tests land) without treating "zero tests" as a failure.
+  that hasn't landed its first test yet (e.g. a newly scaffolded package,
+  before its first test lands) without treating "zero tests" as a
+  failure.
 - A co-located `*.test.mts` importing its sibling module needs the
   literal `.mts` extension (`from "./index.mts"`, not extensionless or
   `.js`/`.mjs`) — see `docs/PLAN.md`'s Phase 2 Unit i/ii notes for why

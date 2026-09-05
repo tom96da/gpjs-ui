@@ -240,41 +240,63 @@ HostElement>` — its 9 required methods (`createElement`, `createText`,
 needed without SSR/hydration. Built on `packages/gpjs-ui`, never on
 `__gpjsui_native__` directly.
 
-- [ ] `createElement`/`insert`/`remove` — the core node lifecycle, built
-      on `packages/gpjs-ui`'s `createNode`/`insertBefore`/`removeChild`
-- [ ] Add `disposeNode(nodeId)` to `packages/gpjs-ui` (closes the gap
+- [x] `createElement`/`insert`/`remove` — the core node lifecycle, built
+      on `packages/gpjs-ui`'s `createNode`/`insertBefore`/`removeChild` —
+      landed as `packages/vue/src/nodeOps.mts`. `HostNode`/`HostElement`
+      aren't the bare `NodeId`: each is a JS object (`GpjsuiElement`/
+      `GpjsuiText`) pairing the native id with the parent/children
+      bookkeeping the next item describes, matching the shape
+      `@vue/runtime-test`'s reference renderer uses for its own host nodes
+- [x] Add `disposeNode(nodeId)` to `packages/gpjs-ui` (closes the gap
       Unit ii's callback registry left open — see its notes above): purges
       every callback id registered for `nodeId` from
       `registeredCallbackIds`/`__gpjsui_callbacks__`, across all event
       names, not just the one currently patched. `nodeOps.remove(el)`
       calls it alongside `removeChild` — this is the first point in the
       stack that actually knows a node is gone for good
-- [ ] `createText`/`setText`/`setElementText` map to a `tag: "text"` node + `setAttribute(id, "value", text)`, matching `hello_world.rs`'s
+- [x] `createText`/`setText`/`setElementText` map to a `tag: "text"` node + `setAttribute(id, "value", text)`, matching `hello_world.rs`'s
       existing text-leaf convention
-- [ ] `createComment` maps to a hidden node (`createNode("div")` +
+- [x] `createComment` maps to a hidden node (`createNode("div")` +
       `setStyle(id, "display", "none")`) — `display: none` is already in
       the style vocab, so this needs no render/`element.rs` change
-- [ ] JS-side parent/sibling bookkeeping map maintained as `nodeOps`
+- [x] JS-side parent/sibling bookkeeping map maintained as `nodeOps`
       processes `insert`/`remove`, answering `parentNode`/`nextSibling`
       and giving `remove(el)` the parent id `removeChild` needs (the
       native tree has no parent pointers, and `RendererOptions.remove`
-      doesn't pass one)
-- [ ] `patchProp`: `key === "style"` (an object, per Vue's
+      doesn't pass one) — `insert` also detaches a child from its old
+      parent first (in both the native tree and this bookkeeping) before
+      attaching it to the new one, so moving a node for a keyed-list
+      reorder doesn't dispose it
+- [x] `patchProp`: `key === "style"` (an object, per Vue's
       `:style="{...}"` binding) → one `setStyle` call per entry, unknown
       keys silently ignored (matching `docs/FFI.md`'s existing
-      "malformed/unrecognized → ignored" policy)
-- [ ] `patchProp`: `isOn`-prefixed keys (`onClick`, ...) → register via
+      "malformed/unrecognized → ignored" policy) — a value shape
+      `setStyle` can't take (non-primitive) is skipped the same way,
+      since unlike a style prop's own render-path fallback, `setStyle` is
+      a JS call boundary that would otherwise raise
+- [x] `patchProp`: `isOn`-prefixed keys (`onClick`, ...) → register via
       the callback registry + `addEventListener` — only `"click"` is
       wired to real input today (`docs/FFI.md` v1), other `on*` props are
       inert for now
-- [ ] `patchProp`: everything else → `setAttribute`
-- [ ] `createGpjsuiApp(App)` convenience wrapper around
+- [x] `patchProp`: everything else → `setAttribute`, skipping non-primitive
+      values the same way `style` does (removing a prop entirely — a
+      `null`/`undefined` next value — is also a no-op: there's no native
+      "unset" call to route it to, a deferred v1 gap like the others above)
+- [x] `createGpjsuiApp(App)` convenience wrapper around
       `createRenderer(nodeOps).createApp` — mounts against a
       `HostElement`-typed root handle (see Unit iv for how the Rust host
       supplies the root node id)
-- [ ] Vitest tests asserting the create/insert/patchProp/remove call
+- [x] Vitest tests asserting the create/insert/patchProp/remove call
       sequence against a mocked `gpjs-ui` core (mirroring the pattern
-      `@vue/runtime-test`'s reference renderer uses for its own tests)
+      `@vue/runtime-test`'s reference renderer uses for its own tests) —
+      `packages/vue/src/nodeOps.test.mts`/`patchProp.test.mts`. Also added
+      (beyond this item's original scope): `packages/vue/tests/
+      renderer.test.mts`, an integration test driving `createGpjsuiApp`
+      end-to-end through a real (unmocked) `gpjs-ui` core against a small
+      in-memory fake standing in for `globalThis.__gpjsui_native__`,
+      confirming a mounted component's styles/attributes/text and a
+      keyed-list reorder (moves, not recreation) — the scenario that
+      originally motivated this phase's `insertBefore` prerequisite
 
 ### Unit iv — `examples/hello-vue` + one-shot Rust loader (manual GUI check)
 

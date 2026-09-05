@@ -102,3 +102,23 @@ export function addEventListener(nodeId: NodeId, event: string, listener: EventL
   registeredCallbackIds.set(key, callbackId);
   native().addEventListener(nodeId, event, callbackId);
 }
+
+/**
+ * Frees every callback id registered for `nodeId`, across all event names —
+ * the counterpart to a node going away for good. There is no native "node
+ * removed" hook, so callers must invoke this themselves once they know a
+ * node won't come back (a framework adapter's element-removal path, for
+ * example); it is otherwise never called automatically.
+ * @param nodeId - the node that's gone for good
+ */
+export function disposeNode(nodeId: NodeId): void {
+  const prefix = `${nodeId}:`;
+  for (const key of registeredCallbackIds.keys()) {
+    if (!key.startsWith(prefix)) continue;
+    const callbackId = registeredCallbackIds.get(key);
+    if (callbackId !== undefined) {
+      delete callbackRegistry()[callbackId];
+    }
+    registeredCallbackIds.delete(key);
+  }
+}
