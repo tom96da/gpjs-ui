@@ -76,6 +76,11 @@ impl EventDispatcher {
                     let _ = callback.call::<_, ()>((node_id,));
                 }
             }
+            // A callback that only schedules work (e.g. a Vue reactivity
+            // effect, batched via a microtask) hasn't actually mutated the
+            // tree yet once `call` returns — drain the job queue so that
+            // work runs now, before this frame's redraw.
+            while ctx.execute_pending_job() {}
         });
 
         window.refresh();

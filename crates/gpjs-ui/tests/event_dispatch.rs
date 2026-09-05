@@ -42,6 +42,24 @@ fn clicks(engine: &Engine) -> f64 {
     engine.eval::<f64>("globalThis.clicks || 0").unwrap()
 }
 
+/// Unlike `install_click_counter`, defers the actual mutation to a
+/// microtask — the same way a real framework's reactivity scheduler
+/// (e.g. `@vue/runtime-core`'s, batched via `Promise.resolve().then(...)`)
+/// doesn't apply an effect synchronously within the event callback itself.
+fn install_deferred_click_counter(engine: &Engine) {
+    engine
+        .eval::<()>(
+            "globalThis.__gpjsui_callbacks__ = { \
+                0: () => { \
+                    Promise.resolve().then(() => { \
+                        globalThis.clicks = (globalThis.clicks || 0) + 1; \
+                    }); \
+                } \
+            };",
+        )
+        .unwrap();
+}
+
 /// Building the element tree (what happens on every re-render) must never
 /// touch the JS engine by itself — only an actual dispatched event may.
 /// Plain `#[test]`: building an `AnyElement` needs no `gpui` App/Window.
@@ -112,5 +130,35 @@ fn click_dispatches_to_js_exactly_once(cx: &mut TestAppContext) {
         clicks(&engine),
         1.0,
         "exactly one click must dispatch exactly one JS call"
+    );
+}
+
+/// A callback that only schedules its effect via a microtask (as any real
+/// reactivity scheduler does) must still have that effect applied by the
+/// time `dispatch` returns — not left pending until some later, unrelated
+/// engine call happens to drain the job queue.
+#[gpui::test]
+fn click_drains_a_callback_that_defers_its_effect_via_a_microtask(cx: &mut TestAppContext) {
+    let (host, node) = build_clickable_tree();
+    let engine = Rc::new(Engine::new().unwrap());
+    install_deferred_click_counter(&engine);
+    let dispatcher = EventDispatcher::new(Rc::clone(&engine), Rc::clone(&host));
+
+    let window = cx.add_window(|_, _| ClickableRoot {
+        host: Rc::clone(&host),
+        node,
+        dispatcher,
+    });
+    cx.update_window(window.into(), |_, window, cx| window.draw(cx).clear(cx))
+        .unwrap();
+
+    let mut cx = VisualTestContext::from_window(window.into(), cx);
+    cx.simulate_click(point(px(10.0), px(10.0)), Modifiers::none());
+    cx.run_until_parked();
+
+    assert_eq!(
+        clicks(&engine),
+        1.0,
+        "a microtask-deferred effect must already be applied once dispatch returns"
     );
 }
