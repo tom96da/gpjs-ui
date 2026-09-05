@@ -7,7 +7,7 @@
 //! `Engine` is fully independent: creating a global on one has no effect on
 //! any other `Engine`, since they don't share a runtime or a heap.
 
-use rquickjs::{Context, Ctx, FromJs, Runtime};
+use rquickjs::{Context, Ctx, FromJs, Module, Runtime};
 
 pub use rquickjs::Error as EngineError;
 
@@ -63,6 +63,31 @@ impl Engine {
     {
         self.context.with(f)
     }
+
+    /// Declares and evaluates `source` as an ES module named `name`, driving
+    /// its top-level evaluation to completion before returning.
+    ///
+    /// This engine has no `ModuleLoader` installed, so `source` must be
+    /// fully self-contained — no unresolved `import`s for anything to
+    /// resolve them against. A module's own completion value is always
+    /// `undefined` per spec, so unlike [`eval`](Self::eval) there's nothing
+    /// meaningful to convert to a caller-chosen type; state comes back the
+    /// same way `examples/click_counter.rs` already does it for plain
+    /// scripts — the module's top-level code writes to `globalThis`, and a
+    /// separate `eval` call reads it back afterward.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a syntax/link error, an uncaught exception
+    /// thrown during evaluation, or an unsettled promise if the module
+    /// awaits something with no pending job left to drive it (not expected
+    /// for a self-contained module with no top-level `await`).
+    pub fn eval_module(&self, name: &str, source: &str) -> EngineResult<()> {
+        self.context.with(|ctx| {
+            let (_module, promise) = Module::declare(ctx, name, source)?.eval()?;
+            promise.finish()
+        })
+    }
 }
 
 #[cfg(test)]
@@ -96,5 +121,26 @@ mod tests {
 
         let seen_by_b: String = b.eval("typeof probe").unwrap();
         assert_eq!(seen_by_b, "undefined");
+    }
+
+    #[test]
+    fn eval_module_runs_top_level_code_to_completion() {
+        let engine = Engine::new().unwrap();
+        engine
+            .eval_module(
+                "probe.mjs",
+                "export const answer = 41; globalThis.seen = answer + 1;",
+            )
+            .unwrap();
+
+        let seen: i32 = engine.eval("globalThis.seen").unwrap();
+        assert_eq!(seen, 42);
+    }
+
+    #[test]
+    fn eval_module_uncaught_exception_propagates_as_err() {
+        let engine = Engine::new().unwrap();
+        let result = engine.eval_module("throws.mjs", "throw new Error('boom');");
+        assert!(result.is_err());
     }
 }
