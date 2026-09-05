@@ -14,7 +14,9 @@ design intent only — it doesn't track progress itself. See
 Vue 3 support is built first end-to-end (Phases 1–3), followed by majority
 style/Tailwind coverage (Phase 4); React support is an additive package
 added later (Phase 5), not a parallel effort. Full style/Tailwind parity
-(Phase 7) is the final milestone, after cross-platform support (Phase 6).
+(Phase 7) is the final styling milestone, after cross-platform support
+(Phase 6); app-owned Rust extensions (Phase 8) come after that, and are the
+only phase where an app author needs a Rust toolchain at all.
 
 ## Phase 1: Rust host & FFI bridge core (`gpjs-ui`)
 
@@ -42,46 +44,73 @@ added later (Phase 5), not a parallel effort. Full style/Tailwind parity
    `patchProp`) to `gpjs-ui`'s calls.
 4. A unified mount API, e.g. `createGpjsuiApp(App).mount('#root')`.
 
-## Phase 3: Developer tooling & HMR integration (`@gpjs-ui/vite-runtime`)
+## Phase 3: Developer tooling & HMR integration
 
-**Open question, to settle before implementation starts**: which side owns
-the `gpjsui` CLI's process orchestration (spawning Vite, watching for
-changes, launching the GPUI host)? Bullet 1 below currently assumes
-Rust-owns-everything, but that's not yet a deliberate decision — three
-options surfaced discussing Unit iv's example-runner tooling:
+The `gpjsui` CLI's process orchestration is owned by the **JS/TS side**:
+`@gpjs-ui/cli` (`packages/cli`) is the parent process, holding Vite
+in-process and spawning the Rust host (`crates/gpjs-ui-host`) as a child,
+with dev-server messages bridged over the child's stdio. The alternatives
+considered — a Rust-primary `crates/gpjs-ui-cli` owning everything, and
+Rust-primary logic behind a thin npm `bin` wrapper — were rejected because:
 
-1. **Rust-primary** (bullet 1's current assumption): `crates/gpjs-ui-cli`
-   (`cargo gpjsui`) is the entry point; it spawns and manages the Vite
-   process itself via `std::process::Command`.
-2. **JS/TS-primary**: a `pnpm`/`npx`-invoked JS/TS CLI owns orchestration
-   (spawning Vite, watching files) and spawns the Rust GPUI host process as
-   a child, rather than the other way around — arguably more natural, since
-   Node's ecosystem (`child_process`, `fs.watch`, Vite's own plugin/API
-   surface) already exists for exactly this, where Rust would have to grow
-   equivalent process/IPC/file-watching plumbing from scratch.
-3. **Rust-primary logic, thin JS/TS wrapper for distribution**: the real
-   orchestration logic still lives in a Rust binary, but it ships via a
-   thin npm package wrapper (`bin` script that just execs the native
-   binary) so it installs cleanly through `pnpm`/`npx` — the same pattern
-   this repo's own `oxlint`/`oxfmt` tooling already uses.
+- Node already owns every orchestration primitive this needs (Vite's own
+  server/watch/restart API, `child_process`, terminal logging), where Rust
+  would grow equivalent process/IPC/file-watching plumbing from scratch.
+- The host binary ships through npm either way, since app authors aren't
+  expected to have a Rust toolchain (Phase 8 is the one exception). A Rust
+  CLI would add a second binary to distribute for no gain.
+- It keeps `crates/gpjs-ui` and the host free of process/IPC concerns.
 
-Each has different implications (which command users type first, which
-process HMR messages originate from, packaging/distribution story) — decide
-deliberately when Phase 3 planning actually starts, not by default.
+Phase 3 lands in four numbered stages, with real HMR deliberately **last**:
+a full-reload dev loop already needs the whole spawn/teardown/remount
+skeleton HMR builds on, and this ordering makes `dev`, `build`, and
+packaging usable end-to-end before the hardest piece starts.
 
-1. **Vite process management**: in debug builds, the Rust host spawns Vite in
-   library/watch mode (not its browser dev server) via `std::process::Command`,
-   using `@vitejs/plugin-vue` to compile `.vue` SFCs.
-2. **HMR bridge** (`@gpjs-ui/vite-runtime`, at `packages/vite-runtime`):
-   implement a custom `ModuleRunnerTransport` and module evaluator against
-   Vite's Runtime API (`vite/module-runner`) so updated modules are evaluated
-   inside QuickJS and trigger a GPUI view refresh (`cx.notify()`) — see
-   [docs/ARCHITECTURE.md](./ARCHITECTURE.md#hmr-delivery) for why this is
-   preferred over a hand-rolled HMR protocol.
+### Phase 3.1: `gpjsui dev` (full reload)
+
+1. **`@gpjs-ui/cli`** (`packages/cli`): `gpjsui dev` runs Vite in
+   library/watch mode (not its browser dev server), using
+   `@vitejs/plugin-vue` to compile `.vue` SFCs, then spawns the host and
+   sends it a reload message on every rebuild.
+2. **`crates/gpjs-ui-host`**: the runtime binary, grown out of Phase 2's
+   `gpjs-ui-example-runner` — opens the GPUI window and evaluates a bundle
+   in QuickJS, and in dev mode reads newline-delimited JSON messages on
+   stdin, re-evaluating the bundle in a fresh engine against a reset tree on
+   each reload. Its stdout is the protocol channel; logs go to stderr.
+3. **Native root handle**: a binding replacing Phase 2's
+   `__GPJSUI_ROOT_ID__` source substitution, so an app's entry point is
+   plain code (`createGpjsuiApp(App).mount()`) with no host-injected token
+   in it.
+
+Component state is *not* preserved across a reload — that's exactly what
+Phase 3.4 adds.
+
+### Phase 3.2: `gpjsui build`
+
+The one-shot production counterpart of 3.1's pipeline, emitting a
+self-contained bundle. Subsumes the per-example `scripts/build.mjs` files
+Phase 2 Unit iv hand-rolled.
+
+### Phase 3.3: Application packaging
+
+Pairs a built bundle with a prebuilt host binary into a distributable
+application (`.app`/`.exe`), plus the per-platform npm distribution of those
+prebuilt hosts. **Design constraint**: keep the host binary swappable, so
+Phase 8 can substitute an app-compiled one.
+
+### Phase 3.4: HMR (`@gpjs-ui/vite-runtime`)
+
+**HMR bridge** (`@gpjs-ui/vite-runtime`, at `packages/vite-runtime`): a
+custom `ModuleRunnerTransport` and module evaluator against Vite's Runtime
+API (`vite/module-runner`), so updated modules are evaluated inside QuickJS
+and trigger a GPUI redraw while component state survives. The runner itself
+runs inside QuickJS, not on the Node side — see
+[docs/ARCHITECTURE.md](./ARCHITECTURE.md#hmr-delivery) for why, and for why
+this is preferred over a hand-rolled HMR protocol.
 
 ## Phase 4: Majority style & Tailwind coverage (future)
 
-Not started, and not begun until Phase 3's Vite integration lands —
+Not started, and not begun until Phase 3.1's Vite integration lands —
 Tailwind's own JIT compiler runs as a build-time step, so it needs a real
 Vite pipeline to plug into. Full CSS/Tailwind parity is not the goal here
 (see Phase 7); this phase targets the "structural" utility categories that
@@ -135,6 +164,24 @@ needs its own window-size-aware style-resolution design), and dark mode.
 The final styling milestone: every Tailwind utility class Vue (and later
 React) authors reach for should resolve to a correct native rendering, not
 just the common ones Phase 4 covers.
+
+## Phase 8: App-owned Rust extensions (future)
+
+Not started, and not begun until Phase 3.3's packaging and Phase 7's
+styling are stable. Every phase before this one assumes app authors write
+only JS/TS and consume a prebuilt host binary; this phase adds the opt-in
+case where an app moves its own heavy work (compute, native I/O) into Rust
+and still ships as a single application:
+
+1. **App-owned host build**: an app that carries its own Rust crate gets a
+   host compiled from source with that crate linked in, in place of the
+   prebuilt binary — the swappability Phase 3.3 is required to preserve.
+   Apps without one keep needing no Rust toolchain.
+2. **Extension binding surface**: a stable way for app-owned Rust code to
+   register its own functions alongside `__gpjsui_native__` (see
+   [docs/FFI.md](./FFI.md#binding-functions)), rather than patching the
+   host's own bindings. This is the likely driver for
+   `crates/gpjs-ui-macros` (see [docs/STRUCTURE.md](./STRUCTURE.md)).
 
 ## Implementation guidelines
 
