@@ -4,7 +4,9 @@
 import { defineConfig } from "oxlint";
 
 export default defineConfig({
-  plugins: ["eslint", "typescript", "unicorn", "oxc", "import", "jsdoc", "vitest"],
+  plugins: ["eslint", "typescript", "unicorn", "oxc", "import", "node", "jsdoc", "vitest", "vue"],
   ignorePatterns: ["third_party/**"],
-  rules: {},
+  rules: {
+    "vue/prefer-import-from-vue": "off",
+  },
 });
