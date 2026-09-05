@@ -2,11 +2,10 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 // One-shot, ahead-of-time build: compiles src/click_counter.vue via
-// @vue/compiler-sfc directly (no Vite dev server, no @vitejs/plugin-vue —
-// that's Phase 3's job), then bundles the result together with
-// @gpjs-ui/vue and @vue/runtime-core into one self-contained dist/bundle.js
-// with zero unresolved imports, consumable by gpjs-ui-example-runner's
-// Engine::eval_module.
+// @vue/compiler-sfc directly (no Vite dev server, no @vitejs/plugin-vue),
+// then bundles the result together with @gpjs-ui/vue and @vue/runtime-core
+// into one self-contained dist/bundle.js with zero unresolved imports,
+// consumable by gpjs-ui-example-runner's Engine::eval_module.
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";

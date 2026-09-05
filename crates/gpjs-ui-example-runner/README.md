@@ -11,8 +11,6 @@ pnpm --filter hello_world build
 cargo run -p gpjs-ui-example-runner -- examples/hello_world/dist/bundle.js
 ```
 
-This is **not** `gpjs-ui-cli` — a separate, future crate that will manage a
-*live* Vite/HMR dev process for arbitrary apps (see
-[docs/ROADMAP.md](../../docs/ROADMAP.md)'s Phase 3). This crate only ever
-loads one fixed, already-bundled file; it has no knowledge of Vite, dev
-servers, or HMR, and isn't meant to grow into that.
+This crate loads one fixed, already-bundled file and nothing else: it has no
+knowledge of Vite, dev servers, or HMR, and never watches for changes.
+Rebuild the bundle and re-run it to pick up an edit.

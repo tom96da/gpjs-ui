@@ -7,10 +7,8 @@
 //! `eval_module`s the bundle, and opens a GPUI window rendering whatever
 //! tree the bundle mounted.
 //!
-//! Not `gpjs-ui-cli` (a separate, future crate that will manage a *live*
-//! Vite/HMR dev process for arbitrary apps) — this only ever loads one
-//! fixed, already-bundled file, with no knowledge of Vite, dev servers, or
-//! HMR.
+//! Loads one fixed, already-bundled file and nothing else: no knowledge of
+//! Vite, dev servers, or HMR, and no change watching.
 //!
 //! Always renders via `render_tree_with_events` + `EventDispatcher`, never
 //! plain `render_tree`: since one binary has to handle any example
