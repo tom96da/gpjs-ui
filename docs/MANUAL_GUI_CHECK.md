@@ -13,7 +13,9 @@ below). This doc covers how to do that check
 yourself, for the existing examples
 (`crates/gpjs-ui/examples/gpui/hello_world.rs`,
 `crates/gpjs-ui/examples/hello_world.rs`,
-`crates/gpjs-ui/examples/click_counter.rs`) and any future one.
+`crates/gpjs-ui/examples/click_counter.rs`, and the two Vue ports,
+`examples/hello_world` and `examples/click_counter`, run through
+`gpjs-ui-example-runner`) and any future one.
 
 There are two ways to see the window, depending on which platform's
 rendering backend you want to exercise. Option A is simpler and is enough
@@ -35,6 +37,22 @@ cargo run -p gpjs-ui --example gpui_hello_world
 
 A window with a gray background, the text "Hello, World!", and a row of six
 colored boxes should appear.
+
+### The Vue ports (`examples/hello_world`, `examples/click_counter`)
+
+These aren't Cargo examples — build the `.vue` app first, then run it
+through `gpjs-ui-example-runner`, the generic loader Unit iv added:
+
+```sh
+pnpm --filter hello_world build
+cargo run -p gpjs-ui-example-runner -- examples/hello_world/dist/bundle.js
+```
+
+Same look as `hello_world`/`gpui_hello_world` above. Swap in
+`click_counter` for the clickable, counting box (same look as
+`click_counter.rs`) — clicking it should count up, confirming
+`EventDispatcher` correctly drains `@vue/runtime-core`'s
+microtask-scheduled reactivity update (see `docs/PLAN.md`'s Unit iv notes).
 
 ### No text, but the background/boxes render fine
 
@@ -106,9 +124,10 @@ later.
 ## Option B — from the devcontainer, forwarded to macOS via XQuartz
 
 Confirms the Linux backend (`gpui_linux`) instead, without leaving the
-container. Confirmed working end-to-end (2026-09-03, all three examples).
-Note this is distinct from an agent's headless `Xvfb` attempt from inside
-the container (no XQuartz), which rendered nothing — not even the
+container. Confirmed working end-to-end (2026-09-03, the three Cargo
+examples; 2026-09-05, both Vue ports, including a real click updating the
+label). Note this is distinct from an agent's headless `Xvfb` attempt from
+inside the container (no XQuartz), which rendered nothing — not even the
 background — for a reason not yet found.
 
 1. Install XQuartz on the Mac host (not inside the container):
@@ -134,6 +153,10 @@ background — for a reason not yet found.
 5. Inside the devcontainer, for examples:
    ```sh
    DISPLAY=host.docker.internal:0 cargo run -p gpjs-ui --example hello_world
+   ```
+   or, for one of the Vue ports (build it first, same as Option A):
+   ```sh
+   DISPLAY=host.docker.internal:0 cargo run -p gpjs-ui-example-runner -- examples/hello_world/dist/bundle.js
    ```
 
 The same window appears on the Mac desktop, rendered by XQuartz.

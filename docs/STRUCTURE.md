@@ -34,15 +34,19 @@ gpjs-ui/
 ├── Cargo.toml               # Rust workspace manifest
 ├── Cargo.lock               # locked Rust dependency graph, including git-pinned gpui
 ├── crates/
-│   └── gpjs-ui/             # Rust host: retained tree, QuickJS bridge, GPUI render (Phase 1, done)
-├── pnpm-workspace.yaml       # pnpm workspace member globs (packages/*)
+│   ├── gpjs-ui/             # Rust host: retained tree, QuickJS bridge, GPUI render (Phase 1, done)
+│   └── gpjs-ui-example-runner/  # generic loader for the Vue example apps below (Phase 2 Unit iv, done) — not `gpjs-ui-cli` (Phase 3)
+├── pnpm-workspace.yaml       # pnpm workspace member globs (packages/*, examples/*)
 ├── package.json              # root workspace manifest — lint/format/typecheck/test/build scripts
 ├── pnpm-lock.yaml
 ├── tsconfig.base.json         # shared TS compiler options, extended by each package's tsconfig.json
 ├── oxlint.config.ts / oxfmt.config.mts  # shared lint/format config for all TS packages
 ├── packages/
 │   ├── gpjs-ui/             # `gpjs-ui` — framework-agnostic host bridge wrapper (Phase 2 Unit i–ii, done)
-│   └── vue/                 # `@gpjs-ui/vue` — Vue 3 custom renderer (Phase 2 Unit iii, not started)
+│   └── vue/                 # `@gpjs-ui/vue` — Vue 3 custom renderer (Phase 2 Unit iii, done)
+├── examples/
+│   ├── hello_world/         # Vue port of crates/gpjs-ui/examples/hello_world.rs (Phase 2 Unit iv, done)
+│   └── click_counter/       # Vue port of crates/gpjs-ui/examples/click_counter.rs (Phase 2 Unit iv, done)
 └── third_party/             # pinned upstream sources, as git submodules — see below
     ├── zed/                 # zed-industries/zed @ v1.17.2
     ├── rquickjs/            # DelSkayn/rquickjs @ v0.12.2
@@ -67,13 +71,11 @@ existing `crates/`/`packages/` directories shown above:
 ```
 gpjs-ui/
 ├── crates/
-│   ├── gpjs-ui-cli/         # `cargo gpjsui` dev/build CLI, manages the Vite process (Phase 3)
+│   ├── gpjs-ui-cli/         # `cargo gpjsui` dev/build CLI, manages the Vite process (Phase 3) — see docs/ROADMAP.md's Phase 3 note: this direction (vs. a JS/TS-primary CLI) is still an open question
 │   └── gpjs-ui-macros/      # host bridge binding helper macros
-├── packages/
-│   ├── vite-runtime/        # `@gpjs-ui/vite-runtime` — Vite Runtime API integration for HMR (Phase 3)
-│   └── react/               # `@gpjs-ui/react` — React custom renderer, future (Phase 5)
-└── examples/
-    └── hello-vue/           # sample Vue 3 app (Phase 2 Unit iv)
+└── packages/
+    ├── vite-runtime/        # `@gpjs-ui/vite-runtime` — Vite Runtime API integration for HMR (Phase 3)
+    └── react/               # `@gpjs-ui/react` — React custom renderer, future (Phase 5)
 ```
 
 Move an entry up into the tree above once it actually lands, per

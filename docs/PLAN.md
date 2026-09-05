@@ -32,7 +32,7 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
 - [x] `pnpm-workspace.yaml` + root `package.json`
 - [x] `packages/vue` placeholder package (npm name `@gpjs-ui/vue`)
 - [x] `packages/gpjs-ui` placeholder package (framework-agnostic; deferred — scaffold when Phase 2 implementation begins)
-- [ ] `examples/hello-vue` placeholder package (deferred — needs `@gpjs-ui/vue` to have real content first) — lands as part of Phase 2 Unit iv
+- [x] `examples/hello-vue` placeholder package (deferred — needs `@gpjs-ui/vue` to have real content first) — landed differently than this line originally named: two separate example apps, `examples/hello_world` and `examples/click_counter` (Phase 2 Unit iv)
 
 ### Unit i — VirtualNode arena
 
@@ -298,51 +298,87 @@ needed without SSR/hydration. Built on `packages/gpjs-ui`, never on
       keyed-list reorder (moves, not recreation) — the scenario that
       originally motivated this phase's `insertBefore` prerequisite
 
-### Unit iv — `examples/hello-vue` + one-shot Rust loader (manual GUI check)
+### Unit iv — Vue example apps + `gpjs-ui-example-runner` (manual GUI check)
 
-The `.vue` SFC compiles via a minimal one-shot `@vue/compiler-sfc` script —
-no Vite yet (that's Phase 3's job, but these compiler calls carry forward
-unchanged when Phase 3 swaps in Vite's dev pipeline; only the thin "invoke
-once" wrapper becomes obsolete then).
+Landed differently than originally planned on this line (one shared
+`examples/hello-vue` package + a Cargo example living inside `crates/gpjs-ui`)
+— see the design notes below for what changed and why, arrived at over
+several rounds of review.
 
-- [ ] `examples/hello-vue` package: a real `.vue` SFC recreating the
-      existing `hello_world`/`click_counter` look (bordered box, text
-      label, click-to-increment), written against `@gpjs-ui/vue`
-- [ ] One-shot `@vue/compiler-sfc` build script: `compileScript({
-      inlineTemplate: true })` for `<script setup>` SFCs, falling back to
-      explicit `compileTemplate` for template-only files (no `<style>`
-      handling needed, GPUI has no CSS concept)
-- [ ] Add an `eval_module`-style method to `Engine` (`src/js/engine.rs`):
-      `rquickjs::Module::declare` + `.eval()` inside the existing
-      `Context::with` closure, draining pending jobs until the returned
-      `Promise` settles, then reading the needed exports back via
-      `Module::get`/`.namespace()` — no `ModuleLoader`/resolver needed,
-      since the bundle this evaluates is fully self-contained (only
-      `export`s, no unresolved `import`s)
-- [ ] Bundle the compiled SFC together with `packages/gpjs-ui`'s and
-      `packages/vue`'s existing ESM output (`formats: ["es"]`) into one
-      self-contained JS file (no unresolved imports) consumable by
-      `Engine::eval_module`
-- [ ] `crates/gpjs-ui/tests/js_core_integration.rs`: install real
-      `__gpjsui_native__` bindings via `bindings::install`,
-      `Engine::eval_module` the bundled `packages/gpjs-ui` output, call
-      its exported wrapper functions, and assert against the resulting
-      `VirtualTree` state — same pattern as `bindings.rs`'s own tests,
-      but exercising the package's actual compiled output instead of
-      hand-written JS strings
-- [ ] New `crates/gpjs-ui/examples/gpui/hello_vue.rs`: Rust creates one
-      root `VirtualNode` (matching `click_counter.rs`'s pattern),
-      installs `__gpjsui_native__` bindings, reads the compiled bundle
-      from disk, and `Engine::eval_module`s it with the root node id
-      exposed to JS (same id-interpolation convention `click_counter.rs`
-      already uses), rendering via `render_tree_with_events` each frame
-- [ ] Manual: run the example and look at the window — see
-      `docs/MANUAL_GUI_CHECK.md`; once confirmed, update that doc to list
-      this as a verified 4th example alongside the existing three
+Each `.vue` SFC compiles via a minimal one-shot `@vue/compiler-sfc` script —
+no Vite yet (that's Phase 3's job); only the thin "invoke once" wrapper
+becomes obsolete when Phase 3 swaps in Vite's dev pipeline, the
+`compileScript`/bundling calls themselves carry forward unchanged.
+
+- [x] Two independent, pure-Vue/TS example apps, each its own pnpm
+      workspace package with no Rust inside — `examples/hello_world`
+      (recreating `hello_world.rs`'s static tree: bordered box, text
+      label, a `v-for` row of six colored squares) and
+      `examples/click_counter` (recreating `click_counter.rs`'s clickable,
+      counting box, via `ref`/`computed`)
+- [x] Each app's `scripts/build.mjs`: one-shot `@vue/compiler-sfc`
+      `compileScript({ id, inlineTemplate: true, templateOptions:
+      { compilerOptions: { runtimeModuleName: "@vue/runtime-core" } } })`
+      (retargeted off the default `"vue"` specifier — this repo has no
+      `vue` meta-package dependency anywhere), then a programmatic `vite
+      build()` (`define` stubs `process.env.NODE_ENV`, since
+      `@vue/runtime-core`'s dev-only warning branches check it directly
+      and QuickJS has no Node globals) bundling the compiled SFC together
+      with `@gpjs-ui/vue` and `@vue/runtime-core` into one self-contained
+      `dist/bundle.js` — no unresolved imports, no Vite dev server
+- [x] `Engine::eval_module` (`src/js/engine.rs`): `rquickjs::Module::declare`
+      + `.eval()` + `Promise::finish()` inside the existing `Context::with`
+      closure — no `ModuleLoader`/resolver needed, since the bundle this
+      evaluates is fully self-contained. Returns `EngineResult<()>`, not a
+      module's exports: a module's own completion value is always
+      `undefined` per spec, so unlike `eval` there's nothing meaningful to
+      convert to a caller-chosen type; state comes back through
+      `globalThis`, the same convention `click_counter.rs` already uses
+      for plain scripts
+- [x] `crates/gpjs-ui/tests/js_core_integration.rs`: install real
+      `__gpjsui_native__` bindings via `bindings::install`, then — through
+      `Engine::with` directly rather than `eval_module`, since this needs
+      the module's export table — `Module::declare`/`.eval()`/
+      `Promise::finish()` the bundled `packages/gpjs-ui` output and call
+      its exports back via `Module::get`, asserting against the resulting
+      `VirtualTree` state. A real bundler renames a module's internal
+      top-level bindings (confirmed empirically), so exports are only
+      reachable this way, not by assuming a hand-written-JS-style
+      same-scope call works against real compiled output
+- [x] New crate `crates/gpjs-ui-example-runner` (**not** `crates/gpjs-ui/examples/gpui/hello_vue.rs`
+      as originally planned): a single generic loader, `gpjs-ui-example-runner
+      <path-to-bundle.js>`, used to run *either* example app. Creates one
+      root `VirtualNode`, installs bindings, reads the bundle, substitutes
+      a `__GPJSUI_ROOT_ID__` placeholder token with the real root id via
+      `str::replace` (not `format!` — the bundle is a large file full of
+      literal `{`/`}`, unlike `click_counter.rs`'s short inline literal),
+      `eval_module`s it, then opens a GPUI window sized off the mounted
+      root's own `width`/`height` style (falls back to 800×600 if unset)
+      and always renders via `render_tree_with_events` + `EventDispatcher`
+      (never plain `render_tree` — one binary can't know ahead of time
+      whether a given bundle registered any click handlers)
+- [x] `EventDispatcher::dispatch` (`src/render/bridge.rs`) bugfix, found
+      while manually checking `click_counter`'s real Vue port: a callback
+      that only *schedules* its effect via a microtask (as
+      `@vue/runtime-core`'s reactivity scheduler does, batched via
+      `Promise.resolve().then(...)`) hadn't actually mutated the tree by
+      the time `dispatch` returned — nothing ever drained the pending job
+      that would run it. Fixed by draining pending jobs right after
+      calling the registered callbacks; regression test added to
+      `tests/event_dispatch.rs` using a deferred callback
+- [x] `packages/vue/package.json`: `@vue/runtime-core` moved from
+      `dependencies` to `peerDependencies` (+ `devDependencies`, for this
+      package's own build/test) — otherwise a consuming app could resolve
+      its own separate copy of `@vue/runtime-core`, producing a duplicate
+      Vue instance with reactivity split across the two copies
+- [x] Manual: run the example and look at the window — confirmed
+      end-to-end on both macOS (native) and from the devcontainer via
+      XQuartz forwarding, both examples, per
+      `docs/MANUAL_GUI_CHECK.md`
 
 ### Docs
 
-- [ ] Update `AGENTS.md`'s Status section once Phase 2 lands
+- [x] Update `AGENTS.md`'s Status section once Phase 2 lands
 
 ## Evergreen checklists
 
