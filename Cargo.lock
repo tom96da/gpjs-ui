@@ -2149,6 +2149,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "gpjs-ui-example-runner"
+version = "0.0.0-0"
+dependencies = [
+ "env_logger",
+ "gpjs-ui",
+ "gpui",
+ "gpui_platform",
+]
+
+[[package]]
 name = "gpu-allocator"
 version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
