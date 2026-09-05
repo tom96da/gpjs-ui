@@ -66,6 +66,11 @@ a full-reload dev loop already needs the whole spawn/teardown/remount
 skeleton HMR builds on, and this ordering makes `dev`, `build`, and
 packaging usable end-to-end before the hardest piece starts.
 
+A GitHub Actions **CI** workflow running
+[docs/TESTING.md](./TESTING.md)'s required checks lands before 3.1, so the
+first multi-package phase isn't built without one. Its **CD** counterpart
+lands after 3.3, when there is something to release.
+
 ### Phase 3.1: `gpjsui dev` (full reload)
 
 1. **`@gpjs-ui/cli`** (`packages/cli`): `gpjsui dev` runs Vite in
@@ -97,6 +102,11 @@ Pairs a built bundle with a prebuilt host binary into a distributable
 application (`.app`/`.exe`), plus the per-platform npm distribution of those
 prebuilt hosts. **Design constraint**: keep the host binary swappable, so
 Phase 8 can substitute an app-compiled one.
+
+This is the **first release milestone**: once packaging works, the framework
+is published as `v0.0.1`, to npm only (`gpjs-ui`, `@gpjs-ui/vue`,
+`@gpjs-ui/cli`, and the per-platform host packages). The Rust crates stay
+`publish = false` — nothing outside this repo depends on them until Phase 8.
 
 ### Phase 3.4: HMR (`@gpjs-ui/vite-runtime`)
 
