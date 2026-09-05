@@ -1,0 +1,28 @@
+{
+  "name": "click_counter",
+  "version": "0.0.0-0",
+  "private": true,
+  "description": "A gpjs-ui Vue port of crates/gpjs-ui/examples/click_counter.rs — a bordered box that counts up when clicked.",
+  "license": "(MIT OR Apache-2.0)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tom96da/gpjs-ui.git",
+    "directory": "examples/click_counter"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "lint": "oxlint",
+    "format": "oxfmt --check ."
+  },
+  "dependencies": {
+    "@gpjs-ui/vue": "workspace:*",
+    "@vue/runtime-core": "^3.5.42"
+  },
+  "devDependencies": {
+    "@vue/compiler-sfc": "^3.5.42",
+    "oxfmt": "^0.66.0",
+    "oxlint": "^1.81.0",
+    "vite": "^8.2.2"
+  }
+}
