@@ -380,6 +380,241 @@ becomes obsolete when Phase 3 swaps in Vite's dev pipeline, the
 
 - [x] Update `AGENTS.md`'s Status section once Phase 2 lands
 
+## Phase 3.1: `gpjsui dev` (full reload)
+
+See [docs/ROADMAP.md#phase-31](./ROADMAP.md#phase-31-gpjsui-dev-full-reload)
+for the design this implements, and its Phase 3 preamble for why
+orchestration lives on the JS side. Phases 3.2–3.4 get their own sections
+when they start.
+
+### Prerequisites — CI workflow
+
+Lands before any 3.1 code: this is the first phase to touch two crates and
+three packages at once, and it's the last chance to add CI before there's a
+release to protect.
+
+- [ ] `.github/workflows/ci.yml` running exactly
+      [docs/TESTING.md](./TESTING.md)'s required checks — that doc stays the
+      single source of truth for what must pass, the workflow just runs it
+- [ ] Rust job matrix over `ubuntu-latest` + `macos-latest` (macOS is the
+      primary development target and `gpjs-ui`'s `gpui_platform` features
+      differ per platform — `font-kit` vs. `wayland`/`x11` — so one runner
+      can't compile-check both paths)
+- [ ] Linux runner installs `gpui`'s native build dependencies; keep the
+      list derived from `.devcontainer/Dockerfile`'s, not independently
+      invented
+- [ ] TypeScript job on `ubuntu-latest` only (`pnpm -r test` already covers
+      lint/format/typecheck via each package's `pretest`)
+- [ ] `cargo test -p gpjs-ui` needs `pnpm --filter gpjs-ui build` to run
+      first (`tests/js_core_integration.rs` reads `dist/index.js` off disk)
+- [ ] No submodule checkout: `third_party/` is reference-only, and `gpui`
+      comes from a git dependency, so the default shallow checkout is enough
+- [ ] Cache the cargo build and the pnpm store
+- [ ] Update `docs/STRUCTURE.md`'s tree with `.github/workflows/`
+
+### Unit i — native root handle
+
+Replaces Phase 2 Unit iv's `__GPJSUI_ROOT_ID__` source substitution, which
+can't survive a CLI that doesn't know about the token.
+
+- [ ] `rootNodeId()` binding in `crates/gpjs-ui/src/js/bindings.rs`,
+      following `setStyle`'s validation/error-mapping pattern
+- [ ] Tests mirroring the existing binding tests
+- [ ] `docs/FFI.md`: add it to the binding table; re-apply the FFI safety
+      checklist below
+- [ ] `packages/gpjs-ui`: typed wrapper + unit test
+- [ ] `packages/vue`: `createGpjsuiApp(App).mount()` callable with no
+      argument, defaulting to the native root — `src/createApp.mts` is
+      currently a type-fixed re-export of `renderer.createApp`, so this
+      becomes a real wrapper function
+
+### Unit ii — `crates/gpjs-ui-host`
+
+- [ ] Rename `crates/gpjs-ui-example-runner` to `gpjs-ui-host`, keeping the
+      existing `<path-to-bundle.js>` one-shot behaviour intact
+- [ ] Dev mode: read newline-delimited JSON on stdin, write protocol
+      messages on stdout, log to stderr
+- [ ] Route stdin off the GPUI main thread — `gpui`'s `AsyncApp` isn't
+      `Send` (it holds a `Weak<AppCell>`), so a reader thread hands messages
+      to a foreground task via a channel rather than touching the app
+- [ ] Reload: rebuild the `Engine` (the reliable way to discard all QuickJS
+      state), reset the `Host`, recreate the root node, re-evaluate the
+      bundle, then refresh the window
+- [ ] Factor the "run JS, drain pending jobs, refresh" sequence out of
+      `EventDispatcher::dispatch` (`src/render/bridge.rs`) so reload uses it
+      too — today the drain is inline and skipped when no listener fires
+- [ ] Keep `crates/gpjs-ui` free of process/IPC concerns: new dependencies
+      belong to the host crate only
+- [ ] Tests: protocol line parsing; a reload leaves no stale tree nodes,
+      listeners, or JS callbacks
+
+### Unit iii — `@gpjs-ui/cli`
+
+- [ ] `packages/cli` (npm name `@gpjs-ui/cli`, `bin: { gpjsui }`), following
+      the existing `packages/*` conventions (`vite.config.mts`,
+      `unplugin-dts`, `pretest`)
+- [ ] `gpjsui dev`: Vite watch build → spawn the host once the first bundle
+      lands → send a reload message on each rebuild
+- [ ] Compile `.vue` via `@vitejs/plugin-vue` instead of the examples'
+      hand-rolled `@vue/compiler-sfc` call — it isn't in the lockfile yet,
+      so add it. Keep `define`-ing `process.env.NODE_ENV` (QuickJS has no
+      `process`)
+- [ ] App entry resolution: decide and document how the CLI finds an app's
+      entry point and Vite config (a convention over an explicit flag,
+      since `examples/*` and any real app should both work unconfigured)
+- [ ] Host binary resolution: env var → the workspace's own build →
+      (later) a per-platform npm package
+- [ ] Terminal behaviour: relay the host's stderr, and kill the child on
+      Ctrl-C
+- [ ] Vitest tests against a mock host process
+
+### Unit iv — examples migration
+
+- [ ] Drop `examples/*/scripts/build.mjs` in favour of the CLI, and remove
+      `__GPJSUI_ROOT_ID__` from their entry points
+- [ ] Update `docs/MANUAL_GUI_CHECK.md` and `docs/TESTING.md` for the new
+      crate/package names and commands
+- [ ] Manual: edit a `.vue` file and confirm the window remounts (state loss
+      is expected here — that's what Phase 3.4 fixes)
+
+### Docs
+
+- [ ] Update `AGENTS.md`'s Status section once Phase 3.1 lands
+
+## Phase 3.2: `gpjsui build`
+
+See [docs/ROADMAP.md#phase-32](./ROADMAP.md#phase-32-gpjsui-build). This is
+3.1's pipeline with the watcher removed and production settings on, so the
+work is mostly about what `dev` and `build` must *share* rather than new
+machinery.
+
+### Unit i — the `build` command
+
+- [ ] `gpjsui build`: one-shot Vite build reusing 3.1's config construction,
+      with `NODE_ENV=production`, minification on, and no host spawned
+- [ ] Factor the shared config/entry resolution so `dev` and `build` can't
+      drift into producing differently-shaped bundles
+- [ ] Non-zero exit and a readable error on build failure — this is the
+      command CI and the future release workflow call
+
+### Unit ii — examples and docs
+
+- [ ] `examples/*` switch their `build` script to `gpjsui build`, and
+      `scripts/build.mjs` is deleted (3.1 already stopped using it)
+- [ ] Update `docs/TESTING.md`'s required checks if the build command moves
+- [ ] Update `AGENTS.md`'s Status section
+
+## Phase 3.3: Application packaging and the `v0.0.1` release
+
+See [docs/ROADMAP.md#phase-33](./ROADMAP.md#phase-33-application-packaging).
+The first release milestone: after this, the framework is publishable.
+
+### Unit i — host binary distribution
+
+- [ ] Per-platform npm packages carrying a prebuilt `gpjs-ui-host`, selected
+      by `optionalDependencies` (the pattern `oxlint`/`esbuild` use)
+- [ ] `@gpjs-ui/cli` resolves the host through those packages, falling back
+      to the workspace build during development
+- [ ] Keep the host binary swappable rather than baked into the CLI —
+      app-owned Rust extensions (roadmap Phase 8) depend on being able to
+      substitute a locally compiled host
+
+### Unit ii — packaging a distributable app
+
+- [ ] `gpjsui package`: pairs a production bundle with the prebuilt host and
+      emits a platform-native application (`.app` on macOS, `.exe` on
+      Windows)
+- [ ] App metadata (display name, identifier, icon, version) sourced from
+      the app's own `package.json` plus a small config, not hard-coded
+- [ ] Decide what the host reads at startup in a packaged app — the bundle
+      as a sibling resource file is the obvious first cut
+- [ ] Manual: launch a packaged `examples/click_counter` on macOS, outside
+      any terminal, and confirm it behaves like the dev run
+
+### Unit iii — CD workflow and the release
+
+- [ ] `.github/workflows/cd.yml`: on a version tag, build the host for each
+      supported platform, then publish to npm
+- [ ] Publish set is npm only — `gpjs-ui`, `@gpjs-ui/vue`, `@gpjs-ui/cli`,
+      and the per-platform host packages. The Rust crates stay
+      `publish = false`
+- [ ] Version the workspace at `0.0.1` (packages currently sit at a
+      placeholder version)
+- [ ] Each published package needs its own self-contained README, license
+      fields, and `files`/`exports` correctness — verify by packing, not by
+      reading the manifest
+- [ ] Update `README.md` with real install/usage instructions
+- [ ] Update `AGENTS.md`'s Status section
+
+## Phase 3.4: HMR (`@gpjs-ui/vite-runtime`)
+
+See [docs/ROADMAP.md#phase-34](./ROADMAP.md#phase-34-hmr-gpjs-uivite-runtime)
+and [docs/ARCHITECTURE.md](./ARCHITECTURE.md#hmr-delivery) for the design.
+The hard part of Phase 3: it replaces 3.1's whole-bundle re-evaluation with
+module-granular updates that preserve component state.
+
+### Prerequisites — QuickJS gaps
+
+Vite's module runner assumes a richer host environment than the engine
+currently provides. Each of these is small on its own; together they're the
+reason this unit comes first.
+
+- [ ] An evaluator entry point for non-ESM code: Vite's SSR transform emits
+      an async *function body* taking the six `__vite_ssr_*` parameters, so
+      `Engine::eval_module`'s `Module::declare` path doesn't apply
+- [ ] A `console` shim — the module runner and Vue's dev build both log
+      through it, and QuickJS has none
+- [ ] Job-queue pumping while a JS promise awaits a host round-trip:
+      `__vite_ssr_import__` resolves only after the CLI answers, so
+      something has to drive the queue between messages
+- [ ] Re-apply the FFI safety checklist below to every new binding
+
+### Unit i — `@gpjs-ui/vite-runtime`
+
+- [ ] `packages/vite-runtime` (npm name `@gpjs-ui/vite-runtime`), declaring
+      `vite` as a peer dependency — under pnpm a package only resolves what
+      it declares, and this one imports `vite/module-runner` directly
+- [ ] A `ModuleRunnerTransport` bridging to the host's stdio channel:
+      `invoke` for `fetchModule`/`getBuiltins`, plus `connect`/`send` for
+      HMR payloads (HMR requires `connect`; an invoke-only transport can't
+      have it)
+- [ ] A `ModuleEvaluator` running transformed code inside QuickJS, with
+      `sourcemapInterceptor: false` and an `import.meta` factory that
+      doesn't reach for Node APIs
+- [ ] Externalized modules have no dynamic `import()` to fall back on in
+      QuickJS — force everything through the transform pipeline instead of
+      implementing `runExternalModule`
+
+### Unit ii — CLI and host wiring
+
+- [ ] `@gpjs-ui/cli` holds a real Vite dev environment in `dev`, answering
+      `fetchModule` over the host channel and pushing HMR payloads, in
+      place of 3.1's rebuild-and-reload message
+- [ ] The host keeps one long-lived engine across updates — the point of
+      HMR is that it *isn't* 3.1's teardown
+- [ ] The window and root node survive an update; a redraw is requested
+      after each applied update
+
+### Unit iii — Vue HMR
+
+- [ ] `@vitejs/plugin-vue`'s HMR support needs Vue's dev build
+      (`__VUE_HMR_RUNTIME__` only exists there), so the dev pipeline can no
+      longer hard-code `NODE_ENV=production` the way Phase 2's examples did
+- [ ] Confirm `@vue/runtime-core`'s HMR rerender/reload path drives the
+      custom renderer correctly
+- [ ] Keep engine/window/root initialization out of the hot module graph,
+      and out of module scope — a re-evaluated module must not be able to
+      open a second window or orphan the renderer
+
+### Unit iv — tests and manual check
+
+- [ ] A test asserting state actually survives an update, not just that no
+      error was raised: a mis-wired refresh runtime fails silently, leaving
+      a stale UI with no error anywhere
+- [ ] Manual: edit a `.vue` file while `click_counter` is running and
+      confirm the count is preserved across the update
+- [ ] Update `AGENTS.md`'s Status section
+
 ## Evergreen checklists
 
 Re-apply these on every relevant future PR — they are not phase-scoped and

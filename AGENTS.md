@@ -42,10 +42,11 @@ through the actual host/QuickJS stack (Unit iv — `examples/hello_world`,
 crate) are all implemented, tested, and — for Unit iv's manual GUI check —
 visually confirmed (both natively on macOS and from the devcontainer via
 XQuartz forwarding). The Vite/HMR bridge (Phase 3) and everything after are
-still *planned* target design, not landed code — see
-[docs/ROADMAP.md](./docs/ROADMAP.md)'s Phase 3 note for an open question
-its own planning still needs to settle (which side, Rust or JS/TS, owns the
-`gpjsui` CLI's process orchestration).
+still *planned* target design, not landed code — but Phase 3's design is now
+settled: the `gpjsui` CLI's process orchestration lives on the JS/TS side,
+and the phase is split into 3.1 (`gpjsui dev`, full reload) through 3.4
+(HMR), with a `v0.0.1` release after 3.3. See
+[docs/ROADMAP.md](./docs/ROADMAP.md).
 
 Keep this section's status prose accurate as real logic lands — don't let it go stale.
 
