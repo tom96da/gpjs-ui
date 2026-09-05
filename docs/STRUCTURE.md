@@ -51,7 +51,8 @@ gpjs-ui/
     ├── zed/                 # zed-industries/zed @ v1.17.2
     ├── rquickjs/            # DelSkayn/rquickjs @ v0.12.2
     │   └── sys/quickjs/     # nested submodule: quickjs-ng @ the commit rquickjs v0.12.2 pins
-    └── vue/                 # vuejs/core @ v3.5.42
+    ├── vue/                 # vuejs/core @ v3.5.42
+    └── vite/                # vitejs/vite @ v8.2.2
 ```
 
 ## Status
@@ -91,6 +92,7 @@ These are **git submodules pinned to a specific tagged release commit**, not mov
 | `third_party/rquickjs` | [DelSkayn/rquickjs](https://github.com/DelSkayn/rquickjs) | `v0.12.2` | Rust bindings to QuickJS this project uses as its JS runtime. |
 | `third_party/rquickjs/sys/quickjs` | [quickjs-ng/quickjs](https://github.com/quickjs-ng/quickjs) | commit pinned by rquickjs `v0.12.2` | rquickjs's own nested submodule — the actual QuickJS engine (the actively-maintained `quickjs-ng` fork, not Bellard's original `bellard/quickjs`). Not the same tree as `bellard/quickjs`; add that separately if it's ever needed for comparison. |
 | `third_party/vue` | [vuejs/core](https://github.com/vuejs/core) | `v3.5.42` | Reference source for `@vue/runtime-core`'s `createRenderer`/`RendererOptions` API and `runtime-dom`'s reference `nodeOps`/`patchProp` implementation — used while building `@gpjs-ui/vue`'s custom renderer (Phase 2). Matches the version `packages/vue/package.json` already depends on. |
+| `third_party/vite` | [vitejs/vite](https://github.com/vitejs/vite) | `v8.2.2` | Reference source for Vite's Runtime API (`vite/module-runner`: `ModuleRunner`, `ModuleRunnerTransport`, `ModuleEvaluator`), whose published docs are thin — used while building Phase 3's HMR bridge. Matches the version the root `package.json` already depends on. |
 
 All are registered **shallow** (`submodule.<name>.shallow = true` in the relevant `.gitmodules`) since full history is large and irrelevant here.
 

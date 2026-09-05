@@ -10,3 +10,7 @@
 	path = third_party/vue
 	url = https://github.com/vuejs/core.git
 	shallow = true
+[submodule "third_party/vite"]
+	path = third_party/vite
+	url = https://github.com/vitejs/vite.git
+	shallow = true
