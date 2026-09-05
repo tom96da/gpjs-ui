@@ -52,7 +52,12 @@
 
         // Git extensions.
         "mhutchie.git-graph",
-        "eamodio.gitlens"
+        "eamodio.gitlens",
+
+        // Frontend extensions.
+        "vue.volar",
+        "vitest.explorer",
+        "oxc.oxc-vscode"
       ]
     }
   }
