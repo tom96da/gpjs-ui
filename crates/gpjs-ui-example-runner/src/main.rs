@@ -30,7 +30,45 @@ use gpui::{App, Bounds, Context, Window, WindowBounds, WindowOptions, prelude::*
 use gpui_platform::application;
 
 use gpjs_ui::js::bindings::install;
-use gpjs_ui::{Engine, EventDispatcher, Host, NodeId, render_tree_with_events};
+use gpjs_ui::{AttributeValue, Engine, EventDispatcher, Host, NodeId, render_tree_with_events};
+
+/// Window size to fall back to when the mounted app's root element doesn't
+/// declare an explicit `width`/`height` style (e.g. a fully fluid layout).
+const DEFAULT_WINDOW_SIZE: (f32, f32) = (800.0, 600.0);
+
+/// Reads the window size straight from the app the bundle mounted, so the
+/// window fits its content instead of leaving a black margin around a
+/// smaller (or clipping a larger) fixed-size app.
+///
+/// `root` is the empty container this runner creates and hands to the
+/// bundle to `mount()` against — the mounted app becomes `root`'s first
+/// (and only) child, never `root` itself, so `width`/`height` are read from
+/// that child's style, not `root`'s.
+fn content_window_size(host: &Host, root: NodeId) -> (f32, f32) {
+    let style = host
+        .tree
+        .get(root)
+        .and_then(|node| node.children().first())
+        .and_then(|&content_id| host.tree.get(content_id))
+        .map(gpjs_ui::VirtualNode::style_props);
+
+    let dimension = |key: &str| {
+        style
+            .and_then(|props| props.get(key))
+            .and_then(|value| match value {
+                // A window dimension in px is always far within f32's
+                // precision range — no meaningful truncation risk here.
+                #[allow(clippy::cast_possible_truncation)]
+                AttributeValue::Number(n) => Some(*n as f32),
+                _ => None,
+            })
+    };
+
+    (
+        dimension("width").unwrap_or(DEFAULT_WINDOW_SIZE.0),
+        dimension("height").unwrap_or(DEFAULT_WINDOW_SIZE.1),
+    )
+}
 
 /// Substituted with the real root [`NodeId`] before `eval_module`. A bundle
 /// read from disk is full of literal `{`/`}` characters, so — unlike
@@ -68,7 +106,8 @@ fn run_example(bundle_path: &str) {
 
         let dispatcher = EventDispatcher::new(Rc::new(engine), Rc::clone(&host));
 
-        let bounds = Bounds::centered(None, size(px(800.0), px(600.0)), cx);
+        let (width, height) = content_window_size(&host.borrow(), root);
+        let bounds = Bounds::centered(None, size(px(width), px(height)), cx);
         cx.open_window(
             WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(bounds)),
@@ -97,4 +136,40 @@ fn main() -> ExitCode {
 
     run_example(&bundle_path);
     ExitCode::SUCCESS
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn content_window_size_reads_the_mounted_root_childs_style() {
+        let mut host = Host::default();
+        let root = host.tree.create_node("div");
+        let content = host.tree.create_node("div");
+        host.tree.set_style(content, "width", 300.0).unwrap();
+        host.tree.set_style(content, "height", 150.0).unwrap();
+        host.tree.append_child(root, content).unwrap();
+
+        assert_eq!(content_window_size(&host, root), (300.0, 150.0));
+    }
+
+    #[test]
+    fn content_window_size_falls_back_when_unset() {
+        let mut host = Host::default();
+        let root = host.tree.create_node("div");
+        let content = host.tree.create_node("div");
+        host.tree.append_child(root, content).unwrap();
+
+        assert_eq!(content_window_size(&host, root), DEFAULT_WINDOW_SIZE);
+    }
+
+    #[test]
+    fn content_window_size_falls_back_when_nothing_mounted() {
+        let mut host = Host::default();
+        let root = host.tree.create_node("div");
+
+        assert_eq!(content_window_size(&host, root), DEFAULT_WINDOW_SIZE);
+    }
 }
