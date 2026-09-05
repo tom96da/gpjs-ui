@@ -8,7 +8,8 @@ resolver = "3"
 members = [
   "crates/gpjs-ui",
   "crates/gpjs-ui-example-runner",
-  # gpjs-ui-cli, gpjs-ui-macros land in Phase 3 / on-demand — see docs/ROADMAP.md
+  # gpjs-ui-example-runner becomes gpjs-ui-host in Phase 3.1; gpjs-ui-macros
+  # lands on-demand — see docs/ROADMAP.md
 ]
 default-members = ["crates/gpjs-ui"]
 

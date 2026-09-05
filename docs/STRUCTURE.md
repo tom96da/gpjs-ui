@@ -35,7 +35,7 @@ gpjs-ui/
 ├── Cargo.lock               # locked Rust dependency graph, including git-pinned gpui
 ├── crates/
 │   ├── gpjs-ui/             # Rust host: retained tree, QuickJS bridge, GPUI render (Phase 1, done)
-│   └── gpjs-ui-example-runner/  # generic loader for the Vue example apps below (Phase 2 Unit iv, done) — not `gpjs-ui-cli` (Phase 3)
+│   └── gpjs-ui-example-runner/  # generic loader for the Vue example apps below (Phase 2 Unit iv, done) — grows into `gpjs-ui-host` in Phase 3.1
 ├── pnpm-workspace.yaml       # pnpm workspace member globs (packages/*, examples/*)
 ├── package.json              # root workspace manifest — lint/format/typecheck/test/build scripts
 ├── pnpm-lock.yaml
@@ -72,10 +72,11 @@ existing `crates/`/`packages/` directories shown above:
 ```
 gpjs-ui/
 ├── crates/
-│   ├── gpjs-ui-cli/         # `cargo gpjsui` dev/build CLI, manages the Vite process (Phase 3) — see docs/ROADMAP.md's Phase 3 note: this direction (vs. a JS/TS-primary CLI) is still an open question
+│   ├── gpjs-ui-host/        # the runtime binary the CLI spawns — `gpjs-ui-example-runner` renamed and grown (Phase 3.1)
 │   └── gpjs-ui-macros/      # host bridge binding helper macros
 └── packages/
-    ├── vite-runtime/        # `@gpjs-ui/vite-runtime` — Vite Runtime API integration for HMR (Phase 3)
+    ├── cli/                 # `@gpjs-ui/cli` — the `gpjsui` dev/build CLI, owns Vite and spawns the host (Phase 3.1)
+    ├── vite-runtime/        # `@gpjs-ui/vite-runtime` — Vite Runtime API integration for HMR (Phase 3.4)
     └── react/               # `@gpjs-ui/react` — React custom renderer, future (Phase 5)
 ```
 
