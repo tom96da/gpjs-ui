@@ -44,6 +44,31 @@ added later (Phase 5), not a parallel effort. Full style/Tailwind parity
 
 ## Phase 3: Developer tooling & HMR integration (`@gpjs-ui/vite-runtime`)
 
+**Open question, to settle before implementation starts**: which side owns
+the `gpjsui` CLI's process orchestration (spawning Vite, watching for
+changes, launching the GPUI host)? Bullet 1 below currently assumes
+Rust-owns-everything, but that's not yet a deliberate decision — three
+options surfaced discussing Unit iv's example-runner tooling:
+
+1. **Rust-primary** (bullet 1's current assumption): `crates/gpjs-ui-cli`
+   (`cargo gpjsui`) is the entry point; it spawns and manages the Vite
+   process itself via `std::process::Command`.
+2. **JS/TS-primary**: a `pnpm`/`npx`-invoked JS/TS CLI owns orchestration
+   (spawning Vite, watching files) and spawns the Rust GPUI host process as
+   a child, rather than the other way around — arguably more natural, since
+   Node's ecosystem (`child_process`, `fs.watch`, Vite's own plugin/API
+   surface) already exists for exactly this, where Rust would have to grow
+   equivalent process/IPC/file-watching plumbing from scratch.
+3. **Rust-primary logic, thin JS/TS wrapper for distribution**: the real
+   orchestration logic still lives in a Rust binary, but it ships via a
+   thin npm package wrapper (`bin` script that just execs the native
+   binary) so it installs cleanly through `pnpm`/`npx` — the same pattern
+   this repo's own `oxlint`/`oxfmt` tooling already uses.
+
+Each has different implications (which command users type first, which
+process HMR messages originate from, packaging/distribution story) — decide
+deliberately when Phase 3 planning actually starts, not by default.
+
 1. **Vite process management**: in debug builds, the Rust host spawns Vite in
    library/watch mode (not its browser dev server) via `std::process::Command`,
    using `@vitejs/plugin-vue` to compile `.vue` SFCs.
