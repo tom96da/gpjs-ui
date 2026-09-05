@@ -35,7 +35,10 @@ All of the following must pass, not just `cargo test`:
   `crates/gpjs-ui/examples/hello_world.rs`'s doc comment)
 - `cargo clippy -p gpjs-ui --all-targets`
 - `cargo fmt --all -- --check`
-- `cargo test -p gpjs-ui`
+- `cargo test -p gpjs-ui` — `tests/js_core_integration.rs` reads
+  `packages/gpjs-ui/dist/index.js` off disk, so run
+  `pnpm --filter gpjs-ui build` first, or this one test fails with a
+  message saying so
 
 ## TypeScript (`packages/*`)
 
