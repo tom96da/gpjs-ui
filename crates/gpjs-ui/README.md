@@ -7,4 +7,5 @@ bridge (`__gpjsui_native__`) that JS-side renderers drive to build and
 mutate a retained virtual tree, which this crate renders directly with
 `gpui`.
 
-This crate is currently a placeholder — implementation has not started.
+The retained tree, QuickJS runtime bootstrap, host bindings, GPUI render
+conversion, and click-event dispatch are implemented and tested.

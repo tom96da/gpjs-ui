@@ -7,4 +7,5 @@ directly to the native host bridge (`globalThis.__gpjsui_native__`) —
 framework bindings such as `@gpjs-ui/vue` (and later `@gpjs-ui/react`) are
 built on top of it.
 
-This package is currently a placeholder — implementation has not started.
+The typed wrapper functions over the native bridge, and the
+`__gpjsui_callbacks__` event-listener registry, are implemented and tested.

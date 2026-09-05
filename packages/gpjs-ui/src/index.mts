@@ -77,12 +77,12 @@ export function setStyle(nodeId: NodeId, key: string, value: AttributeValue): vo
   native().setStyle(nodeId, key, value);
 }
 
-// `addEventListener` owns the `__gpjsui_callbacks__[id]` convention (docs/FFI.md)
-// so callers never touch that raw contract themselves. Re-registering the same
+// `addEventListener` owns the `__gpjsui_callbacks__[id]` convention so
+// callers never touch that raw contract themselves. Re-registering the same
 // (nodeId, event) frees its previous callback id rather than leaking it — the
 // native side has no `removeEventListener`, so a stale id left in
 // `EventListeners` is harmless once its JS-side entry is gone (dispatch just
-// finds nothing and silently skips it, per docs/FFI.md's event dispatch section).
+// finds nothing and silently skips it).
 let nextCallbackId = 0;
 const registeredCallbackIds = new Map<string, CallbackId>();
 

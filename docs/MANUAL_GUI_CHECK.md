@@ -8,10 +8,12 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 Some PLAN.md tasks include a manual checklist item like "run the example
 and look at the window" — a human visually confirming a real window opens
 and renders, which an agent working inside the devcontainer can't do on its
-own (the devcontainer has no display attached; see
-[docs/STRUCTURE.md](./STRUCTURE.md)). This doc covers how to do that check
-yourself, for the current example
-(`crates/gpjs-ui/examples/gpui/hello_world.rs`) and any future one.
+own (no display attached — see [why](#why-an-agent-cant-just-do-this)
+below). This doc covers how to do that check
+yourself, for the existing examples
+(`crates/gpjs-ui/examples/gpui/hello_world.rs`,
+`crates/gpjs-ui/examples/hello_world.rs`,
+`crates/gpjs-ui/examples/click_counter.rs`) and any future one.
 
 There are two ways to see the window, depending on which platform's
 rendering backend you want to exercise. Option A is simpler and is enough

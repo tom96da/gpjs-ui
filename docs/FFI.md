@@ -5,10 +5,14 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 
 # Host bridge (FFI) reference
 
-The planned function surface exposed to JS as `globalThis.__gpjsui_native__`,
-bound into the QuickJS context by the Rust host via `rquickjs`. This is a
-target spec — see [docs/ROADMAP.md](./ROADMAP.md#phase-1-rust-host--ffi-bridge-core-gpjs-ui)
-for when it lands; update this file as the real bindings are implemented.
+The function surface exposed to JS as `globalThis.__gpjsui_native__`, bound
+into the QuickJS context by the Rust host via `rquickjs`. Phase 1's core
+bindings and Phase 2's `setStyle`/`insertBefore` additions are implemented
+and tested (see [AGENTS.md](../AGENTS.md#status) and
+[docs/ROADMAP.md](./ROADMAP.md#phase-1-rust-host--ffi-bridge-core-gpjs-ui));
+the tag/style vocabulary below is deliberately incomplete by design and grows
+as real usage needs more of it — update this file whenever a binding, tag, or
+style prop actually lands.
 
 It's called "FFI" for the calling-convention style (JS calling into Rust
 functions with typed arguments), not a real C ABI or cross-process boundary —

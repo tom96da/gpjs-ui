@@ -5,11 +5,12 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 
 # Architecture
 
-Target architecture for gpjs-ui. This describes the design agents should build
-toward — the repository is still at the bootstrap stage (see
-[AGENTS.md](../AGENTS.md#status)), so treat this as a plan, not a description
-of code that exists yet. Update it as each piece actually lands; don't let it
-drift from reality.
+Target architecture for gpjs-ui. This describes the design agents should
+build toward. See [AGENTS.md](../AGENTS.md#status) for which layers already
+match this design (the Rust host and the `gpjs-ui` core JS package) and which
+are still forward-looking (the Vue custom renderer, the Vite/HMR bridge, and
+everything after). Update it as each piece actually lands; don't let it drift
+from reality.
 
 The phased build-out of this design is tracked in [docs/ROADMAP.md](./ROADMAP.md).
 The JS↔Rust binding surface is specced in [docs/FFI.md](./FFI.md).
@@ -21,7 +22,7 @@ The JS↔Rust binding surface is specced in [docs/FFI.md](./FFI.md).
 | **Native core** | Rust + [`gpui`](https://www.gpui.rs/) (wgpu) | Window management, event loop, retained virtual tree, direct GPU rendering. |
 | **JS engine** | QuickJS via [`rquickjs`](https://github.com/DelSkayn/rquickjs) | Embedded, lightweight JS runtime executing UI logic and reactivity. |
 | **Core JS package** | `gpjs-ui` (framework-agnostic) | Thin, typed JS wrapper around the host bridge (`__gpjsui_native__`), shared by every framework adapter instead of duplicated in each. |
-| **Frontend framework** | `@gpjs-ui/vue` (first-class, current) / `@gpjs-ui/react` (future, see [Roadmap](./ROADMAP.md#phase-4-react-custom-renderer-future)) | Custom renderer mapping virtual component trees to `gpjs-ui` calls. |
+| **Frontend framework** | `@gpjs-ui/vue` (first-class, current) / `@gpjs-ui/react` (future, see [Roadmap](./ROADMAP.md#phase-5-react-custom-renderer-future)) | Custom renderer mapping virtual component trees to `gpjs-ui` calls. |
 | **Bundler & dev tooling** | Vite, used in library/build mode (no browser dev server) | Compiles `.vue`/`.tsx` via the official `@vitejs/plugin-vue` (and later `@vitejs/plugin-react`); HMR is delivered through Vite's Runtime API instead of Vite's browser client — see [HMR delivery](#hmr-delivery). |
 | **Host bridge** | In-process Rust functions bound into the QuickJS context via `rquickjs` | Transfers mutation operations (`createNode`, `setAttribute`, `appendChild`, ...) from JS to the Rust host. Not a real C ABI or IPC boundary — everything runs in one process. |
 

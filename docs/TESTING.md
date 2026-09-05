@@ -22,15 +22,17 @@ Update this file as real conventions land, same as the other docs here.
   each as its own crate against `gpjs-ui`'s public API only, the same
   boundary a real external caller would see.
 - **Manual/GUI checks**: tracked in
-  [docs/MANUAL_GUI_CHECK.md](./MANUAL_GUI_CHECK.md), not automated — see
-  [AGENTS.md](../AGENTS.md#status) for why (no display attached in this
-  container).
+  [docs/MANUAL_GUI_CHECK.md](./MANUAL_GUI_CHECK.md) instead of automated —
+  see that doc for why the devcontainer can't do this alone and how to
+  actually run the check.
 
 ### Required checks
 
 All of the following must pass, not just `cargo test`:
 
-- `cargo check -p gpjs-ui --all-targets`
+- `cargo check -p gpjs-ui --all-targets` — the `--all-targets` also
+  compile-checks `examples/`, which has no automated test of its own (see
+  `crates/gpjs-ui/examples/hello_world.rs`'s doc comment)
 - `cargo clippy -p gpjs-ui --all-targets`
 - `cargo fmt --all -- --check`
 - `cargo test -p gpjs-ui`

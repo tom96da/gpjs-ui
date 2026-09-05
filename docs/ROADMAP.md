@@ -6,9 +6,10 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 # Roadmap
 
 Planned phased implementation of the design in
-[docs/ARCHITECTURE.md](./ARCHITECTURE.md). The repository is at the bootstrap
-stage (see [AGENTS.md](../AGENTS.md#status)) — no phase has started yet.
-Update the status of each phase as it lands instead of leaving this stale.
+[docs/ARCHITECTURE.md](./ARCHITECTURE.md). This file describes phase-level
+design intent only — it doesn't track progress itself. See
+[AGENTS.md](../AGENTS.md#status) for which phases have landed so far and
+[docs/PLAN.md](./PLAN.md) for the checkbox-tracked, per-task breakdown.
 
 Vue 3 support is built first end-to-end (Phases 1–3), followed by majority
 style/Tailwind coverage (Phase 4); React support is an additive package
@@ -30,9 +31,10 @@ added later (Phase 5), not a parallel effort. Full style/Tailwind parity
 
 1. **`gpjs-ui`** (`packages/gpjs-ui`): a framework-agnostic, typed JS wrapper
    around `globalThis.__gpjsui_native__` (see
-   [docs/FFI.md](./FFI.md#binding-functions)) — the raw host-bridge calls and
-   their TypeScript types are defined exactly once here, shared by every
-   framework adapter (Vue now, React later) instead of duplicated in each.
+   [docs/FFI.md](./FFI.md#binding-functions)) — see
+   [docs/ARCHITECTURE.md](./ARCHITECTURE.md#tech-stack) for why this is a
+   separate, shared package rather than logic duplicated into each framework
+   adapter.
 2. **`@gpjs-ui/vue`** (`packages/vue`): a custom Vue 3 runtime adapter
    using `@vue/runtime-core`'s `createRenderer`, built on `gpjs-ui` rather
    than calling `__gpjsui_native__` directly.

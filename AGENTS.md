@@ -28,9 +28,10 @@ GPUI `AnyElement` conversion (`src/render/element.rs`), and click-event
 dispatch back into JS (`src/render/bridge.rs`) are all implemented and
 tested — see [docs/FFI.md](./docs/FFI.md) for the exact tag/style/event
 vocabulary landed so far (all deliberately incomplete subsets, extended as
-real usage needs them). The one item nobody in this container can do is the
-manual visual check (no display attached — see
-[docs/MANUAL_GUI_CHECK.md](./docs/MANUAL_GUI_CHECK.md)).
+real usage needs them). The one item nobody in this container can do
+unassisted is the manual visual check — see
+[docs/MANUAL_GUI_CHECK.md](./docs/MANUAL_GUI_CHECK.md) for why and how to
+actually run it.
 [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and
 [docs/ROADMAP.md](./docs/ROADMAP.md)'s Phase 2 is partway landed per
 [docs/PLAN.md](./docs/PLAN.md): the pnpm workspace and `packages/gpjs-ui`'s
@@ -39,19 +40,13 @@ typed wrapper around `__gpjsui_native__` (Units i–ii) are done and tested.
 (Phase 3), and everything after are still *planned* target design, not
 landed code.
 
-- Rust: `cargo check -p gpjs-ui --all-targets` (the `--all-targets` also
-  compile-checks `examples/`, which has no automated test of its own — see
-  `crates/gpjs-ui/examples/hello_world.rs`'s doc comment), `cargo test -p
-  gpjs-ui`.
-
-Keep these commands accurate as real logic lands — don't let this section go stale.
+Keep this section's status prose accurate as real logic lands — don't let it go stale.
 
 ## Architecture
 
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — tech stack, system diagram, and how HMR is delivered into the embedded QuickJS runtime.
 - [docs/ROADMAP.md](./docs/ROADMAP.md) — the phased build-out plan (Vue 3 first, React later as an additive package).
 - [docs/FFI.md](./docs/FFI.md) — the JS↔Rust host bridge function surface.
-- [docs/TESTING.md](./docs/TESTING.md) — where tests live and what kind of test goes where, for both Rust and TypeScript.
 
 ### Guiding principles
 

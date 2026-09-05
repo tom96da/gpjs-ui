@@ -14,13 +14,16 @@ gpjs-ui/
 ├── LICENSE-APACHE           # dual-licensed MIT OR Apache-2.0
 ├── AGENTS.md                # agent instructions entry point — read this first
 ├── CLAUDE.md                # Claude Code entry point; just `@AGENTS.md`
+├── Makefile                 # generates the root .gitignore from .gitignore.d/*.gitignore
+├── .gitignore.d/            # per-topic gitignore fragments (Node/Rust/common) concatenated by `make .gitignore` — edit these, never .gitignore directly
 ├── docs/
 │   ├── STRUCTURE.md         # this file
 │   ├── ARCHITECTURE.md      # target tech stack, system diagram, HMR delivery design
 │   ├── ROADMAP.md           # planned phased implementation (Vue 3 first, React later)
-│   ├── FFI.md               # JS↔Rust host bridge function surface (spec, not yet implemented)
+│   ├── FFI.md               # JS↔Rust host bridge function surface
 │   ├── PLAN.md              # checkbox-tracked, per-phase task breakdown of ROADMAP.md
 │   ├── GIT.md               # commit message format and the commit-review policy
+│   ├── TESTING.md           # test placement and required checks, Rust + TypeScript
 │   └── MANUAL_GUI_CHECK.md  # how to visually verify a GPUI window/example yourself
 ├── .devcontainer/
 │   ├── devcontainer.json    # builds from ./Dockerfile, adds the `node` and `claude-code` features
@@ -32,6 +35,14 @@ gpjs-ui/
 ├── Cargo.lock               # locked Rust dependency graph, including git-pinned gpui
 ├── crates/
 │   └── gpjs-ui/             # Rust host: retained tree, QuickJS bridge, GPUI render (Phase 1, done)
+├── pnpm-workspace.yaml       # pnpm workspace member globs (packages/*)
+├── package.json              # root workspace manifest — lint/format/typecheck/test/build scripts
+├── pnpm-lock.yaml
+├── tsconfig.base.json         # shared TS compiler options, extended by each package's tsconfig.json
+├── oxlint.config.ts / oxfmt.config.mts  # shared lint/format config for all TS packages
+├── packages/
+│   ├── gpjs-ui/             # `gpjs-ui` — framework-agnostic host bridge wrapper (Phase 2 Unit i–ii, done)
+│   └── vue/                 # `@gpjs-ui/vue` — Vue 3 custom renderer (Phase 2 Unit iii, not started)
 └── third_party/             # pinned upstream sources, as git submodules — see below
     ├── zed/                 # zed-industries/zed @ v1.17.2
     ├── rquickjs/            # DelSkayn/rquickjs @ v0.12.2
@@ -41,40 +52,31 @@ gpjs-ui/
 
 ## Status
 
-Phase 1 (`crates/gpjs-ui`: retained tree, QuickJS bootstrap, host bindings,
-GPUI render conversion, click-event dispatch) is functionally complete —
-see [AGENTS.md](../AGENTS.md#status) and [PLAN.md](./PLAN.md) for what
-landed and what's still deliberately incomplete (vocabulary left for later,
-manual visual confirmation unconfirmed). The pnpm/frontend workspace and
-everything from Phase 2 onward has not landed yet.
+See [AGENTS.md](../AGENTS.md#status) for what has landed so far and what
+hasn't, and [docs/TESTING.md](./TESTING.md) for the required checks (Rust
+and TypeScript) — not restated here, to avoid drifting out of sync.
 
-- Rust: `cargo check -p gpjs-ui --all-targets`, `cargo test -p gpjs-ui`.
+Update this file and [AGENTS.md](../AGENTS.md) as real crates, packages, and ownership boundaries land — do not let either go stale.
 
-Update this file and [AGENTS.md](../AGENTS.md) as real crates, packages, commands, and ownership boundaries land — do not let either go stale.
+## Target workspace layout (full plan)
 
-## Planned workspace layout
-
-Later phases add more workspace members and packages (see
-[docs/ROADMAP.md](./ROADMAP.md)):
+Everything already built appears in the tree above. This shows only what
+[docs/ROADMAP.md](./ROADMAP.md)'s later phases still add — nested under the
+existing `crates/`/`packages/` directories shown above:
 
 ```
 gpjs-ui/
-├── Cargo.toml
 ├── crates/
-│   ├── gpjs-ui/             # GPUI host, retained tree, QuickJS host bridge (Phase 1)
 │   ├── gpjs-ui-cli/         # `cargo gpjsui` dev/build CLI, manages the Vite process (Phase 3)
 │   └── gpjs-ui-macros/      # host bridge binding helper macros
 ├── packages/
-│   ├── gpjs-ui/             # `gpjs-ui` — framework-agnostic host bridge wrapper (Phase 2)
-│   ├── vue/                 # `@gpjs-ui/vue` — Vue 3 custom renderer (Phase 2)
 │   ├── vite-runtime/        # `@gpjs-ui/vite-runtime` — Vite Runtime API integration for HMR (Phase 3)
 │   └── react/               # `@gpjs-ui/react` — React custom renderer, future (Phase 5)
 └── examples/
-    └── hello-vue/           # sample Vue 3 app
+    └── hello-vue/           # sample Vue 3 app (Phase 2 Unit iv)
 ```
 
-This is a plan, not current structure — update this section (or replace it
-with the real layout) as each crate/package actually lands, per
+Move an entry up into the tree above once it actually lands, per
 [docs/ROADMAP.md](./ROADMAP.md).
 
 ## `third_party/` — pinned upstream sources
