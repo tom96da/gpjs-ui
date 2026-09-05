@@ -1,0 +1,222 @@
+# Copyright (c) 2026 tom96da
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# docs/TESTING.md is the source of truth for what must pass; this only runs it.
+
+name: CI
+
+permissions: {}
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - feature/*
+      - release/*
+      - hotfix/*
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Gates the jobs below. Filtering with `on: paths:` instead would leave a
+  # required status check unreported, blocking the pull request forever.
+  changed:
+    name: Detect changed areas
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    # The filter reads the event's changed files through the API.
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+      js: ${{ steps.filter.outputs.js }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Filter paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            rust:
+              - 'crates/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              # cargo test evaluates this package's build output
+              - 'packages/gpjs-ui/**'
+              - '.github/workflows/ci.yml'
+            js:
+              - 'packages/**'
+              - 'examples/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'tsconfig*.json'
+              - 'oxlint.config.ts'
+              - 'oxfmt.config.mts'
+              - '.github/workflows/ci.yml'
+
+  lint:
+    name: "Lint: node-26, ubuntu-latest"
+    needs: changed
+    if: needs.changed.outputs.js == 'true'
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set node version to 26
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      # Root scripts, so examples/ is covered too — it defines no `pretest`.
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Check formatting
+        run: pnpm run format
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+  test:
+    name: "Build&Test: node-${{ matrix.node_version }}, ubuntu-latest"
+    needs: changed
+    if: needs.changed.outputs.js == 'true'
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node_version: [20, 22, 24, 26]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      # Build on 26, test on the matrix version: older Node as a consumer, not as tooling.
+      - name: Set node version to 26 for install and build
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm -r build
+
+      - name: Set node version to ${{ matrix.node_version }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node_version }}
+          cache: pnpm
+
+      - name: Test
+        run: pnpm -r test
+
+  rust:
+    name: "Rust: ${{ matrix.os }}"
+    needs: changed
+    if: needs.changed.outputs.rust == 'true'
+    timeout-minutes: 30
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # gpui_platform's features differ per platform, so both need checking.
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # .devcontainer/Dockerfile's list, minus the display-only packages.
+      - name: Install gpui's native build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake \
+            clang \
+            lld \
+            llvm \
+            pkg-config \
+            libfontconfig-dev \
+            libwayland-dev \
+            libx11-xcb-dev \
+            libxkbcommon-x11-dev \
+            libssl-dev
+
+      - name: Install clippy and rustfmt
+        run: rustup component add clippy rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set node version to 26
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      # tests/js_core_integration.rs reads this package's dist/ off disk.
+      - name: Build the gpjs-ui package
+        run: pnpm --filter gpjs-ui build
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check
+        run: cargo check -p gpjs-ui -p gpjs-ui-example-runner --all-targets
+
+      - name: Clippy
+        run: cargo clippy -p gpjs-ui -p gpjs-ui-example-runner --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo test -p gpjs-ui
+
+  # One status check whose name survives changes to the matrices above.
+  passed:
+    name: CI Passed
+    if: always()
+    needs: [changed, lint, test, rust]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check job results
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

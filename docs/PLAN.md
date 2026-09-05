@@ -393,24 +393,49 @@ Lands before any 3.1 code: this is the first phase to touch two crates and
 three packages at once, and it's the last chance to add CI before there's a
 release to protect.
 
-- [ ] `.github/workflows/ci.yml` running exactly
+- [x] `.github/workflows/ci.yml` running exactly
       [docs/TESTING.md](./TESTING.md)'s required checks — that doc stays the
       single source of truth for what must pass, the workflow just runs it
-- [ ] Rust job matrix over `ubuntu-latest` + `macos-latest` (macOS is the
+- [x] Rust job matrix over `ubuntu-latest` + `macos-latest` (macOS is the
       primary development target and `gpjs-ui`'s `gpui_platform` features
       differ per platform — `font-kit` vs. `wayland`/`x11` — so one runner
       can't compile-check both paths)
-- [ ] Linux runner installs `gpui`'s native build dependencies; keep the
+- [x] Linux runner installs `gpui`'s native build dependencies; keep the
       list derived from `.devcontainer/Dockerfile`'s, not independently
       invented
-- [ ] TypeScript job on `ubuntu-latest` only (`pnpm -r test` already covers
+- [x] TypeScript job on `ubuntu-latest` only (`pnpm -r test` already covers
       lint/format/typecheck via each package's `pretest`)
-- [ ] `cargo test -p gpjs-ui` needs `pnpm --filter gpjs-ui build` to run
+- [x] `cargo test -p gpjs-ui` needs `pnpm --filter gpjs-ui build` to run
       first (`tests/js_core_integration.rs` reads `dist/index.js` off disk)
-- [ ] No submodule checkout: `third_party/` is reference-only, and `gpui`
+- [x] No submodule checkout: `third_party/` is reference-only, and `gpui`
       comes from a git dependency, so the default shallow checkout is enough
-- [ ] Cache the cargo build and the pnpm store
-- [ ] Update `docs/STRUCTURE.md`'s tree with `.github/workflows/`
+- [x] Cache the cargo build and the pnpm store
+- [x] Update `docs/STRUCTURE.md`'s tree with `.github/workflows/`
+- [x] `examples/*` define no `pretest`, so `pnpm -r test` alone doesn't lint
+      or type-check them — a separate `lint` job runs the root `pnpm lint`,
+      `pnpm format`, and `pnpm typecheck` as three named steps, which do
+      cover `examples/`
+- [x] Vitest runs across Node 20/22/24/26, following `third_party/vite`'s own
+      CI: install and build on 26, then drop to the matrix version, so an
+      older Node is exercised the way a consumer would use these packages
+      rather than as the build toolchain. Note the root `package.json`'s
+      `engines.node: ">=26"` only constrains this (private) workspace; no
+      published package declares an `engines` floor yet — settle one when
+      Phase 3.3 actually publishes
+- [x] `permissions: {}` and `persist-credentials: false`, from Vite's
+      workflow. Actions stay **tag**-pinned rather than SHA-pinned, though:
+      this workflow uses no secrets and the token is left read-only, so a
+      hijacked tag (as in the March 2025 `tj-actions/changed-files` incident)
+      has little to reach here. Phase 3.3's CD workflow will hold an npm
+      publish token — pin by SHA there
+- [x] A `CI Passed` job aggregates the others, so branch protection has one
+      required check whose name survives changes to either matrix
+- [x] A `changed` job gates the rest by path, so a docs-only change skips
+      both toolchains. Deliberately not `on: paths:` — that stops the
+      workflow from running at all, leaving a required check unreported and
+      the pull request unmergeable, whereas a skipped job reports success
+- [ ] Confirm the first run is green on GitHub — every check passes locally,
+      but the workflow itself has never run
 
 ### Unit i — native root handle
 

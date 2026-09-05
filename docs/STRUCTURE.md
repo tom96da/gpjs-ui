@@ -30,7 +30,9 @@ gpjs-ui/
 │   ├── Dockerfile           # extends the Rust devcontainer image with gpui's native build deps
 │   └── post-create.sh       # post-create ownership fixes (non-image-layer setup only)
 ├── .github/
-│   └── dependabot.yml       # auto-updates the devcontainer image/features only, for now
+│   ├── dependabot.yml       # auto-updates the devcontainer image/features only, for now
+│   └── workflows/
+│       └── ci.yml           # runs docs/TESTING.md's required checks on push/PR
 ├── Cargo.toml               # Rust workspace manifest
 ├── Cargo.lock               # locked Rust dependency graph, including git-pinned gpui
 ├── crates/
