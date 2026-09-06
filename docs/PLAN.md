@@ -434,7 +434,7 @@ release to protect.
       both toolchains. Deliberately not `on: paths:` — that stops the
       workflow from running at all, leaving a required check unreported and
       the pull request unmergeable, whereas a skipped job reports success
-- [ ] Confirm the first run is green on GitHub — every check passes locally,
+- [x] Confirm the first run is green on GitHub — every check passes locally,
       but the workflow itself has never run
 
 ### Unit i — native root handle
