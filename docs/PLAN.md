@@ -442,10 +442,10 @@ release to protect.
 Replaces Phase 2 Unit iv's `__GPJSUI_ROOT_ID__` source substitution, which
 can't survive a CLI that doesn't know about the token.
 
-- [ ] `rootNodeId()` binding in `crates/gpjs-ui/src/js/bindings.rs`,
+- [x] `rootNodeId()` binding in `crates/gpjs-ui/src/js/bindings.rs`,
       following `setStyle`'s validation/error-mapping pattern
-- [ ] Tests mirroring the existing binding tests
-- [ ] `docs/FFI.md`: add it to the binding table; re-apply the FFI safety
+- [x] Tests mirroring the existing binding tests
+- [x] `docs/FFI.md`: add it to the binding table; re-apply the FFI safety
       checklist below
 - [ ] `packages/gpjs-ui`: typed wrapper + unit test
 - [ ] `packages/vue`: `createGpjsuiApp(App).mount()` callable with no

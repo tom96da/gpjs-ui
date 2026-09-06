@@ -38,10 +38,10 @@ const DEFAULT_WINDOW_SIZE: (f32, f32) = (800.0, 600.0);
 /// window fits its content instead of leaving a black margin around a
 /// smaller (or clipping a larger) fixed-size app.
 ///
-/// `root` is the empty container this runner creates and hands to the
-/// bundle to `mount()` against — the mounted app becomes `root`'s first
-/// (and only) child, never `root` itself, so `width`/`height` are read from
-/// that child's style, not `root`'s.
+/// `root` is the empty container the [`Host`] allocates for the bundle to
+/// `mount()` against — the mounted app becomes `root`'s first (and only)
+/// child, never `root` itself, so `width`/`height` are read from that
+/// child's style, not `root`'s.
 fn content_window_size(host: &Host, root: NodeId) -> (f32, f32) {
     let style = host
         .tree
@@ -94,7 +94,7 @@ fn run_example(bundle_path: &str) {
 
     application().run(move |cx: &mut App| {
         let host = Rc::new(RefCell::new(Host::default()));
-        let root = host.borrow_mut().tree.create_node("div");
+        let root = host.borrow().root;
 
         let engine = Engine::new().unwrap();
         engine.with(|ctx| install(&ctx, &host)).unwrap();
@@ -144,7 +144,7 @@ mod tests {
     #[test]
     fn content_window_size_reads_the_mounted_root_childs_style() {
         let mut host = Host::default();
-        let root = host.tree.create_node("div");
+        let root = host.root;
         let content = host.tree.create_node("div");
         host.tree.set_style(content, "width", 300.0).unwrap();
         host.tree.set_style(content, "height", 150.0).unwrap();
@@ -156,7 +156,7 @@ mod tests {
     #[test]
     fn content_window_size_falls_back_when_unset() {
         let mut host = Host::default();
-        let root = host.tree.create_node("div");
+        let root = host.root;
         let content = host.tree.create_node("div");
         host.tree.append_child(root, content).unwrap();
 
@@ -165,9 +165,8 @@ mod tests {
 
     #[test]
     fn content_window_size_falls_back_when_nothing_mounted() {
-        let mut host = Host::default();
-        let root = host.tree.create_node("div");
+        let host = Host::default();
 
-        assert_eq!(content_window_size(&host, root), DEFAULT_WINDOW_SIZE);
+        assert_eq!(content_window_size(&host, host.root), DEFAULT_WINDOW_SIZE);
     }
 }

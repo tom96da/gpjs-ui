@@ -79,6 +79,7 @@ variants beyond the four above.
 
 | Function | Signature | Purpose |
 | --- | --- | --- |
+| `rootNodeId` | `() => number` | Return the host-allocated root container's id — the node a mounting app attaches itself under. Allocated with the tree, so it always resolves. |
 | `createNode` | `(tag: string) => number` | Allocate a `VirtualNode`, return its id. |
 | `appendChild` | `(parentId: number, childId: number) => void` | Attach a child node at the end of `parentId`'s children. Thin wrapper over `insertBefore` with no anchor. |
 | `insertBefore` | `(parentId: number, childId: number, anchorId: number \| null) => void` | Attach a child node before `anchorId` (or at the end if `null`). If `anchorId` names a real node that isn't currently a child of `parentId`, falls back to appending at the end; only a wholly unknown `anchorId` throws. |

@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! Binds `globalThis.__gpjsui_native__`: the small set of native functions
-//! JS calls to mutate the retained virtual tree and register input-event
-//! callbacks.
+//! JS calls to read the root handle, mutate the retained virtual tree, and
+//! register input-event callbacks.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -42,11 +42,26 @@ impl EventListeners {
 }
 
 /// Everything one `__gpjsui_native__` binding set shares: the retained tree
-/// it mutates and the event-listener registrations it records.
-#[derive(Debug, Default)]
+/// it mutates, the root a mounting app attaches under, and the
+/// event-listener registrations it records.
+#[derive(Debug)]
 pub struct Host {
     pub tree: VirtualTree,
+    /// Allocated with the tree, so `rootNodeId` always resolves.
+    pub root: NodeId,
     pub listeners: EventListeners,
+}
+
+impl Default for Host {
+    fn default() -> Self {
+        let mut tree = VirtualTree::new();
+        let root = tree.create_node("div");
+        Self {
+            tree,
+            root,
+            listeners: EventListeners::default(),
+        }
+    }
 }
 
 fn throw_tree_error(ctx: &Ctx<'_>, err: TreeError) -> rquickjs::Error {
@@ -75,11 +90,19 @@ fn attribute_value_from_js<'js>(ctx: &Ctx<'js>, value: &Value<'js>) -> JsResult<
 ///
 /// Returns an error if defining `globalThis.__gpjsui_native__` or any of its
 /// methods on `ctx` fails.
-// Long from repeating one registration block 7 times, not from complexity —
+// Long from repeating one registration block 8 times, not from complexity —
 // splitting it up would just spread that same list across more functions.
 #[allow(clippy::too_many_lines)]
 pub fn install<'js>(ctx: &Ctx<'js>, host: &Rc<RefCell<Host>>) -> JsResult<()> {
     let native = Object::new(ctx.clone())?;
+
+    {
+        let host = Rc::clone(host);
+        native.set(
+            "rootNodeId",
+            Function::new(ctx.clone(), move || -> NodeId { host.borrow().root })?,
+        )?;
+    }
 
     {
         let host = Rc::clone(host);
@@ -225,10 +248,40 @@ mod tests {
     }
 
     #[test]
+    fn root_node_id_returns_the_host_root() {
+        let (engine, host) = engine_with_bindings();
+
+        let root_id: NodeId = engine.eval("__gpjsui_native__.rootNodeId();").unwrap();
+
+        assert_eq!(root_id, host.borrow().root);
+        assert_eq!(host.borrow().tree.get(root_id).unwrap().tag_name(), "div");
+    }
+
+    #[test]
+    fn root_node_id_is_stable_across_calls_and_tree_growth() {
+        let (engine, _host) = engine_with_bindings();
+
+        let same: bool = engine
+            .eval(
+                r"
+                const first = __gpjsui_native__.rootNodeId();
+                __gpjsui_native__.createNode('div');
+                first === __gpjsui_native__.rootNodeId();
+                ",
+            )
+            .unwrap();
+
+        assert!(
+            same,
+            "the root handle must outlive any node created after it"
+        );
+    }
+
+    #[test]
     fn happy_path_round_trip_through_eval() {
         let (engine, host) = engine_with_bindings();
 
-        let child_id: NodeId = engine
+        let ids: Vec<NodeId> = engine
             .eval(
                 r"
                 const parent = __gpjsui_native__.createNode('div');
@@ -248,13 +301,16 @@ mod tests {
                 __gpjsui_native__.setStyle(child, 'display', 'flex');
                 __gpjsui_native__.addEventListener(child, 'click', 7);
 
-                child;
+                [parent, child];
                 ",
             )
             .unwrap();
+        let [parent_id, child_id] = ids[..] else {
+            panic!("expected exactly the parent and child ids");
+        };
 
         let host = host.borrow();
-        let parent = host.tree.get(0).unwrap();
+        let parent = host.tree.get(parent_id).unwrap();
         assert_eq!(parent.tag_name(), "div");
         assert_eq!(
             parent.children().len(),
