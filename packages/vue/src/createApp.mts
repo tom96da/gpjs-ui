@@ -16,9 +16,9 @@ const renderer = createRenderer<GpjsuiNode, GpjsuiElement>({ ...nodeOps, patchPr
 
 /**
  * `@vue/runtime-core`'s `App`, with `mount` additionally callable with no
- * argument to target the host's own root container. Every other method is
- * `App`'s unchanged, including the `this`-returning ones — `use`, `mixin`,
- * `component` and `directive` all keep this wider `mount` when chained.
+ * argument to target the host's own root container. An intersection rather
+ * than an `Omit`: `App`'s `this`-returning methods (`use`, `mixin`,
+ * `component`, `directive`) have to keep this wider `mount` when chained.
  */
 export type GpjsuiApp = App<GpjsuiElement> & {
   mount: (rootContainer?: GpjsuiElement) => ComponentPublicInstance;
