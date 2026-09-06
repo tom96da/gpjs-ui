@@ -465,7 +465,7 @@ can't survive a CLI that doesn't know about the token.
 - [ ] Reload: rebuild the `Engine` (the reliable way to discard all QuickJS
       state), reset the `Host`, recreate the root node, re-evaluate the
       bundle, then refresh the window
-- [ ] Factor the "run JS, drain pending jobs, refresh" sequence out of
+- [x] Factor the "run JS, drain pending jobs, refresh" sequence out of
       `EventDispatcher::dispatch` (`src/render/bridge.rs`) so reload uses it
       too — today the drain is inline and skipped when no listener fires
 - [ ] Keep `crates/gpjs-ui` free of process/IPC concerns: new dependencies

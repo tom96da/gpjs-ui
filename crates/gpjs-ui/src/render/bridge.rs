@@ -76,15 +76,22 @@ impl EventDispatcher {
                     let _ = callback.call::<_, ()>((node_id,));
                 }
             }
-            // A callback that only schedules work (e.g. a Vue reactivity
-            // effect, batched via a microtask) hasn't actually mutated the
-            // tree yet once `call` returns — drain the job queue so that
-            // work runs now, before this frame's redraw.
-            while ctx.execute_pending_job() {}
         });
 
-        window.refresh();
+        drain_jobs_and_refresh(&self.engine, window);
     }
+}
+
+/// Drains `QuickJS`'s pending-job queue, then requests a redraw. Code that
+/// only schedules work (a `@vue/runtime-core` reactivity effect, batched via
+/// a microtask) hasn't mutated the tree once the scheduling call returns, so
+/// the queue has to run before the frame is drawn.
+///
+/// Call it outside any [`Engine::with`] — it takes the context itself, and
+/// nesting that panics with "`RefCell` already borrowed".
+pub fn drain_jobs_and_refresh(engine: &Engine, window: &mut Window) {
+    engine.with(|ctx| while ctx.execute_pending_job() {});
+    window.refresh();
 }
 
 #[cfg(test)]
@@ -120,6 +127,26 @@ mod tests {
         // No `__gpjsui_callbacks__` global defined at all.
         let cx = cx.add_empty_window();
         cx.update(|window, _| dispatcher.dispatch(node_id, "click", window));
+    }
+
+    #[gpui::test]
+    fn drain_jobs_and_refresh_runs_what_a_microtask_only_scheduled(cx: &mut TestAppContext) {
+        let (dispatcher, _host) = dispatcher_with_engine();
+        dispatcher
+            .engine
+            .eval::<()>(
+                "globalThis.ran = false; Promise.resolve().then(() => globalThis.ran = true);",
+            )
+            .unwrap();
+        assert!(
+            !dispatcher.engine.eval::<bool>("globalThis.ran;").unwrap(),
+            "the microtask must still be pending before the drain"
+        );
+
+        let cx = cx.add_empty_window();
+        cx.update(|window, _| drain_jobs_and_refresh(&dispatcher.engine, window));
+
+        assert!(dispatcher.engine.eval::<bool>("globalThis.ran;").unwrap());
     }
 
     #[gpui::test]
