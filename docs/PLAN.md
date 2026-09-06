@@ -630,6 +630,10 @@ reason this unit comes first.
 - [ ] Keep engine/window/root initialization out of the hot module graph,
       and out of module scope — a re-evaluated module must not be able to
       open a second window or orphan the renderer
+- [ ] Revisit `packages/vue`'s `sideEffects: false`: an `import.meta.hot`
+      block or any self-registering module scope makes the flag untrue,
+      and a bundler that trusts it drops the module whole — narrow it to
+      an array or drop it, depending on where the HMR hooks land
 
 ### Unit iv — tests and manual check
 
