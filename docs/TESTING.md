@@ -79,11 +79,12 @@ full gpui build under its own `Swatinem/rust-cache` key.
 Mirrors the Rust split above, using Vitest:
 
 - **Unit tests**: `*.test.mts` co-located next to the module it tests
-  (e.g. `packages/gpjs-ui/src/index.test.mts` next to `src/index.mts`).
+  (e.g. `packages/gpjs-ui/src/tree.test.mts` next to `src/tree.mts`).
   These mock `globalThis.__gpjsui_native__`/`__gpjsui_callbacks__` rather
-  than driving a real QuickJS engine — see `index.test.mts` for the
+  than driving a real QuickJS engine — see `tree.test.mts` for the
   pattern (install a mock native object, assert the wrapper forwards to
-  it correctly).
+  it correctly). A barrel (`src/index.mts`) re-exports only; its modules
+  carry the tests.
 - **Integration tests**: a `tests/` directory at the package root, for
   tests that exercise real cross-module wiring against a real (unmocked)
   `packages/gpjs-ui` instead of a mock — e.g.
