@@ -9,6 +9,7 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
+    "customConditions": ["source"],
     "skipLibCheck": true,
     "isolatedModules": true,
     "declaration": true,

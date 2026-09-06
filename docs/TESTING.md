@@ -73,12 +73,16 @@ which must pass:
 - `lint` — `oxlint`
 - `format` — `oxfmt --check .`
 - `typecheck` — `oxlint -A all --type-aware --type-check`
-- `test` — `vitest run`, gated by a `pretest` script
-  (`oxlint --type-aware --type-check && oxfmt --check .`) that pnpm runs
-  automatically as its own separate step before `test` — not chained
-  into `test` itself. So `pnpm test`/`pnpm -r test` already cover lint,
-  type-check, and format; the standalone scripts exist for running just
-  one check directly.
+- `test` — `vitest run`
+
+The repo root defines a `pretest`
+(`oxlint --type-aware --type-check && oxfmt --check .`) that pnpm runs
+automatically as its own separate step before the root's `test` — not
+chained into `test` itself. So `pnpm test` from the root already covers
+lint, type-check, and format; the standalone scripts exist for running
+just one check directly. `pnpm -r test` deliberately does *not* fire it:
+`-r` skips the root project, which is what lets CI run those checks as
+their own steps instead of hiding them inside the test job.
 
 #### Agent-friendly lint/format output
 
@@ -104,6 +108,20 @@ modes are the only output-shaping options it has.
   that hasn't landed its first test yet (e.g. a newly scaffolded package,
   before its first test lands) without treating "zero tests" as a
   failure.
+- Each package's `exports` carries a `"source"` condition pointing at
+  `src/index.mts`, and `tsconfig.base.json` sets
+  `customConditions: ["source"]`, so type-checking resolves workspace
+  imports from source instead of from a built `dist/`. Without it `lint`
+  can only pass after a build. Runtime resolution is untouched — Vite and
+  vitest don't know the condition and fall through to `import` — so
+  `pnpm -r test` still needs `pnpm -r build` first. `publishConfig.exports`
+  drops the condition again when packing, since `files: ["dist"]` doesn't
+  ship `src/`.
+- A package's `tsconfig.json` `include` has to list every directory whose
+  files are checked, `tests/` included. A file outside it still gets
+  linted, but under default compiler options rather than
+  `tsconfig.base.json`'s — so `strict` and `customConditions` silently
+  don't apply to it.
 - A co-located `*.test.mts` importing its sibling module needs the
   literal `.mts` extension (`from "./index.mts"`, not extensionless or
   `.js`/`.mjs`) — see `docs/PLAN.md`'s Phase 2 Unit i/ii notes for why
@@ -118,5 +136,5 @@ modes are the only output-shaping options it has.
   root
 - Rust: `cargo test -p gpjs-ui` (see [AGENTS.md](../AGENTS.md#status)) —
   plus `cargo clippy`/`cargo fmt --check` from the Required checks list
-  above, which aren't bundled into `cargo test` itself the way `pretest`
-  bundles them on the TypeScript side.
+  above, which aren't bundled into `cargo test` itself the way the root
+  `pretest` bundles them on the TypeScript side.

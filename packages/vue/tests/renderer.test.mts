@@ -74,7 +74,9 @@ function installFakeNative(): Map<NodeId, FakeNode> {
 function dispatch(node: FakeNode, event: string): void {
   const callbackId = node.listeners[event];
   if (callbackId === undefined) throw new Error(`no ${event} listener registered`);
-  globalThis.__gpjsui_callbacks__[callbackId]();
+  const callback = globalThis.__gpjsui_callbacks__[callbackId];
+  if (callback === undefined) throw new Error(`no callback registered as ${callbackId}`);
+  callback();
 }
 
 describe("@gpjs-ui/vue renderer, driven end to end through a real gpjs-ui core", () => {

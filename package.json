@@ -23,6 +23,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -r build",
+    "pretest": "oxlint --type-aware --type-check && oxfmt --check .",
     "test": "pnpm -r test",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",

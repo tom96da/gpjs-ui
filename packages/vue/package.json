@@ -25,13 +25,21 @@
   "types": "./dist/index.d.mts",
   "exports": {
     ".": {
+      "source": "./src/index.mts",
       "types": "./dist/index.d.mts",
       "import": "./dist/index.js"
     }
   },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
   "scripts": {
     "build": "vite build",
-    "pretest": "oxlint --type-aware --type-check && oxfmt --check .",
     "test": "vitest run",
     "lint": "oxlint",
     "format": "oxfmt --check .",
