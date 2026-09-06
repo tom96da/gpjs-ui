@@ -54,6 +54,7 @@ jobs:
               - 'crates/**'
               - 'Cargo.toml'
               - 'Cargo.lock'
+              - 'rust-toolchain.toml'
               # cargo test evaluates this package's build output
               - 'packages/gpjs-ui/**'
               - '.github/workflows/ci.yml'

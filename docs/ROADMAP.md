@@ -192,6 +192,11 @@ and still ships as a single application:
    [docs/FFI.md](./FFI.md#binding-functions)), rather than patching the
    host's own bindings. This is the likely driver for
    `crates/gpjs-ui-macros` (see [docs/STRUCTURE.md](./STRUCTURE.md)).
+3. **MSRV verification**: `rust-version` is held equal to the pinned
+   toolchain while these crates have no consumers outside this repo. Once
+   app crates compile against them it drops to a real floor, checked by its
+   own job — see
+   [docs/TESTING.md](./TESTING.md#toolchain-pinning-and-msrv).
 
 ## Implementation guidelines
 

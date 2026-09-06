@@ -44,6 +44,34 @@ All of the following must pass, not just `cargo test`:
   for this crate, it's a manual-check binary like `crates/gpjs-ui`'s own
   examples, not a library with automated tests
 
+### Toolchain pinning and MSRV
+
+`rust-toolchain.toml` pins the toolchain. rustup honours it for every
+`cargo`/`rustup` call in this workspace, locally and on CI alike, so one
+`rustc` builds everything. GitHub-hosted runner images ship a different
+Rust version per OS and update on their own schedule, so the
+`ubuntu-latest` and `macos-latest` legs disagree without it.
+
+The pin declares `components` as well, so clippy and rustfmt arrive with
+the toolchain. CI still runs `rustup component add` early, to download the
+pinned toolchain before `Swatinem/rust-cache` derives its key from
+`rustc -vV`. That download is expected on CI: the runner images don't carry
+this exact version.
+
+`Cargo.toml`'s `rust-version` is a separate declaration — the oldest
+`rustc` this workspace supports — and is held equal to the pin. Bump both
+together. It also feeds dependency resolution: `resolver = "3"` is
+MSRV-aware and won't pick a dependency version needing a newer `rustc`.
+
+The two can stay equal only while nothing outside this repo compiles
+against these crates, which both `publish = false` settings currently
+guarantee. Phase 8 ends that (see
+[ROADMAP.md](./ROADMAP.md#phase-8-app-owned-rust-extensions-future)):
+`rust-version` then drops below the pin and needs its own check, which
+installs the floor toolchain and runs `cargo +<msrv> check`, the `+<msrv>`
+overriding `rust-toolchain.toml`. That is a second toolchain, so a second
+full gpui build under its own `Swatinem/rust-cache` key.
+
 ## TypeScript (`packages/*`)
 
 ### Test placement
@@ -80,9 +108,8 @@ The repo root defines a `pretest`
 automatically as its own separate step before the root's `test` — not
 chained into `test` itself. So `pnpm test` from the root already covers
 lint, type-check, and format; the standalone scripts exist for running
-just one check directly. `pnpm -r test` deliberately does *not* fire it:
-`-r` skips the root project, which is what lets CI run those checks as
-their own steps instead of hiding them inside the test job.
+just one check directly. `pnpm -r test` does not fire it — `-r` skips the
+root project — which is what lets CI run those checks as their own steps.
 
 #### Agent-friendly lint/format output
 
@@ -111,8 +138,8 @@ modes are the only output-shaping options it has.
 - Each package's `exports` carries a `"source"` condition pointing at
   `src/index.mts`, and `tsconfig.base.json` sets
   `customConditions: ["source"]`, so type-checking resolves workspace
-  imports from source instead of from a built `dist/`. Without it `lint`
-  can only pass after a build. Runtime resolution is untouched — Vite and
+  imports from source instead of from a built `dist/`, so the `lint` job
+  needs no build step. Runtime resolution is untouched — Vite and
   vitest don't know the condition and fall through to `import` — so
   `pnpm -r test` still needs `pnpm -r build` first. `publishConfig.exports`
   drops the condition again when packing, since `files: ["dist"]` doesn't

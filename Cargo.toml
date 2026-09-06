@@ -16,7 +16,7 @@ default-members = ["crates/gpjs-ui"]
 [workspace.package]
 version = "0.0.0-0"
 edition = "2024"
-rust-version = "1.97"
+rust-version = "1.98"
 license = "MIT OR Apache-2.0"
 authors = ["tom96da"]
 repository = "https://github.com/tom96da/gpjs-ui"
