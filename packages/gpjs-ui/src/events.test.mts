@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { addEventListener, disposeNode } from "./events.mts";
 
 const native = {
+  rootNodeId: vi.fn<() => number>(() => 0),
   createNode: vi.fn<(tag: string) => number>((_tag: string) => 1),
   appendChild: vi.fn<(parentId: number, childId: number) => void>(),
   insertBefore: vi.fn<(parentId: number, childId: number, anchorId: number | null) => void>(),

@@ -447,8 +447,8 @@ can't survive a CLI that doesn't know about the token.
 - [x] Tests mirroring the existing binding tests
 - [x] `docs/FFI.md`: add it to the binding table; re-apply the FFI safety
       checklist below
-- [ ] `packages/gpjs-ui`: typed wrapper + unit test
-- [ ] `packages/vue`: `createGpjsuiApp(App).mount()` callable with no
+- [x] `packages/gpjs-ui`: typed wrapper + unit test
+- [x] `packages/vue`: `createGpjsuiApp(App).mount()` callable with no
       argument, defaulting to the native root — `src/createApp.mts` is
       currently a type-fixed re-export of `renderer.createApp`, so this
       becomes a real wrapper function

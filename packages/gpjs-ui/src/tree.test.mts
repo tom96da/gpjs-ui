@@ -8,11 +8,13 @@ import {
   createNode,
   insertBefore,
   removeChild,
+  rootNodeId,
   setAttribute,
   setStyle,
 } from "./tree.mts";
 
 const native = {
+  rootNodeId: vi.fn<() => number>(() => 42),
   createNode: vi.fn<(tag: string) => number>((_tag: string) => 1),
   appendChild: vi.fn<(parentId: number, childId: number) => void>(),
   insertBefore: vi.fn<(parentId: number, childId: number, anchorId: number | null) => void>(),
@@ -28,6 +30,11 @@ beforeEach(() => {
 });
 
 describe("wrapper functions forward to __gpjsui_native__", () => {
+  it("rootNodeId", () => {
+    expect(rootNodeId()).toBe(42);
+    expect(native.rootNodeId).toHaveBeenCalledWith();
+  });
+
   it("createNode", () => {
     expect(createNode("div")).toBe(1);
     expect(native.createNode).toHaveBeenCalledWith("div");

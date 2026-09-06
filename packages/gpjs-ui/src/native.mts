@@ -5,6 +5,7 @@ import type { AttributeValue, CallbackId, EventListener, NodeId } from "./types.
 
 /** The host-injected object every wrapper in this package forwards to. Not part of the public surface — reach it through the wrappers instead. */
 interface GpjsuiNative {
+  rootNodeId(): NodeId;
   createNode(tag: string): NodeId;
   appendChild(parentId: NodeId, childId: NodeId): void;
   insertBefore(parentId: NodeId, childId: NodeId, anchorId: NodeId | null): void;

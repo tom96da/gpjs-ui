@@ -36,26 +36,15 @@ const compiled = compileScript(descriptor, {
   },
 });
 
-await mkdir(distDir, { recursive: true });
-await writeFile(path.join(distDir, "_compiled.mjs"), compiled.content);
-await writeFile(
-  path.join(distDir, "_entry.mjs"),
-  `import { createGpjsuiApp } from "@gpjs-ui/vue";
+const entrySource = `import { createGpjsuiApp } from "@gpjs-ui/vue";
 import HelloWorld from "./_compiled.mjs";
 
-// Substituted with the real root NodeId by gpjs-ui-example-runner before
-// eval_module (a plain string replace, not a Rust format! interpolation —
-// see that crate's ROOT_ID_PLACEHOLDER doc comment for why).
-const ROOT_ID = __GPJSUI_ROOT_ID__;
+createGpjsuiApp(HelloWorld).mount();
+`;
 
-createGpjsuiApp(HelloWorld).mount({
-  id: ROOT_ID,
-  kind: "element",
-  parent: null,
-  children: [],
-});
-`,
-);
+await mkdir(distDir, { recursive: true });
+await writeFile(path.join(distDir, "_compiled.mjs"), compiled.content);
+await writeFile(path.join(distDir, "_entry.mjs"), entrySource);
 
 await build({
   configFile: false,

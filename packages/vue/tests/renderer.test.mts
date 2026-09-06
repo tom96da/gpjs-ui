@@ -4,7 +4,7 @@
 import { h, nextTick, reactive } from "@vue/runtime-core";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { createNode } from "gpjs-ui";
+import { createNode, rootNodeId } from "gpjs-ui";
 
 import { createGpjsuiApp } from "../src/index.mts";
 
@@ -25,7 +25,7 @@ interface FakeNode {
 // actual `nodeOps`/`patchProp` end to end, without a real Rust process.
 function installFakeNative(): Map<NodeId, FakeNode> {
   const nodes = new Map<NodeId, FakeNode>();
-  let nextId = 1;
+  let nextId = 0;
 
   function requireNode(id: NodeId): FakeNode {
     const node = nodes.get(id);
@@ -33,12 +33,20 @@ function installFakeNative(): Map<NodeId, FakeNode> {
     return node;
   }
 
+  function allocate(tag: string): NodeId {
+    const id = nextId++;
+    nodes.set(id, { tag, attributes: {}, style: {}, children: [], listeners: {} });
+    return id;
+  }
+
+  // The host allocates its root along with the tree, before any JS runs.
+  const rootId = allocate("div");
+
   globalThis.__gpjsui_native__ = {
-    createNode(tag: string): NodeId {
-      const id = nextId++;
-      nodes.set(id, { tag, attributes: {}, style: {}, children: [], listeners: {} });
-      return id;
+    rootNodeId(): NodeId {
+      return rootId;
     },
+    createNode: allocate,
     appendChild(parentId: NodeId, childId: NodeId): void {
       globalThis.__gpjsui_native__.insertBefore(parentId, childId, null);
     },
@@ -149,5 +157,21 @@ describe("@gpjs-ui/vue renderer, driven end to end through a real gpjs-ui core",
 
     const reordered = nodes.get(containerId)!.children;
     expect(reordered).toEqual([originalOrder[2], originalOrder[0], originalOrder[1]]);
+  });
+
+  it("mounts against the host's root container when mount gets no argument", async () => {
+    const App = {
+      setup() {
+        return () => h("div", { class: "box" });
+      },
+    };
+
+    createGpjsuiApp(App).mount();
+    await nextTick();
+
+    const hostRoot = nodes.get(rootNodeId())!;
+    expect(hostRoot).not.toBe(nodes.get(root.id));
+    expect(hostRoot.children).toHaveLength(1);
+    expect(nodes.get(hostRoot.children[0]!)!.attributes["class"]).toBe("box");
   });
 });

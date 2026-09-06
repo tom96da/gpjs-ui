@@ -7,8 +7,8 @@ GPUI and QuickJS. It maps Vue's `createRenderer` lifecycle methods
 functions, never talking to the native host bridge directly, and exposes
 `createGpjsuiApp` — `@vue/runtime-core`'s `createApp`, fixed to mount
 against this renderer's host-node handles instead of a DOM element.
+`app.mount()` with no argument targets the host's own root container.
 
 The renderer's node lifecycle (`createElement`/`insert`/`remove`, text and
 comment nodes, prop patching for style/attributes/events) is implemented
-and tested. An example app you can actually see rendered in a real window
-hasn't landed yet.
+and tested.

@@ -6,6 +6,16 @@ import { native } from "./native.mts";
 import type { AttributeValue, NodeId, StyleProps, TagName } from "./types.mts";
 
 /**
+ * Returns the host-allocated root container's id — the node an app attaches
+ * itself under. The host allocates it with the tree, so this resolves from
+ * the first call and names the same node for the engine's lifetime.
+ * @returns the root node's id
+ */
+export function rootNodeId(): NodeId {
+  return native().rootNodeId();
+}
+
+/**
  * Allocates a new node of kind `tag` in the native tree. The node starts out
  * detached — attach it with {@link appendChild}/{@link insertBefore}.
  * @param tag - the node's element kind

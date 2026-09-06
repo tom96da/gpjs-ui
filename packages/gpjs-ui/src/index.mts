@@ -7,6 +7,7 @@ export {
   createNode,
   insertBefore,
   removeChild,
+  rootNodeId,
   setAttribute,
   setStyle,
 } from "./tree.mts";

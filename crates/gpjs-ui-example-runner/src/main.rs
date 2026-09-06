@@ -68,13 +68,6 @@ fn content_window_size(host: &Host, root: NodeId) -> (f32, f32) {
     )
 }
 
-/// Substituted with the real root [`NodeId`] before `eval_module`. A bundle
-/// read from disk is full of literal `{`/`}` characters, so — unlike
-/// `click_counter.rs`, which interpolates ids straight into a short JS
-/// literal via `format!` — a plain `str::replace` on this token is used
-/// instead; `format!` on a whole bundle's text would panic on those braces.
-const ROOT_ID_PLACEHOLDER: &str = "__GPJSUI_ROOT_ID__";
-
 struct ExampleApp {
     host: Rc<RefCell<Host>>,
     root: NodeId,
@@ -99,8 +92,7 @@ fn run_example(bundle_path: &str) {
         let engine = Engine::new().unwrap();
         engine.with(|ctx| install(&ctx, &host)).unwrap();
 
-        let source = bundle.replace(ROOT_ID_PLACEHOLDER, &root.to_string());
-        engine.eval_module("bundle.mjs", &source).unwrap();
+        engine.eval_module("bundle.mjs", &bundle).unwrap();
 
         let dispatcher = EventDispatcher::new(Rc::new(engine), Rc::clone(&host));
 
