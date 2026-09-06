@@ -5,12 +5,7 @@
 
 [workspace]
 resolver = "3"
-members = [
-  "crates/gpjs-ui",
-  "crates/gpjs-ui-example-runner",
-  # gpjs-ui-example-runner becomes gpjs-ui-host in Phase 3.1; gpjs-ui-macros
-  # lands on-demand — see docs/ROADMAP.md
-]
+members = ["crates/*"]
 default-members = ["crates/gpjs-ui"]
 
 [workspace.package]

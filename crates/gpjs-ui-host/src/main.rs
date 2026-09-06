@@ -1,9 +1,8 @@
 // Copyright (c) 2026 tom96da
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Generic loader for gpjs-ui's Vue example apps (`examples/hello_world`,
-//! `examples/click_counter`, ...): given the path to one of their prebuilt,
-//! self-contained JS bundles, this installs `__gpjsui_native__` bindings,
+//! Runtime binary behind a gpjs-ui app: given the path to a prebuilt,
+//! self-contained JS bundle, this installs `__gpjsui_native__` bindings,
 //! `eval_module`s the bundle, and opens a GPUI window rendering whatever
 //! tree the bundle mounted.
 //!
@@ -11,10 +10,10 @@
 //! Vite, dev servers, or HMR, and no change watching.
 //!
 //! Always renders via `render_tree_with_events` + `EventDispatcher`, never
-//! plain `render_tree`: since one binary has to handle any example
-//! generically, it can't know ahead of time whether the loaded bundle
-//! registered any click handlers. The event-aware path is a no-op for a
-//! bundle that registers none.
+//! plain `render_tree`: since one binary has to handle any app generically,
+//! it can't know ahead of time whether the loaded bundle registered any
+//! click handlers. The event-aware path is a no-op for a bundle that
+//! registers none.
 
 #![allow(clippy::unwrap_used)]
 
@@ -68,20 +67,20 @@ fn content_window_size(host: &Host, root: NodeId) -> (f32, f32) {
     )
 }
 
-struct ExampleApp {
+struct HostedApp {
     host: Rc<RefCell<Host>>,
     root: NodeId,
     dispatcher: EventDispatcher,
 }
 
-impl Render for ExampleApp {
+impl Render for HostedApp {
     fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
         let host = self.host.borrow();
         render_tree_with_events(&host.tree, self.root, &self.dispatcher).unwrap()
     }
 }
 
-fn run_example(bundle_path: &str) {
+fn run_bundle(bundle_path: &str) {
     let bundle = fs::read_to_string(bundle_path)
         .unwrap_or_else(|err| panic!("failed to read {bundle_path}: {err}"));
 
@@ -104,7 +103,7 @@ fn run_example(bundle_path: &str) {
                 ..Default::default()
             },
             |_, cx| {
-                cx.new(|_| ExampleApp {
+                cx.new(|_| HostedApp {
                     host,
                     root,
                     dispatcher,
@@ -120,11 +119,11 @@ fn main() -> ExitCode {
     env_logger::init();
 
     let Some(bundle_path) = env::args().nth(1) else {
-        eprintln!("usage: gpjs-ui-example-runner <path-to-bundle.js>");
+        eprintln!("usage: gpjs-ui-host <path-to-bundle.js>");
         return ExitCode::FAILURE;
     };
 
-    run_example(&bundle_path);
+    run_bundle(&bundle_path);
     ExitCode::SUCCESS
 }
 

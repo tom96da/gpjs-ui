@@ -38,8 +38,8 @@ actually run it.
 typed wrapper around `__gpjsui_native__` (Units i–ii), `packages/vue`'s Vue 3
 custom renderer (Unit iii), and two real `.vue` example apps run end-to-end
 through the actual host/QuickJS stack (Unit iv — `examples/hello_world`,
-`examples/click_counter`, loaded via the new `crates/gpjs-ui-example-runner`
-crate) are all implemented, tested, and — for Unit iv's manual GUI check —
+`examples/click_counter`, loaded via `crates/gpjs-ui-host`) are all
+implemented, tested, and — for Unit iv's manual GUI check —
 visually confirmed (both natively on macOS and from the devcontainer via
 XQuartz forwarding). The Vite/HMR bridge (Phase 3) and everything after are
 still *planned* target design, not landed code — but Phase 3's design is now

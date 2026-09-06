@@ -39,8 +39,8 @@ All of the following must pass, not just `cargo test`:
   `packages/gpjs-ui/dist/index.js` off disk, so run
   `pnpm --filter gpjs-ui build` first, or this one test fails with a
   message saying so
-- `cargo check -p gpjs-ui-example-runner --all-targets` and
-  `cargo clippy -p gpjs-ui-example-runner --all-targets` — no `cargo test`
+- `cargo check -p gpjs-ui-host --all-targets` and
+  `cargo clippy -p gpjs-ui-host --all-targets` — no `cargo test`
   for this crate, it's a manual-check binary like `crates/gpjs-ui`'s own
   examples, not a library with automated tests
 

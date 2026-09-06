@@ -455,7 +455,7 @@ can't survive a CLI that doesn't know about the token.
 
 ### Unit ii — `crates/gpjs-ui-host`
 
-- [ ] Rename `crates/gpjs-ui-example-runner` to `gpjs-ui-host`, keeping the
+- [x] Rename `crates/gpjs-ui-example-runner` to `gpjs-ui-host`, keeping the
       existing `<path-to-bundle.js>` one-shot behaviour intact
 - [ ] Dev mode: read newline-delimited JSON on stdin, write protocol
       messages on stdout, log to stderr

@@ -77,11 +77,11 @@ lands after 3.3, when there is something to release.
    library/watch mode (not its browser dev server), using
    `@vitejs/plugin-vue` to compile `.vue` SFCs, then spawns the host and
    sends it a reload message on every rebuild.
-2. **`crates/gpjs-ui-host`**: the runtime binary, grown out of Phase 2's
-   `gpjs-ui-example-runner` — opens the GPUI window and evaluates a bundle
-   in QuickJS, and in dev mode reads newline-delimited JSON messages on
-   stdin, re-evaluating the bundle in a fresh engine against a reset tree on
-   each reload. Its stdout is the protocol channel; logs go to stderr.
+2. **`crates/gpjs-ui-host`**: the runtime binary — opens the GPUI window
+   and evaluates a bundle in QuickJS, and in dev mode reads newline-delimited
+   JSON messages on stdin, re-evaluating the bundle in a fresh engine against
+   a reset tree on each reload. Its stdout is the protocol channel; logs go
+   to stderr.
 3. **Native root handle**: a binding replacing Phase 2's
    `__GPJSUI_ROOT_ID__` source substitution, so an app's entry point is
    plain code (`createGpjsuiApp(App).mount()`) with no host-injected token

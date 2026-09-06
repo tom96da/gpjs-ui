@@ -5,7 +5,7 @@
 // @vue/compiler-sfc directly (no Vite dev server, no @vitejs/plugin-vue),
 // then bundles the result together with @gpjs-ui/vue and @vue/runtime-core
 // into one self-contained dist/bundle.js with zero unresolved imports,
-// consumable by gpjs-ui-example-runner's Engine::eval_module.
+// consumable by gpjs-ui-host's Engine::eval_module.
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";

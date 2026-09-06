@@ -15,7 +15,7 @@ yourself, for the existing examples
 `crates/gpjs-ui/examples/hello_world.rs`,
 `crates/gpjs-ui/examples/click_counter.rs`, and the two Vue ports,
 `examples/hello_world` and `examples/click_counter`, run through
-`gpjs-ui-example-runner`) and any future one.
+`gpjs-ui-host`) and any future one.
 
 There are two ways to see the window, depending on which platform's
 rendering backend you want to exercise. Option A is simpler and is enough
@@ -41,11 +41,11 @@ colored boxes should appear.
 ### The Vue ports (`examples/hello_world`, `examples/click_counter`)
 
 These aren't Cargo examples — build the `.vue` app first, then run it
-through `gpjs-ui-example-runner`, the generic loader Unit iv added:
+through `gpjs-ui-host`:
 
 ```sh
 pnpm --filter hello_world build
-cargo run -p gpjs-ui-example-runner -- examples/hello_world/dist/bundle.js
+cargo run -p gpjs-ui-host -- examples/hello_world/dist/bundle.js
 ```
 
 Same look as `hello_world`/`gpui_hello_world` above. Swap in
@@ -156,7 +156,7 @@ background — for a reason not yet found.
    ```
    or, for one of the Vue ports (build it first, same as Option A):
    ```sh
-   DISPLAY=host.docker.internal:0 cargo run -p gpjs-ui-example-runner -- examples/hello_world/dist/bundle.js
+   DISPLAY=host.docker.internal:0 cargo run -p gpjs-ui-host -- examples/hello_world/dist/bundle.js
    ```
 
 The same window appears on the Mac desktop, rendered by XQuartz.

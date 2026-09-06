@@ -37,7 +37,7 @@ gpjs-ui/
 ├── Cargo.lock               # locked Rust dependency graph, including git-pinned gpui
 ├── crates/
 │   ├── gpjs-ui/             # Rust host: retained tree, QuickJS bridge, GPUI render (Phase 1, done)
-│   └── gpjs-ui-example-runner/  # generic loader for the Vue example apps below (Phase 2 Unit iv, done) — grows into `gpjs-ui-host` in Phase 3.1
+│   └── gpjs-ui-host/        # the runtime binary: loads a bundle and opens the window (Phase 2 Unit iv, done; grows a dev mode in Phase 3.1)
 ├── pnpm-workspace.yaml       # pnpm workspace member globs (packages/*, examples/*)
 ├── package.json              # root workspace manifest — lint/format/typecheck/test/build scripts
 ├── pnpm-lock.yaml
@@ -74,7 +74,6 @@ existing `crates/`/`packages/` directories shown above:
 ```
 gpjs-ui/
 ├── crates/
-│   ├── gpjs-ui-host/        # the runtime binary the CLI spawns — `gpjs-ui-example-runner` renamed and grown (Phase 3.1)
 │   └── gpjs-ui-macros/      # host bridge binding helper macros
 └── packages/
     ├── cli/                 # `@gpjs-ui/cli` — the `gpjsui` dev/build CLI, owns Vite and spawns the host (Phase 3.1)

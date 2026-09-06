@@ -4,8 +4,8 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 [package]
-name = "gpjs-ui-example-runner"
-description = "One-shot loader for gpjs-ui's Vue example apps under examples/ — reads a prebuilt, self-contained JS bundle and mounts it through the real gpjs-ui/GPUI stack."
+name = "gpjs-ui-host"
+description = "Runtime binary for gpjs-ui apps — reads a prebuilt, self-contained JS bundle and mounts it through the real gpjs-ui/GPUI stack."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

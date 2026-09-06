@@ -2149,7 +2149,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpjs-ui-example-runner"
+name = "gpjs-ui-host"
 version = "0.0.0-0"
 dependencies = [
  "env_logger",

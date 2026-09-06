@@ -203,10 +203,10 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Check
-        run: cargo check -p gpjs-ui -p gpjs-ui-example-runner --all-targets
+        run: cargo check -p gpjs-ui -p gpjs-ui-host --all-targets
 
       - name: Clippy
-        run: cargo clippy -p gpjs-ui -p gpjs-ui-example-runner --all-targets -- -D warnings
+        run: cargo clippy -p gpjs-ui -p gpjs-ui-host --all-targets -- -D warnings
 
       - name: Test
         run: cargo test -p gpjs-ui
