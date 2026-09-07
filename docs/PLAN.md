@@ -553,18 +553,23 @@ The Node end of [docs/PROTOCOL.md](./PROTOCOL.md), and the only package that
 speaks it. Depends on no bundler, so a bundler other than Vite is a new
 integration registered against this channel rather than a change here.
 
-- [ ] `packages/host-client` (npm name `@gpjs-ui/host-client`), following
+- [x] `packages/host-client` (npm name `@gpjs-ui/host-client`), following
       the existing `packages/*` conventions (`vite.config.mts`,
       `unplugin-dts`, `pretest`)
-- [ ] Host binary resolution: env var → the workspace's own build →
-      (later) a per-platform npm package
-- [ ] Spawn and supervise the child: launch it with `--dev <bundle>`, relay
+- [x] Host binary resolution: env var → the workspace's own build →
+      (later) a per-platform npm package — landed as `resolveHostBin` in
+      `packages/host-client/src/index.mts`; the per-platform npm package is
+      Phase 3.3 Unit i's job, not this one's
+- [x] Spawn and supervise the child: launch it with `--dev <bundle>`, relay
       its stderr, and on teardown send `shutdown` before falling back to a
-      kill
-- [ ] Line framing and typed messages both ways, correlating each response
-      to the request it answers by JSON-RPC `id`
-- [ ] Treat a stdout line that isn't a JSON-RPC message as stray output from
-      a dependency: log it and keep reading, never fail the stream
+      kill — `HostClient.start`/`stop`
+- [x] Line framing and typed messages both ways, correlating each response
+      to the request it answers by JSON-RPC `id` — `HostClient.call`,
+      keyed by a `Map<id, PendingCall>`
+- [x] Treat a stdout line that isn't a JSON-RPC message as stray output from
+      a dependency: log it and keep reading, never fail the stream —
+      `HostClient`'s line handler falls back to `onStderr` for anything that
+      doesn't parse as `{"jsonrpc":"2.0",...}`
 - [ ] Surface `appError` to the caller rather than dropping it as a method
       nothing registered for — an app fault the client swallows is the
       failure that message exists to prevent. Cover it in the mock-host
