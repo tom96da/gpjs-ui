@@ -38,6 +38,7 @@ gpjs-ui/
 ├── Cargo.lock               # locked Rust dependency graph, including git-pinned gpui
 ├── crates/
 │   ├── gpjs-ui/             # Rust host: retained tree, QuickJS bridge, GPUI render (Phase 1, done)
+│   ├── gpjs-ui-jsenv/       # the host objects installed into the QuickJS realm — console today, more in Phase 6
 │   └── gpjs-ui-host/        # the runtime binary: loads a bundle and opens the window (Phase 2 Unit iv, done; grows a dev mode in Phase 3.1)
 ├── pnpm-workspace.yaml       # pnpm workspace member globs (packages/*, examples/*)
 ├── package.json              # root workspace manifest — lint/format/typecheck/test/build scripts

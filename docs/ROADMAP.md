@@ -222,7 +222,14 @@ fetch, or read a file.
 
 Each item is a host binding plus its typed wrapper in `packages/gpjs-ui`,
 and each hands a new capability to app code — the FFI safety checklist in
-[docs/PLAN.md](./PLAN.md) applies to all of them.
+[docs/PLAN.md](./PLAN.md) applies to all of them. They belong in
+`crates/gpjs-ui-jsenv`, which depends on `rquickjs` alone so an
+implementation can be swapped for a third-party one.
+
+Check for one before writing any of these. `rquickjs-extra-*` (the rquickjs
+org's own: timers, url, os, sqlite) and `llrt_modules` (AWS) both cover part
+of this list, and both were pinned to `rquickjs` releases older than this
+workspace's when `console` landed, which is why `console` is ours.
 
 1. **Timers**: `setTimeout`/`setInterval` and their `clear` counterparts,
    driven by GPUI's own event loop rather than a second one. This is also

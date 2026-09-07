@@ -516,9 +516,12 @@ work here.
 - [x] `packages/vue`: `remove` and `setElementText` destroy rather than
       detach, and the fake host in its tests matches the real one's
       registration semantics
-- [ ] `console`, installed by the host so it exists before any bundle runs
-      and writing to stderr. QuickJS has none, so an app today cannot log at
-      all
+- [x] `crates/gpjs-ui-jsenv`: the host objects installed into the QuickJS
+      realm, depending on `rquickjs` alone. `console` is the first, rendering
+      values the way `util.inspect` does rather than `JSON.stringify`, which
+      throws on a cycle and drops functions and `undefined`
+- [ ] Install `console` from the host, so it exists before any bundle runs,
+      and point it at stderr — stdout is the protocol channel
 - [ ] Only a node with a registered listener gets a GPUI element id and a
       click handler. GPUI inserts a hitbox for every element carrying a click
       listener, so wiring all of them costs a hitbox and two mouse listeners
