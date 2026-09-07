@@ -140,12 +140,15 @@ modes are the only output-shaping options it has.
 - Each package's `exports` carries a `"source"` condition pointing at
   `src/index.mts`, and `tsconfig.base.json` sets
   `customConditions: ["source"]`, so type-checking resolves workspace
-  imports from source instead of from a built `dist/`, so the `lint` job
-  needs no build step. Runtime resolution is untouched — Vite and
-  vitest don't know the condition and fall through to `import` — so
-  `pnpm -r test` still needs `pnpm -r build` first. `publishConfig.exports`
-  drops the condition again when packing, since `files: ["dist"]` doesn't
-  ship `src/`.
+  imports from source instead of a built `dist/`. Vite/vitest don't read
+  `customConditions`, so a package testing against another workspace
+  package needs the same condition set explicitly, on both
+  `resolve.conditions` and `ssr.resolve.conditions` (vitest resolves
+  through Vite's SSR path) — see `packages/vue/vite.config.mts`, gated to
+  `mode === "test"` so the real build still resolves `gpjs-ui` through
+  `import` and bundles it. `publishConfig.exports` drops the `source`
+  condition again when packing, since `files: ["dist"]` doesn't ship
+  `src/`.
 - A package's `tsconfig.json` `include` has to list every directory whose
   files are checked, `tests/` included. A file outside it still gets
   linted, but under default compiler options rather than
@@ -157,12 +160,17 @@ modes are the only output-shaping options it has.
   `module: "preserve"`'s implied `moduleResolution: "bundler"` requires
   this, and why `tsconfig.base.json` sets
   `allowImportingTsExtensions: true` to allow it.
+- Vitest replaces rather than merges an array option (`exclude`, etc.) with
+  its default, so extending one means spreading `configDefaults` from
+  `vitest/config` instead of retyping it — see the root `vitest.config.ts`.
 
 ## Running tests
 
 - Single package: `pnpm --filter <pkg> test` / `typecheck` / `build`
-- Whole workspace: `pnpm -r test` / `typecheck` / `build` from the repo
-  root
+- Whole workspace: `pnpm test` (all packages in one process, via
+  `vitest.config.ts`'s `projects`) / `pnpm typecheck` (root-level; covers
+  `examples/*` too) / `pnpm -r build` — from the repo root
+- Coverage: `pnpm test:coverage`, same run with `--coverage` added
 - Rust: `cargo test -p gpjs-ui` (see [AGENTS.md](../AGENTS.md#status)) —
   plus `cargo clippy`/`cargo fmt --check` from the Required checks list
   above, which aren't bundled into `cargo test` itself the way the root

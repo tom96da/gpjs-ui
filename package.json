@@ -24,7 +24,8 @@
   "scripts": {
     "build": "pnpm -r build",
     "pretest": "oxlint --type-aware --type-check && oxfmt --check .",
-    "test": "pnpm -r test",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt --check .",
@@ -35,6 +36,7 @@
   "devDependencies": {
     "@types/node": "^26.4.1",
     "@typescript/native": "npm:typescript@^7.0.2",
+    "@vitest/coverage-v8": "^5.0.0",
     "oxfmt": "^0.66.0",
     "oxlint": "^1.81.0",
     "oxlint-tsgolint": "^7.0.2001",
