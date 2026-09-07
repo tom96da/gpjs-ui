@@ -7,11 +7,102 @@
 //! `Engine` is fully independent: creating a global on one has no effect on
 //! any other `Engine`, since they don't share a runtime or a heap.
 
-use rquickjs::{Context, Ctx, FromJs, Module, Runtime};
+use std::fmt;
 
-pub use rquickjs::Error as EngineError;
+use rquickjs::{Coerced, Context, Ctx, FromJs, Module, Runtime, Value};
 
 pub type EngineResult<T> = Result<T, EngineError>;
+
+/// A failure out of the JS engine, with the thrown value already read from
+/// the context that produced it.
+///
+/// Reading a pending exception clears it, so it has to happen inside the
+/// call that failed. That is why this is what [`Engine`]'s methods return:
+/// a caller cannot get the order wrong.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EngineError {
+    message: String,
+    stack: Option<String>,
+}
+
+impl EngineError {
+    /// Reads `err`, and any exception pending on `ctx`, into an owned error.
+    ///
+    /// Call it inside the same [`Ctx`] borrow that produced `err`.
+    #[must_use]
+    pub fn capture(ctx: &Ctx<'_>, err: &rquickjs::Error) -> Self {
+        if matches!(err, rquickjs::Error::Exception) {
+            return Self::from_thrown(&ctx.catch());
+        }
+        Self::plain(err)
+    }
+
+    /// A failure with no JS value behind it: engine setup, or a conversion
+    /// that never entered JS.
+    fn plain(err: &rquickjs::Error) -> Self {
+        Self {
+            message: err.to_string(),
+            stack: None,
+        }
+    }
+
+    /// JS can throw any value. An `Error` gives up a name, a message and its
+    /// frames; anything else is coerced to text, so a thrown object reads as
+    /// `[object Object]` — nothing here walks its shape.
+    fn from_thrown(thrown: &Value<'_>) -> Self {
+        let Some(object) = thrown.as_object().filter(|_| thrown.is_error()) else {
+            return Self {
+                message: thrown
+                    .get::<Coerced<String>>()
+                    .map_or_else(|_| "uncaught, unreadable value".to_owned(), |text| text.0),
+                stack: None,
+            };
+        };
+
+        let name = object
+            .get::<_, Option<String>>("name")
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| "Error".to_owned());
+        let message = match object.get::<_, Option<String>>("message").ok().flatten() {
+            Some(message) if !message.is_empty() => format!("{name}: {message}"),
+            _ => name,
+        };
+        let stack = object
+            .get::<_, Option<String>>("stack")
+            .ok()
+            .flatten()
+            .filter(|stack| !stack.trim().is_empty())
+            .map(|stack| stack.trim_end().to_owned());
+
+        Self { message, stack }
+    }
+
+    /// The thrown value as text.
+    #[must_use]
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    /// The frames behind it, or `None` — `QuickJS` records them only for an
+    /// `Error`, and only the frames: the message is not part of them.
+    #[must_use]
+    pub fn stack(&self) -> Option<&str> {
+        self.stack.as_deref()
+    }
+}
+
+impl fmt::Display for EngineError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.message)?;
+        match &self.stack {
+            Some(stack) => write!(f, "\n{stack}"),
+            None => Ok(()),
+        }
+    }
+}
+
+impl std::error::Error for EngineError {}
 
 pub struct Engine {
     // Kept alive for the lifetime of `context`, which internally holds a
@@ -31,8 +122,8 @@ impl Engine {
     /// Returns an error if the underlying `QuickJS` runtime or context fails
     /// to initialize.
     pub fn new() -> EngineResult<Self> {
-        let runtime = Runtime::new()?;
-        let context = Context::full(&runtime)?;
+        let runtime = Runtime::new().map_err(|err| EngineError::plain(&err))?;
+        let context = Context::full(&runtime).map_err(|err| EngineError::plain(&err))?;
         Ok(Self {
             _runtime: runtime,
             context,
@@ -51,7 +142,10 @@ impl Engine {
     where
         V: for<'js> FromJs<'js>,
     {
-        self.context.with(|ctx| ctx.eval(source))
+        self.context.with(|ctx| {
+            ctx.eval(source)
+                .map_err(|err| EngineError::capture(&ctx, &err))
+        })
     }
 
     /// Runs `f` with access to this engine's [`Ctx`], for operations `eval`
@@ -84,8 +178,10 @@ impl Engine {
     /// for a self-contained module with no top-level `await`).
     pub fn eval_module(&self, name: &str, source: &str) -> EngineResult<()> {
         self.context.with(|ctx| {
-            let (_module, promise) = Module::declare(ctx, name, source)?.eval()?;
-            promise.finish()
+            Module::declare(ctx.clone(), name, source)
+                .and_then(rquickjs::Module::eval)
+                .and_then(|(_module, promise)| promise.finish())
+                .map_err(|err| EngineError::capture(&ctx, &err))
         })
     }
 }
@@ -142,5 +238,58 @@ mod tests {
         let engine = Engine::new().unwrap();
         let result = engine.eval_module("throws.mjs", "throw new Error('boom');");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn an_error_gives_up_its_message_and_its_frames() {
+        let engine = Engine::new().unwrap();
+        let err = engine
+            .eval_module("throws.mjs", "throw new Error('bad edit');")
+            .unwrap_err();
+
+        assert_eq!(err.message(), "Error: bad edit");
+        assert!(
+            err.stack().unwrap_or_default().contains("at "),
+            "{:?}",
+            err.stack()
+        );
+    }
+
+    #[test]
+    fn a_thrown_non_error_still_reads_as_something() {
+        let engine = Engine::new().unwrap();
+        let err = engine.eval::<()>("throw 'just a string';").unwrap_err();
+
+        assert_eq!(err.message(), "just a string");
+        assert_eq!(err.stack(), None, "only an Error carries frames");
+    }
+
+    #[test]
+    fn a_conversion_failure_is_not_a_thrown_value() {
+        let engine = Engine::new().unwrap();
+        let err = engine.eval::<i32>("'not a number'").unwrap_err();
+
+        assert!(!err.message().is_empty());
+        assert_eq!(err.stack(), None);
+    }
+
+    #[test]
+    fn display_leads_with_the_message() {
+        let engine = Engine::new().unwrap();
+        let err = engine.eval::<()>("throw new Error('boom');").unwrap_err();
+
+        let shown = err.to_string();
+        assert!(shown.starts_with("Error: boom"), "{shown}");
+    }
+
+    #[test]
+    fn reading_one_failure_does_not_leak_into_the_next() {
+        let engine = Engine::new().unwrap();
+
+        let first = engine.eval::<()>("throw new Error('first');").unwrap_err();
+        let second = engine.eval::<()>("throw new Error('second');").unwrap_err();
+
+        assert_eq!(first.message(), "Error: first");
+        assert_eq!(second.message(), "Error: second");
     }
 }

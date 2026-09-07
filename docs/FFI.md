@@ -131,8 +131,10 @@ convention is: **the caller stores it itself**, at
 `addEventListener` with that id. `EventDispatcher::dispatch` looks the real
 function up fresh inside one `Engine::with` call and drops it before that
 call returns — it never crosses into a long-lived Rust struct. A missing
-`__gpjsui_callbacks__` entry, or one that isn't a function, is skipped: a
-stale id must not take down the host.
+`__gpjsui_callbacks__` entry, or one that isn't a function, is a stale id and
+is skipped. A callback that *throws* is reported through the host's error
+reporter and the remaining callbacks still run: one bad listener must take
+down neither the host nor its siblings.
 
 That is why `removeEventListener` and `destroyNode` report the ids they
 dropped: each side holds half of a registration, and only the caller can free

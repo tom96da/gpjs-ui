@@ -7,10 +7,8 @@
 //!
 //! Zero-overhead by construction: [`EventDispatcher::dispatch`] is the only
 //! thing that ever touches the JS engine or calls
-//! [`Window::refresh`](gpui::Window::refresh) on this path — attaching a
-//! handler to an element (`render/element.rs`'s `build_element_with_events`)
-//! only clones a couple of `Rc`s, so a re-render with no new input never
-//! runs JS.
+//! [`Window::refresh`](gpui::Window::refresh) on this path, so a re-render
+//! with no new input never runs JS.
 //!
 //! ## Where the real JS function lives
 //!
@@ -31,8 +29,23 @@ use gpui::Window;
 use rquickjs::{Function, Object};
 
 use crate::js::bindings::Host;
-use crate::js::engine::Engine;
+use crate::js::engine::{Engine, EngineError};
 use crate::tree::NodeId;
+
+/// Where a failure inside the running app goes. Nothing asked for it, so
+/// there is no caller to return it to and no `Result` to put it in.
+pub type ErrorReporter = Rc<dyn Fn(&EngineError)>;
+
+/// The reporter a dispatcher uses unless given another: one line per failure
+/// on stderr.
+///
+/// stderr rather than stdout because an embedder may be using stdout as a
+/// message channel, and because a failure that reaches nobody is the reason
+/// this exists at all.
+#[must_use]
+pub fn stderr_reporter() -> ErrorReporter {
+    Rc::new(|err| eprintln!("{err}"))
+}
 
 /// Everything needed to dispatch a native event into JS: the engine to call
 /// into, and the registry of which JS callback ids are listening for which
@@ -41,21 +54,39 @@ use crate::tree::NodeId;
 pub struct EventDispatcher {
     engine: Rc<Engine>,
     host: Rc<RefCell<Host>>,
+    reporter: ErrorReporter,
 }
 
 impl EventDispatcher {
+    /// Reports failures through [`stderr_reporter`].
     pub fn new(engine: Rc<Engine>, host: Rc<RefCell<Host>>) -> Self {
-        Self { engine, host }
+        Self {
+            engine,
+            host,
+            reporter: stderr_reporter(),
+        }
+    }
+
+    /// Sends failures to `reporter` instead. A host with a channel to its
+    /// parent reports there; nothing else about dispatch changes.
+    #[must_use]
+    pub fn with_reporter(mut self, reporter: ErrorReporter) -> Self {
+        self.reporter = reporter;
+        self
     }
 
     /// Calls every JS callback registered for `(node_id, event)` (via
-    /// `__gpjsui_native__.addEventListener`), passing `node_id`, then
-    /// requests a redraw. A no-op — touching neither the JS engine nor
-    /// `window` — if nothing is registered for `(node_id, event)`. Never
-    /// panics: a missing `__gpjsui_callbacks__` registry, a missing entry
-    /// in it, a non-function entry, or an exception thrown by the callback
-    /// itself are all silently skipped rather than propagated — a bad
-    /// listener must not take down the host.
+    /// `__gpjsui_native__.addEventListener`), passing `node_id`, then drains
+    /// the job queue and requests a redraw.
+    ///
+    /// Never panics. A callback that throws is reported and the rest still
+    /// run — one bad listener must not take the host down, nor stop its
+    /// siblings. A missing `__gpjsui_callbacks__` registry, or an entry that
+    /// is missing or isn't a function, is a stale id and is skipped.
+    ///
+    /// The drain happens whether or not a listener ran: a job queued earlier
+    /// is still owed a turn, and whether this particular click had a
+    /// listener says nothing about that.
     pub fn dispatch(&self, node_id: NodeId, event: &str, window: &mut Window) {
         let callback_ids = self
             .host
@@ -63,20 +94,26 @@ impl EventDispatcher {
             .listeners
             .callbacks_for(node_id, event)
             .to_vec();
-        if callback_ids.is_empty() {
-            return;
-        }
 
-        self.engine.with(|ctx| {
+        // Collected rather than reported in place: a reporter is free to do
+        // anything, and re-entering the engine from inside `with` panics.
+        let failures = self.engine.with(|ctx| {
+            let mut failures = Vec::new();
             let Ok(callbacks) = ctx.globals().get::<_, Object>("__gpjsui_callbacks__") else {
-                return;
+                return failures;
             };
             for callback_id in callback_ids {
-                if let Ok(callback) = callbacks.get::<_, Function>(callback_id) {
-                    let _ = callback.call::<_, ()>((node_id,));
+                if let Ok(callback) = callbacks.get::<_, Function>(callback_id)
+                    && let Err(err) = callback.call::<_, ()>((node_id,))
+                {
+                    failures.push(EngineError::capture(&ctx, &err));
                 }
             }
+            failures
         });
+        for failure in &failures {
+            (self.reporter)(failure);
+        }
 
         drain_jobs_and_refresh(&self.engine, window);
     }
@@ -101,37 +138,53 @@ mod tests {
     use crate::js::bindings::install;
     use gpui::TestAppContext;
 
-    fn dispatcher_with_engine() -> (EventDispatcher, Rc<RefCell<Host>>) {
+    /// Every failure the dispatcher reported, in order.
+    type Reported = Rc<RefCell<Vec<EngineError>>>;
+
+    fn dispatcher_with_engine() -> (EventDispatcher, Rc<RefCell<Host>>, Reported) {
         let engine = Rc::new(Engine::new().unwrap());
         let host = Rc::new(RefCell::new(Host::default()));
         engine.with(|ctx| install(&ctx, &host)).unwrap();
-        (EventDispatcher::new(engine, Rc::clone(&host)), host)
+
+        let reported: Reported = Rc::new(RefCell::new(Vec::new()));
+        let sink = Rc::clone(&reported);
+        let dispatcher = EventDispatcher::new(engine, Rc::clone(&host)).with_reporter(Rc::new(
+            move |err: &EngineError| sink.borrow_mut().push(err.clone()),
+        ));
+
+        (dispatcher, host, reported)
     }
 
     #[gpui::test]
-    fn no_listener_registered_is_a_no_op(cx: &mut TestAppContext) {
-        let (dispatcher, host) = dispatcher_with_engine();
+    fn no_listener_registered_reports_nothing(cx: &mut TestAppContext) {
+        let (dispatcher, host, reported) = dispatcher_with_engine();
         let node_id = host.borrow_mut().tree.create_node("div");
 
-        // Would panic (missing global) if dispatch tried to call into JS.
         let cx = cx.add_empty_window();
         cx.update(|window, _| dispatcher.dispatch(node_id, "click", window));
+
+        assert!(reported.borrow().is_empty());
     }
 
     #[gpui::test]
-    fn missing_callbacks_registry_does_not_panic(cx: &mut TestAppContext) {
-        let (dispatcher, host) = dispatcher_with_engine();
+    fn a_stale_callback_id_is_skipped_rather_than_reported(cx: &mut TestAppContext) {
+        let (dispatcher, host, reported) = dispatcher_with_engine();
         let node_id = host.borrow_mut().tree.create_node("div");
         host.borrow_mut().listeners.register(node_id, "click", 0);
 
         // No `__gpjsui_callbacks__` global defined at all.
         let cx = cx.add_empty_window();
         cx.update(|window, _| dispatcher.dispatch(node_id, "click", window));
+
+        assert!(
+            reported.borrow().is_empty(),
+            "a registration outliving its function is not a fault to report"
+        );
     }
 
     #[gpui::test]
     fn drain_jobs_and_refresh_runs_what_a_microtask_only_scheduled(cx: &mut TestAppContext) {
-        let (dispatcher, _host) = dispatcher_with_engine();
+        let (dispatcher, _host, _reported) = dispatcher_with_engine();
         dispatcher
             .engine
             .eval::<()>(
@@ -150,8 +203,28 @@ mod tests {
     }
 
     #[gpui::test]
-    fn throwing_callback_does_not_panic(cx: &mut TestAppContext) {
-        let (dispatcher, host) = dispatcher_with_engine();
+    fn a_pending_job_is_drained_even_when_no_listener_ran(cx: &mut TestAppContext) {
+        let (dispatcher, host, _reported) = dispatcher_with_engine();
+        let node_id = host.borrow_mut().tree.create_node("div");
+        dispatcher
+            .engine
+            .eval::<()>(
+                "globalThis.ran = false; Promise.resolve().then(() => globalThis.ran = true);",
+            )
+            .unwrap();
+
+        let cx = cx.add_empty_window();
+        cx.update(|window, _| dispatcher.dispatch(node_id, "click", window));
+
+        assert!(
+            dispatcher.engine.eval::<bool>("globalThis.ran;").unwrap(),
+            "a job already queued is owed a turn regardless of this event"
+        );
+    }
+
+    #[gpui::test]
+    fn a_throwing_callback_is_reported(cx: &mut TestAppContext) {
+        let (dispatcher, host, reported) = dispatcher_with_engine();
         let node_id = host.borrow_mut().tree.create_node("div");
         host.borrow_mut().listeners.register(node_id, "click", 0);
         dispatcher
@@ -163,5 +236,34 @@ mod tests {
 
         let cx = cx.add_empty_window();
         cx.update(|window, _| dispatcher.dispatch(node_id, "click", window));
+
+        let reported = reported.borrow();
+        assert_eq!(reported.len(), 1);
+        assert_eq!(reported[0].message(), "Error: boom");
+        assert!(reported[0].stack().is_some());
+    }
+
+    #[gpui::test]
+    fn one_throwing_callback_does_not_stop_the_others(cx: &mut TestAppContext) {
+        let (dispatcher, host, reported) = dispatcher_with_engine();
+        let node_id = host.borrow_mut().tree.create_node("div");
+        host.borrow_mut().listeners.register(node_id, "click", 0);
+        host.borrow_mut().listeners.register(node_id, "click", 1);
+        dispatcher
+            .engine
+            .eval::<()>(
+                "globalThis.ran = false; \
+                 globalThis.__gpjsui_callbacks__ = { \
+                    0: () => { throw new Error('boom'); }, \
+                    1: () => { globalThis.ran = true; } \
+                 };",
+            )
+            .unwrap();
+
+        let cx = cx.add_empty_window();
+        cx.update(|window, _| dispatcher.dispatch(node_id, "click", window));
+
+        assert_eq!(reported.borrow().len(), 1);
+        assert!(dispatcher.engine.eval::<bool>("globalThis.ran;").unwrap());
     }
 }
