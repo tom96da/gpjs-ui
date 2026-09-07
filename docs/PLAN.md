@@ -522,7 +522,7 @@ work here.
       throws on a cycle and drops functions and `undefined`
 - [ ] Install `console` from the host, so it exists before any bundle runs,
       and point it at stderr — stdout is the protocol channel
-- [ ] Only a node with a registered listener gets a GPUI element id and a
+- [x] Only a node with a registered listener gets a GPUI element id and a
       click handler. GPUI inserts a hitbox for every element carrying a click
       listener, so wiring all of them costs a hitbox and two mouse listeners
       per node per frame

@@ -13,9 +13,10 @@
 //! ## Where the real JS function lives
 //!
 //! `EventListeners` (`crate::js::bindings`) only ever stores a plain `u32`
-//! callback id — never an `rquickjs::Value`/`Function`/`Persistent<T>`, per
-//! this project's FFI safety rule against storing those in any long-lived
-//! struct. The actual function has to live somewhere, so the convention is:
+//! callback id, never an `rquickjs::Value`/`Function`/`Persistent<T>`: a JS
+//! handle kept past the call that produced it outlives the context it
+//! belongs to. The actual function has to live somewhere, so the convention
+//! is:
 //! the JS caller stores it itself, at
 //! `globalThis.__gpjsui_callbacks__[callbackId]`, before calling
 //! `addEventListener` with that id. [`EventDispatcher::dispatch`] looks the
@@ -73,6 +74,18 @@ impl EventDispatcher {
     pub fn with_reporter(mut self, reporter: ErrorReporter) -> Self {
         self.reporter = reporter;
         self
+    }
+
+    /// Whether anything is registered for `(node_id, event)`. The render
+    /// path asks before wiring an element for input.
+    #[must_use]
+    pub fn listens(&self, node_id: NodeId, event: &str) -> bool {
+        !self
+            .host
+            .borrow()
+            .listeners
+            .callbacks_for(node_id, event)
+            .is_empty()
     }
 
     /// Calls every JS callback registered for `(node_id, event)` (via

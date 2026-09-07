@@ -100,7 +100,11 @@ variants beyond the four above.
 | `destroyNode` | `(nodeId: number) => number[]` | Free `nodeId` and its whole subtree, and return every `callbackId` that was registered anywhere in it, so the caller can drop the JS functions those ids name. Destroying an already-destroyed or unknown id returns `[]`. Destroying the root throws — it belongs to the host. |
 
 On each GPUI `render()` frame cycle, the host recursively converts the
-`VirtualNode` tree into GPUI `AnyElement` instances.
+`VirtualNode` tree into GPUI `AnyElement` instances. A node is wired for
+input only while something is registered on it: GPUI inserts a hitbox for
+any element carrying a click listener, so wiring a whole tree would cost a
+hitbox and two mouse listeners per node per frame, and hit-test all of them
+on every pointer move.
 
 ### Event dispatch (v1: `"click"` only)
 

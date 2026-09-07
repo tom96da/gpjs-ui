@@ -117,6 +117,8 @@ pub struct ElementSpec {
     pub id: NodeId,
     pub tag: ElementTag,
     pub style: StyleSpec,
+    /// Whether anything is listening for a click on this node.
+    pub listens_click: bool,
     pub children: Vec<ElementSpec>,
 }
 
@@ -234,14 +236,27 @@ fn style_spec_from_props(props: &HashMap<String, AttributeValue>) -> StyleSpec {
     style
 }
 
-/// Builds an [`ElementSpec`] for `root` and its whole subtree. `None` if
-/// `root` doesn't resolve, matching [`VirtualTree::get`]'s convention. A
-/// child id that doesn't resolve is skipped rather than panicking —
-/// `VirtualTree`'s own API guarantees this can't actually happen (nodes are
-/// never deallocated), but this is ultimately fed by JS-supplied data, so
-/// the render path stays defensive anyway.
+/// Builds an [`ElementSpec`] for `root` and its whole subtree, with nothing
+/// listening for input.
 #[must_use]
 pub fn build_spec(tree: &VirtualTree, root: NodeId) -> Option<ElementSpec> {
+    build_spec_with(tree, root, &|_| false)
+}
+
+/// Builds an [`ElementSpec`] for `root` and its whole subtree, asking
+/// `listens_click` about each node. `None` if `root` doesn't resolve,
+/// matching [`VirtualTree::get`]'s convention. A child id that doesn't
+/// resolve is skipped rather than panicking — this is ultimately fed by
+/// JS-supplied data, so the render path stays defensive.
+///
+/// A predicate rather than the registry itself, so this layer stays free of
+/// it.
+#[must_use]
+pub fn build_spec_with(
+    tree: &VirtualTree,
+    root: NodeId,
+    listens_click: &dyn Fn(NodeId) -> bool,
+) -> Option<ElementSpec> {
     let node = tree.get(root)?;
 
     let tag = if node.tag_name() == "text" {
@@ -258,13 +273,14 @@ pub fn build_spec(tree: &VirtualTree, root: NodeId) -> Option<ElementSpec> {
     let children = node
         .children()
         .iter()
-        .filter_map(|&child_id| build_spec(tree, child_id))
+        .filter_map(|&child_id| build_spec_with(tree, child_id, listens_click))
         .collect();
 
     Some(ElementSpec {
         id: root,
         tag,
         style,
+        listens_click: listens_click(root),
         children,
     })
 }
@@ -360,41 +376,54 @@ fn apply_style(style: &mut StyleRefinement, spec: &StyleSpec) {
 
 /// Recursively converts an [`ElementSpec`] into a real `gpui` [`AnyElement`].
 ///
-/// Every container gets a real `gpui` `ElementId` (`Integer(node_id)`,
-/// reusing our own stable [`NodeId`]) — without one, GPUI can't associate
-/// interactive state (hover/active/focus/pointer-capture) with the element
-/// across re-renders, since that state is keyed off `GlobalElementId`, and
-/// `on_click` (used when `dispatch` is `Some`) doesn't exist at all without
-/// one. It's also tagged with a `.debug_selector("node-{id}")` — a
-/// documented no-op outside test builds — so tests (including the
-/// layout-parity test in `tests/layout_parity.rs`) can look its computed
-/// bounds up by [`NodeId`].
+/// A container is wired for input only when something listens on it. Wiring
+/// means a `gpui` `ElementId`, which `on_click` does not exist without, and
+/// a hitbox GPUI then hit-tests on every pointer move.
 ///
-/// When `dispatch` is `Some`, every container is wired to call
-/// [`EventDispatcher::dispatch`] for `"click"` on click — cheap to attach
-/// (just cloning a couple of `Rc`s), so a re-render with no new input never
-/// touches the JS engine. See `render/bridge.rs`'s module docs for why.
+/// Every container carries a `.debug_selector("node-{id}")` — a no-op
+/// outside test builds — so a test can look its computed bounds up by
+/// [`NodeId`], wired or not.
 fn build_element_inner(spec: &ElementSpec, dispatch: Option<&EventDispatcher>) -> AnyElement {
     match &spec.tag {
         ElementTag::Text(content) => content.clone().into_any_element(),
         ElementTag::Container => {
             let id = spec.id;
-            let mut element = div()
-                .id(ElementId::Integer(u64::from(id)))
-                .debug_selector(move || format!("node-{id}"));
-            if let Some(dispatch) = dispatch {
-                let dispatch = dispatch.clone();
-                element = element.on_click(move |_, window, _| {
-                    dispatch.dispatch(id, "click", window);
-                });
+            let element = div().debug_selector(move || format!("node-{id}"));
+
+            match dispatch.filter(|_| spec.listens_click) {
+                Some(listening) => {
+                    let listening = listening.clone();
+                    finish_container(
+                        element.id(ElementId::Integer(u64::from(id))).on_click(
+                            move |_, window, _| {
+                                listening.dispatch(id, "click", window);
+                            },
+                        ),
+                        spec,
+                        dispatch,
+                    )
+                }
+                None => finish_container(element, spec, dispatch),
             }
-            apply_style(element.style(), &spec.style);
-            for child in &spec.children {
-                element = element.child(build_element_inner(child, dispatch));
-            }
-            element.into_any_element()
         }
     }
+}
+
+/// Applies `spec`'s style and children to a container, whichever kind of
+/// element it turned out to be.
+fn finish_container<E>(
+    mut element: E,
+    spec: &ElementSpec,
+    dispatch: Option<&EventDispatcher>,
+) -> AnyElement
+where
+    E: Styled + ParentElement + IntoElement + 'static,
+{
+    apply_style(element.style(), &spec.style);
+    for child in &spec.children {
+        element = element.child(build_element_inner(child, dispatch));
+    }
+    element.into_any_element()
 }
 
 /// Recursively converts an [`ElementSpec`] into a real `gpui` [`AnyElement`],
@@ -428,7 +457,8 @@ pub fn render_tree_with_events(
     root: NodeId,
     dispatch: &EventDispatcher,
 ) -> Option<AnyElement> {
-    build_spec(tree, root).map(|spec| build_element_with_events(&spec, dispatch))
+    build_spec_with(tree, root, &|id| dispatch.listens(id, "click"))
+        .map(|spec| build_element_with_events(&spec, dispatch))
 }
 
 #[cfg(test)]
@@ -527,6 +557,31 @@ mod tests {
                     text_size: Some(20.0),
                 }
             );
+        }
+
+        #[test]
+        fn nothing_listens_unless_asked() {
+            let mut tree = VirtualTree::new();
+            let id = tree.create_node("div");
+
+            let spec = build_spec(&tree, id).unwrap();
+            assert!(!spec.listens_click);
+        }
+
+        #[test]
+        fn the_predicate_is_asked_about_every_node() {
+            let mut tree = VirtualTree::new();
+            let parent = tree.create_node("div");
+            let listening = tree.create_node("div");
+            let quiet = tree.create_node("div");
+            tree.append_child(parent, listening).unwrap();
+            tree.append_child(parent, quiet).unwrap();
+
+            let spec = build_spec_with(&tree, parent, &|id| id == listening).unwrap();
+
+            assert!(!spec.listens_click);
+            assert!(spec.children[0].listens_click);
+            assert!(!spec.children[1].listens_click);
         }
 
         #[test]

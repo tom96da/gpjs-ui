@@ -10,6 +10,7 @@ pub use js::engine::{Engine, EngineError, EngineResult};
 pub use render::bridge::{ErrorReporter, EventDispatcher, drain_jobs_and_refresh, stderr_reporter};
 pub use render::element::{
     AlignSpec, DisplaySpec, ElementSpec, ElementTag, FlexDirectionSpec, LengthSpec, StyleSpec,
-    build_element, build_element_with_events, build_spec, render_tree, render_tree_with_events,
+    build_element, build_element_with_events, build_spec, build_spec_with, render_tree,
+    render_tree_with_events,
 };
 pub use tree::{AttributeValue, NodeId, TreeError, VirtualNode, VirtualTree};

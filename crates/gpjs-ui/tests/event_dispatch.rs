@@ -133,6 +133,43 @@ fn click_dispatches_to_js_exactly_once(cx: &mut TestAppContext) {
     );
 }
 
+/// A node is wired for input only while something listens on it, so a
+/// listener registered after the first frame has to survive the re-render
+/// that follows.
+#[gpui::test]
+fn a_listener_registered_after_the_first_render_still_fires(cx: &mut TestAppContext) {
+    let host = Rc::new(RefCell::new(Host::default()));
+    let node = {
+        let mut host = host.borrow_mut();
+        let node = host.tree.create_node("div");
+        host.tree.set_style(node, "width", 100.0).unwrap();
+        host.tree.set_style(node, "height", 100.0).unwrap();
+        node
+    };
+    let engine = Rc::new(Engine::new().unwrap());
+    install_click_counter(&engine);
+    let dispatcher = EventDispatcher::new(Rc::clone(&engine), Rc::clone(&host));
+
+    let window = cx.add_window(|_, _| ClickableRoot {
+        host: Rc::clone(&host),
+        node,
+        dispatcher,
+    });
+    cx.update_window(window.into(), |_, window, cx| window.draw(cx).clear(cx))
+        .unwrap();
+
+    // Nothing was listening for that first frame.
+    host.borrow_mut().listeners.register(node, "click", 0);
+
+    let mut cx = VisualTestContext::from_window(window.into(), cx);
+    cx.update(|window, _| window.refresh());
+    cx.run_until_parked();
+    cx.simulate_click(point(px(10.0), px(10.0)), Modifiers::none());
+    cx.run_until_parked();
+
+    assert_eq!(clicks(&engine), 1.0);
+}
+
 /// The host holds a list of callbacks per `(node, event)`, the way the DOM
 /// does, and dispatches to all of it. `packages/gpjs-ui` registers one — a
 /// framework adapter composes its own handlers first — so nothing above this

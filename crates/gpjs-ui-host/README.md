@@ -6,8 +6,7 @@ evaluates the bundle as an ES module, and opens a GPUI window rendering
 whatever tree the bundle mounted.
 
 ```sh
-pnpm --filter hello_world build
-cargo run -p gpjs-ui-host -- examples/hello_world/dist/bundle.js
+cargo run -p gpjs-ui-host -- path/to/bundle.js
 ```
 
 It loads one fixed, already-bundled file and nothing else: no knowledge of

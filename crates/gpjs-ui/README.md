@@ -7,5 +7,7 @@ bridge (`__gpjsui_native__`) that JS-side renderers drive to build and
 mutate a retained virtual tree, which this crate renders directly with
 `gpui`.
 
-The retained tree, QuickJS runtime bootstrap, host bindings, GPUI render
-conversion, and click-event dispatch are implemented and tested.
+The tree is single-parent and freed explicitly: attaching a node detaches
+it from where it was, and `destroyNode` is what releases one and everything
+below it. Input reaches JS through callbacks registered per `(node, event)`,
+and a callback that throws is reported rather than swallowed.
