@@ -54,7 +54,7 @@ skips almost all of that at no cost.
 ```json
 {"jsonrpc": "2.0", "id": 1, "method": "reload"}
 {"jsonrpc": "2.0", "id": 1, "result": null}
-{"jsonrpc": "2.0", "method": "ready", "params": {"protocol": 1}}
+{"jsonrpc": "2.0", "method": "ready", "params": {"protocol": 0}}
 ```
 
 JSON-RPC leaves framing to the transport. This one is newline-delimited, so

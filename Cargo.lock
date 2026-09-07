@@ -2152,11 +2152,15 @@ dependencies = [
 name = "gpjs-ui-host"
 version = "0.0.0-0"
 dependencies = [
+ "async-channel",
  "env_logger",
  "gpjs-ui",
  "gpjs-ui-jsenv",
  "gpui",
  "gpui_platform",
+ "log",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
