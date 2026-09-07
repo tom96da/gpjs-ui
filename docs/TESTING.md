@@ -30,19 +30,20 @@ Update this file as real conventions land, same as the other docs here.
 
 All of the following must pass, not just `cargo test`:
 
-- `cargo check -p gpjs-ui --all-targets` — the `--all-targets` also
+- `cargo check --workspace --all-targets` — the `--all-targets` also
   compile-checks `examples/`, which has no automated test of its own (see
   `crates/gpjs-ui/examples/hello_world.rs`'s doc comment)
-- `cargo clippy -p gpjs-ui --all-targets`
+- `cargo clippy --workspace --all-targets`
 - `cargo fmt --all -- --check`
-- `cargo test -p gpjs-ui` — `tests/js_core_integration.rs` reads
+- `cargo test --workspace` — `tests/js_core_integration.rs` reads
   `packages/gpjs-ui/dist/index.js` off disk, so run
   `pnpm --filter gpjs-ui build` first, or this one test fails with a
   message saying so
-- `cargo check -p gpjs-ui-host --all-targets` and
-  `cargo clippy -p gpjs-ui-host --all-targets` — no `cargo test`
-  for this crate, it's a manual-check binary like `crates/gpjs-ui`'s own
-  examples, not a library with automated tests
+
+`--workspace` rather than a list of `-p` flags, so a new crate is covered by
+the checks the moment it exists. `crates/gpjs-ui-host` opens a window, which
+stays a manual check like `crates/gpjs-ui`'s own examples — see
+[docs/MANUAL_GUI_CHECK.md](./MANUAL_GUI_CHECK.md).
 
 ### Toolchain pinning and MSRV
 

@@ -203,13 +203,13 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Check
-        run: cargo check -p gpjs-ui -p gpjs-ui-host --all-targets
+        run: cargo check --workspace --all-targets
 
       - name: Clippy
-        run: cargo clippy -p gpjs-ui -p gpjs-ui-host --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets -- -D warnings
 
       - name: Test
-        run: cargo test -p gpjs-ui
+        run: cargo test --workspace
 
   # One status check whose name survives changes to the matrices above.
   passed:
