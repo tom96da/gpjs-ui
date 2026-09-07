@@ -1,33 +1,28 @@
 // Copyright (c) 2026 tom96da
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Runtime binary behind a gpjs-ui app: given the path to a prebuilt,
-//! self-contained JS bundle, this installs `__gpjsui_native__` bindings,
-//! `eval_module`s the bundle, and opens a GPUI window rendering whatever
-//! tree the bundle mounted.
+//! Runtime binary behind a gpjs-ui app: loads one prebuilt, self-contained
+//! JS bundle and opens a GPUI window on whatever tree it mounts.
 //!
-//! Loads one fixed, already-bundled file and nothing else: no knowledge of
-//! Vite, dev servers, or HMR, and no change watching.
+//! One binary serves any app, so it cannot know whether a bundle registers
+//! input handlers; it always renders through `EventDispatcher`, which wires
+//! only the nodes something listens to.
 //!
-//! Always renders via `render_tree_with_events` + `EventDispatcher`, never
-//! plain `render_tree`: since one binary has to handle any app generically,
-//! it can't know ahead of time whether the loaded bundle registered any
-//! click handlers. The event-aware path is a no-op for a bundle that
-//! registers none.
+//! Nothing here panics on a failure a user can cause.
 
-#![allow(clippy::unwrap_used)]
-
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::env;
 use std::fs;
 use std::process::ExitCode;
 use std::rc::Rc;
 
-use gpui::{App, Bounds, Context, Window, WindowBounds, WindowOptions, prelude::*, px, size};
+use gpui::{App, Bounds, Context, Window, WindowBounds, WindowOptions, div, prelude::*, px, size};
 use gpui_platform::application;
 
 use gpjs_ui::js::bindings::install;
-use gpjs_ui::{AttributeValue, Engine, EventDispatcher, Host, NodeId, render_tree_with_events};
+use gpjs_ui::{
+    AttributeValue, Engine, EngineError, EventDispatcher, Host, NodeId, render_tree_with_events,
+};
 
 /// Window size to fall back to when the mounted app's root element doesn't
 /// declare an explicit `width`/`height` style (e.g. a fully fluid layout).
@@ -76,43 +71,76 @@ struct HostedApp {
 impl Render for HostedApp {
     fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
         let host = self.host.borrow();
-        render_tree_with_events(&host.tree, self.root, &self.dispatcher).unwrap()
+        render_tree_with_events(&host.tree, self.root, &self.dispatcher)
+            .unwrap_or_else(|| div().into_any_element())
     }
 }
 
-fn run_bundle(bundle_path: &str) {
-    let bundle = fs::read_to_string(bundle_path)
-        .unwrap_or_else(|err| panic!("failed to read {bundle_path}: {err}"));
+/// Brings up the engine, the tree and the window.
+///
+/// # Errors
+///
+/// Returns the message to report if any of that fails.
+fn start(cx: &mut App, bundle: &str) -> Result<(), String> {
+    let host = Rc::new(RefCell::new(Host::default()));
+    let root = host.borrow().root;
 
+    let engine = Engine::new().map_err(|err| err.to_string())?;
+    engine
+        .with(|ctx| install(&ctx, &host).map_err(|err| EngineError::capture(&ctx, &err)))
+        .map_err(|err| err.to_string())?;
+    engine
+        .eval_module("bundle.mjs", bundle)
+        .map_err(|err| err.to_string())?;
+
+    let dispatcher = EventDispatcher::new(Rc::new(engine), Rc::clone(&host));
+
+    let (width, height) = content_window_size(&host.borrow(), root);
+    let bounds = Bounds::centered(None, size(px(width), px(height)), cx);
+    cx.open_window(
+        WindowOptions {
+            window_bounds: Some(WindowBounds::Windowed(bounds)),
+            ..Default::default()
+        },
+        |_, cx| {
+            cx.new(|_| HostedApp {
+                host,
+                root,
+                dispatcher,
+            })
+        },
+    )
+    .map_err(|err| err.to_string())?;
+    cx.activate(true);
+    Ok(())
+}
+
+fn run_bundle(bundle_path: &str) -> ExitCode {
+    let bundle = match fs::read_to_string(bundle_path) {
+        Ok(bundle) => bundle,
+        Err(err) => {
+            eprintln!("failed to read {bundle_path}: {err}");
+            return ExitCode::FAILURE;
+        }
+    };
+
+    // `run` blocks until the app quits, so the outcome comes back out
+    // through a cell rather than a return value.
+    let failed = Rc::new(Cell::new(false));
+    let reported = Rc::clone(&failed);
     application().run(move |cx: &mut App| {
-        let host = Rc::new(RefCell::new(Host::default()));
-        let root = host.borrow().root;
-
-        let engine = Engine::new().unwrap();
-        engine.with(|ctx| install(&ctx, &host)).unwrap();
-
-        engine.eval_module("bundle.mjs", &bundle).unwrap();
-
-        let dispatcher = EventDispatcher::new(Rc::new(engine), Rc::clone(&host));
-
-        let (width, height) = content_window_size(&host.borrow(), root);
-        let bounds = Bounds::centered(None, size(px(width), px(height)), cx);
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                ..Default::default()
-            },
-            |_, cx| {
-                cx.new(|_| HostedApp {
-                    host,
-                    root,
-                    dispatcher,
-                })
-            },
-        )
-        .unwrap();
-        cx.activate(true);
+        if let Err(message) = start(cx, &bundle) {
+            eprintln!("{message}");
+            reported.set(true);
+            cx.quit();
+        }
     });
+
+    if failed.get() {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
 }
 
 fn main() -> ExitCode {
@@ -123,8 +151,7 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     };
 
-    run_bundle(&bundle_path);
-    ExitCode::SUCCESS
+    run_bundle(&bundle_path)
 }
 
 #[cfg(test)]
