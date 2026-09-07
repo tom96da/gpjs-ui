@@ -15,8 +15,8 @@ Vue 3 support is built first end-to-end (Phases 1–3), through to the
 `v0.0.1` release inside Phase 3.3. What follows that release is what an app
 needs before it can be written at all — the input it is driven by, the
 accessibility that input model makes possible, and the runtime facilities
-every app reaches for — before the surface broadens to more styling, more
-platform, and a second frontend framework.
+every app reaches for — before the surface broadens to more styling, tools
+to develop against, more platform, and a second frontend framework.
 
 | Phase | Scope |
 | --- | --- |
@@ -27,11 +27,12 @@ platform, and a second frontend framework.
 | 5 | Accessibility |
 | 6 | Runtime standard library |
 | 7 | Majority style & Tailwind coverage |
-| 8 | Application shell & platform integration |
-| 9 | React custom renderer |
-| 10 | Cross-platform support |
-| 11 | 100% style & Tailwind parity |
-| 12 | App-owned Rust extensions |
+| 8 | Developer tools |
+| 9 | Application shell & platform integration |
+| 10 | React custom renderer |
+| 11 | Cross-platform support |
+| 12 | 100% style & Tailwind parity |
+| 13 | App-owned Rust extensions |
 
 Each phase below names the gate it waits on; the numbering is the order they
 are built in, not a set of independent tracks.
@@ -76,7 +77,7 @@ Rust-primary logic behind a thin npm `bin` wrapper — were rejected because:
   server/watch/restart API, `child_process`, terminal logging), where Rust
   would grow equivalent process/IPC/file-watching plumbing from scratch.
 - The host binary ships through npm either way, since app authors aren't
-  expected to have a Rust toolchain (Phase 12 is the one exception). A Rust
+  expected to have a Rust toolchain (Phase 13 is the one exception). A Rust
   CLI would add a second binary to distribute for no gain.
 - It keeps `crates/gpjs-ui` and the host free of process/IPC concerns.
 
@@ -135,15 +136,15 @@ Phase 2 Unit iv hand-rolled.
 
 Pairs a built bundle with a prebuilt host binary into a distributable
 application — `.app` on macOS, with each other platform's target following
-its support in Phase 10 — plus the per-platform npm distribution of those
+its support in Phase 11 — plus the per-platform npm distribution of those
 prebuilt hosts. **Design constraint**: keep the host binary swappable, so
-Phase 12 can substitute an app-compiled one.
+Phase 13 can substitute an app-compiled one.
 
 This is the **first release milestone**: once packaging works, the framework
 is published as `v0.0.1`, to npm only (`gpjs-ui`, `@gpjs-ui/vue`,
 `@gpjs-ui/cli`, `@gpjs-ui/host-client`, `@gpjs-ui/vite`, and the
 per-platform host packages). The Rust crates stay
-`publish = false` — nothing outside this repo depends on them until Phase 12.
+`publish = false` — nothing outside this repo depends on them until Phase 13.
 
 ### Phase 3.4: HMR (`@gpjs-ui/vite-runtime`)
 
@@ -182,7 +183,7 @@ is a name the host agrees to send, not a new binding.
    input one, so `overflow` joins the style vocabulary here rather than
    waiting for Phase 7.
 5. **Interactive visual state**: hover, active, and focus styling mapped
-   onto GPUI's own element states rather than re-derived in JS. Phase 11's
+   onto GPUI's own element states rather than re-derived in JS. Phase 12's
    `hover:`/`focus:` Tailwind variants build on this.
 6. **Event payloads**: a listener's callback takes only a node id today,
    which can't express a key, a pointer position, or a text edit. The
@@ -254,7 +255,7 @@ workspace's when `console` landed, which is why `console` is ours.
 Not started, and not begun until Phase 3.1's Vite integration lands —
 Tailwind's own JIT compiler runs as a build-time step, so it needs a real
 Vite pipeline to plug into. Full CSS/Tailwind parity is not the goal here
-(see Phase 11); this phase targets the "structural" utility categories that
+(see Phase 12); this phase targets the "structural" utility categories that
 cover the large majority of real-world usage and map cleanly onto GPUI's
 native styling model:
 
@@ -270,14 +271,42 @@ native styling model:
 3. **Scope target: roughly 70–75% of Tailwind's utility classes** —
    layout/flexbox/grid, spacing, sizing, typography basics, solid
    background/text/border colors, borders/radius, basic shadow. Explicitly
-   deferred to Phase 11: responsive breakpoint variants (`sm:`/`md:`/...),
+   deferred to Phase 12: responsive breakpoint variants (`sm:`/`md:`/...),
    state variants (`hover:`/`focus:`/`group-*`), dark mode,
    animations/transitions, transforms, filters/backdrop-filters, and
    arbitrary bracket values (`w-[137px]`) — these need real design work
    (e.g. mapping `hover:` onto GPUI's own interactive element states)
    rather than a straightforward style-prop translation.
 
-## Phase 8: Application shell & platform integration (future)
+## Phase 8: Developer tools (future)
+
+Not started, and not begun until Phase 6 — `@vue/devtools-kit` is ordinary
+npm code and expects a runtime to live in.
+
+The goal is the real Vue DevTools, not a lookalike of it. `vuejs/devtools`
+splits into a collector (`@vue/devtools-kit`, which hooks
+`globalThis.__VUE_DEVTOOLS_GLOBAL_HOOK__` — a hook `@vue/runtime-core` fires
+from `createRenderer`, so this project's renderer is already wired for it)
+and a UI (`@vue/devtools-client`, itself a Vue app). Only the collector has
+to run where the app runs.
+
+1. **A dev-only engine.** A second `QuickJS` engine, the host's own, drawing
+   into a second root stacked over the app's. It outlives the reload that
+   replaces the app's engine, leaves the app's tree alone, and can still
+   draw when the first bundle never loaded — which is what Phase 3.1's
+   failure panel needs of it too.
+2. **The collector beside the app.** `@vue/devtools-kit` in the app's own
+   engine, with the dev build's `__VUE_PROD_DEVTOOLS__` on, forwarding over
+   the channel [docs/PROTOCOL.md](./PROTOCOL.md) already carries — nested in
+   `params`, the way Vite's frames are.
+3. **The UI in a browser, first.** `@gpjs-ui/cli` serves
+   `@vue/devtools-client` and bridges it to that channel. This is how Nuxt
+   DevTools works, and it asks nothing of the style vocabulary.
+4. **The UI in the window, eventually.** `@vue/devtools-overlay` mounted
+   through this project's own renderer and floating over the app — Phase 12
+   is where the style vocabulary can carry it.
+
+## Phase 9: Application shell & platform integration (future)
 
 Not started, and not begun until Phase 3.3's packaging is stable — these are
 the APIs a packaged application calls, and several have no meaning until
@@ -299,7 +328,7 @@ does *around* its content lives here.
    platform's own quit request — Phase 3.1 settles only the moments the dev
    protocol itself creates.
 
-## Phase 9: React custom renderer (future)
+## Phase 10: React custom renderer (future)
 
 Not started, and not begun until Vue 3 support (Phases 1–3) is stable. Adds
 `@gpjs-ui/react` as an additional package alongside `@gpjs-ui/vue`, using
@@ -307,17 +336,17 @@ Not started, and not begun until Vue 3 support (Phases 1–3) is stable. Adds
 `__gpjsui_native__` directly — see Phase 2), plus `@vitejs/plugin-react` for
 JSX/TSX compilation and HMR.
 
-## Phase 10: Cross-platform support (future)
+## Phase 11: Cross-platform support (future)
 
 Not started, and not begun until the core Rust host design (Phases 1–2)
-is stable — same reasoning as Phase 9. macOS is the primary development
+is stable — same reasoning as Phase 10. macOS is the primary development
 target until then. This phase properly supports Linux (resolving the
 devcontainer's unconfirmed rendering — see docs/MANUAL_GUI_CHECK.md) and
 adds the `gpui_windows` platform backend for Windows.
 
-## Phase 11: 100% style & Tailwind parity (future)
+## Phase 12: 100% style & Tailwind parity (future)
 
-Not started, and not begun until cross-platform support (Phase 10) is
+Not started, and not begun until cross-platform support (Phase 11) is
 stable. Closes exactly the gap Phase 7 deferred: full CSS-property parity
 in the native style vocabulary/render pipeline (animations/transitions,
 transforms, filters, gradients, arbitrary values), state variants mapped
@@ -328,9 +357,14 @@ The final styling milestone: every Tailwind utility class Vue (and later
 React) authors reach for should resolve to a correct native rendering, not
 just the common ones Phase 7 covers.
 
-## Phase 12: App-owned Rust extensions (future)
+The acceptance test is `@vue/devtools-overlay` running in an app's own
+window through this renderer. It pulls in `shiki`, `vue-virtual-scroller`
+and `focus-trap`, so a real third-party Vue app rendering correctly and
+this phase being finished are the same statement.
 
-Not started, and not begun until Phase 3.3's packaging and Phase 11's
+## Phase 13: App-owned Rust extensions (future)
+
+Not started, and not begun until Phase 3.3's packaging and Phase 12's
 styling are stable. Every phase before this one assumes app authors write
 only JS/TS and consume a prebuilt host binary; this phase adds the opt-in
 case where an app moves its own heavy work (compute, native I/O) into Rust

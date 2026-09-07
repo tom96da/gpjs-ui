@@ -684,14 +684,14 @@ The first release milestone: after this, the framework is publishable.
 - [ ] `@gpjs-ui/cli` resolves the host through those packages, falling back
       to the workspace build during development
 - [ ] Keep the host binary swappable rather than baked into the CLI —
-      app-owned Rust extensions (roadmap Phase 12) depend on being able to
+      app-owned Rust extensions (roadmap Phase 13) depend on being able to
       substitute a locally compiled host
 
 ### Unit ii — packaging a distributable app
 
 - [ ] `gpjsui package`: pairs a production bundle with the prebuilt host and
       emits a platform-native application — `.app` on macOS, with each other
-      platform's target following its support in roadmap Phase 10
+      platform's target following its support in roadmap Phase 11
 - [ ] App metadata (display name, identifier, icon, version) sourced from
       the app's own `package.json` plus a small config, not hard-coded
 - [ ] Decide what the host reads at startup in a packaged app — the bundle

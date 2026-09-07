@@ -66,8 +66,8 @@ MSRV-aware and won't pick a dependency version needing a newer `rustc`.
 
 The two can stay equal only while nothing outside this repo compiles
 against these crates, which both `publish = false` settings currently
-guarantee. Phase 12 ends that (see
-[ROADMAP.md](./ROADMAP.md#phase-12-app-owned-rust-extensions-future)):
+guarantee. Phase 13 ends that (see
+[ROADMAP.md](./ROADMAP.md#phase-13-app-owned-rust-extensions-future)):
 `rust-version` then drops below the pin and needs its own check, which
 installs the floor toolchain and runs `cargo +<msrv> check`, the `+<msrv>`
 overriding `rust-toolchain.toml`. That is a second toolchain, so a second
