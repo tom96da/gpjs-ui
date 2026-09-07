@@ -20,33 +20,24 @@ See [README.md](./README.md) for the full pitch. `gpjs-ui` is currently a develo
 
 ## Status
 
-Phase 1 (Rust host & FFI bridge core, `crates/gpjs-ui`) is functionally
-complete per [docs/PLAN.md](./docs/PLAN.md): the retained `VirtualNode`
-arena (`src/tree.rs`), the QuickJS runtime bootstrap (`src/js/engine.rs`),
-the `__gpjsui_native__` bindings (`src/js/bindings.rs`), `VirtualNode` →
-GPUI `AnyElement` conversion (`src/render/element.rs`), and click-event
-dispatch back into JS (`src/render/bridge.rs`) are all implemented and
-tested — see [docs/FFI.md](./docs/FFI.md) for the exact tag/style/event
-vocabulary landed so far (all deliberately incomplete subsets, extended as
-real usage needs them). The one item nobody in this container can do
-unassisted is the manual visual check — see
-[docs/MANUAL_GUI_CHECK.md](./docs/MANUAL_GUI_CHECK.md) for why and how to
-actually run it.
-[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and
-[docs/ROADMAP.md](./docs/ROADMAP.md)'s Phase 2 is done per
-[docs/PLAN.md](./docs/PLAN.md): the pnpm workspace and `packages/gpjs-ui`'s
-typed wrapper around `__gpjsui_native__` (Units i–ii), `packages/vue`'s Vue 3
-custom renderer (Unit iii), and two real `.vue` example apps run end-to-end
-through the actual host/QuickJS stack (Unit iv — `examples/hello_world`,
-`examples/click_counter`, loaded via `crates/gpjs-ui-host`) are all
-implemented, tested, and — for Unit iv's manual GUI check —
-visually confirmed (both natively on macOS and from the devcontainer via
-XQuartz forwarding). The Vite/HMR bridge (Phase 3) and everything after are
-still *planned* target design, not landed code — but Phase 3's design is now
-settled: the `gpjsui` CLI's process orchestration lives on the JS/TS side,
-and the phase is split into 3.1 (`gpjsui dev`, full reload) through 3.4
-(HMR), with a `v0.0.1` release after 3.3. See
-[docs/ROADMAP.md](./docs/ROADMAP.md).
+Phase 1 (`crates/gpjs-ui`'s FFI bridge core) and Phase 2 (the pnpm
+workspace, `packages/gpjs-ui`, `packages/vue`'s Vue 3 custom renderer, and
+two working `.vue` examples) are complete and visually confirmed — see
+[docs/PLAN.md](./docs/PLAN.md) for the unit-by-unit detail and
+[docs/FFI.md](./docs/FFI.md) for the current binding vocabulary.
+
+Phase 3's design is settled ([docs/ROADMAP.md](./docs/ROADMAP.md)): the
+`gpjsui` CLI's process orchestration lives on the JS/TS side, split into
+3.1 (`gpjsui dev`, full reload) through 3.4 (HMR), with a `v0.0.1` release
+after 3.3.
+
+Phase 3.1 is underway: the CI workflow, native root handle (Unit i), and
+most of the host's dev protocol/reload/error-reporting and the core's
+tree/listener/console fixes (Units ii–iii) are implemented and tested.
+Still open: an injected protocol writer and dev-only error panel (Unit
+ii), and `@gpjs-ui/host-client`, `@gpjs-ui/vite`, `@gpjs-ui/cli`, and the
+examples migration (Units iv–vii) — see [docs/PLAN.md](./docs/PLAN.md) for
+the exact checklist.
 
 Keep this section's status prose accurate as real logic lands — don't let it go stale.
 

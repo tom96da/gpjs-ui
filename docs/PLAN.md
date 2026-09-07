@@ -538,11 +538,11 @@ work here.
       click handler. GPUI inserts a hitbox for every element carrying a click
       listener, so wiring all of them costs a hitbox and two mouse listeners
       per node per frame
-- [ ] Drain the JS job queue once the window is up, and after every dispatch
+- [x] Drain the JS job queue once the window is up, and after every dispatch
       rather than only when a listener ran. Vue's post-flush queue is a
       microtask, so `onMounted` and `flush: 'post'` watchers otherwise wait
       for the first click — forever, in an app that registers none
-- [ ] Tests for each of the above
+- [x] Tests for each of the above
 
 ### Unit iv — `@gpjs-ui/host-client`
 
