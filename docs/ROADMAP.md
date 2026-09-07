@@ -40,8 +40,8 @@ are built in, not a set of independent tracks.
 
 1. **QuickJS context setup**: use `rquickjs` to spin up a managed QuickJS
    runtime inside the GPUI event loop.
-2. **Retained virtual tree**: an in-memory, arena-allocated `VirtualNode`
-   structure — see [docs/FFI.md](./FFI.md#retained-virtual-tree).
+2. **Retained virtual tree**: an in-memory `VirtualNode` structure — see
+   [docs/FFI.md](./FFI.md#retained-virtual-tree).
 3. **Binding functions** exposed to JS as `globalThis.__gpjsui_native__` — see
    [docs/FFI.md](./FFI.md#binding-functions).
 4. **GPUI rendering pipeline**: recursively convert the `VirtualNode` tree into

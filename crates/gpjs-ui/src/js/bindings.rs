@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! Binds `globalThis.__gpjsui_native__`: the small set of native functions
-//! JS calls to read the root handle, mutate the retained virtual tree, and
-//! register input-event callbacks.
+//! JS calls to read the root handle, mutate the retained virtual tree,
+//! register input-event callbacks, and free what it no longer needs.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -17,20 +17,60 @@ use crate::tree::{AttributeValue, NodeId, TreeError, VirtualTree};
 /// `addEventListener`, mapped to the plain integer callback handles it gave
 /// us. Only ever stores owned Rust data — never a JS value or function —
 /// so it stays readable by Rust code running outside of any JS call, such
-/// as a future input-event dispatcher.
+/// as the input-event dispatcher.
+///
+/// Nothing expires on its own: a registration lives until
+/// [`unregister`](Self::unregister) drops it, or [`release`](Self::release)
+/// does when the node goes away.
 #[derive(Debug, Default)]
 pub struct EventListeners {
     by_node: HashMap<NodeId, HashMap<String, Vec<u32>>>,
 }
 
 impl EventListeners {
+    /// Adds `callback_id` to `(node_id, event)`. Registering an id already
+    /// there is a no-op, not a second entry.
     pub fn register(&mut self, node_id: NodeId, event: impl Into<String>, callback_id: u32) {
-        self.by_node
+        let callbacks = self
+            .by_node
             .entry(node_id)
             .or_default()
             .entry(event.into())
-            .or_default()
-            .push(callback_id);
+            .or_default();
+        if !callbacks.contains(&callback_id) {
+            callbacks.push(callback_id);
+        }
+    }
+
+    /// Drops `callback_id` from `(node_id, event)`, and reports whether it
+    /// was registered.
+    pub fn unregister(&mut self, node_id: NodeId, event: &str, callback_id: u32) -> bool {
+        let Some(events) = self.by_node.get_mut(&node_id) else {
+            return false;
+        };
+        let Some(callbacks) = events.get_mut(event) else {
+            return false;
+        };
+        let before = callbacks.len();
+        callbacks.retain(|&id| id != callback_id);
+        let removed = callbacks.len() != before;
+        if callbacks.is_empty() {
+            events.remove(event);
+        }
+        if events.is_empty() {
+            self.by_node.remove(&node_id);
+        }
+        removed
+    }
+
+    /// Drops every registration on `node_id` and returns the callback ids
+    /// that were there, in no particular order — the JS side needs them to
+    /// drop the functions they name.
+    pub fn release(&mut self, node_id: NodeId) -> Vec<u32> {
+        self.by_node
+            .remove(&node_id)
+            .map(|events| events.into_values().flatten().collect())
+            .unwrap_or_default()
     }
 
     pub fn callbacks_for(&self, node_id: NodeId, event: &str) -> &[u32] {
@@ -90,8 +130,9 @@ fn attribute_value_from_js<'js>(ctx: &Ctx<'js>, value: &Value<'js>) -> JsResult<
 ///
 /// Returns an error if defining `globalThis.__gpjsui_native__` or any of its
 /// methods on `ctx` fails.
-// Long from repeating one registration block 8 times, not from complexity —
-// splitting it up would just spread that same list across more functions.
+// Long from repeating one registration block per binding, not from
+// complexity — splitting it up would just spread that same list across more
+// functions.
 #[allow(clippy::too_many_lines)]
 pub fn install<'js>(ctx: &Ctx<'js>, host: &Rc<RefCell<Host>>) -> JsResult<()> {
     let native = Object::new(ctx.clone())?;
@@ -230,6 +271,45 @@ pub fn install<'js>(ctx: &Ctx<'js>, host: &Rc<RefCell<Host>>) -> JsResult<()> {
         )?;
     }
 
+    {
+        let host = Rc::clone(host);
+        native.set(
+            "removeEventListener",
+            Function::new(
+                ctx.clone(),
+                move |node_id: NodeId, event: String, callback_id: u32| -> bool {
+                    host.borrow_mut()
+                        .listeners
+                        .unregister(node_id, &event, callback_id)
+                },
+            )?,
+        )?;
+    }
+
+    {
+        let host = Rc::clone(host);
+        native.set(
+            "destroyNode",
+            Function::new(
+                ctx.clone(),
+                move |ctx: Ctx<'js>, node_id: NodeId| -> JsResult<Vec<u32>> {
+                    let mut host = host.borrow_mut();
+                    if node_id == host.root {
+                        return Err(Exception::throw_type(
+                            &ctx,
+                            "the root node belongs to the host and cannot be destroyed",
+                        ));
+                    }
+                    let freed = host.tree.destroy_node(node_id);
+                    Ok(freed
+                        .into_iter()
+                        .flat_map(|id| host.listeners.release(id))
+                        .collect())
+                },
+            )?,
+        )?;
+    }
+
     ctx.globals().set("__gpjsui_native__", native)?;
     Ok(())
 }
@@ -245,6 +325,156 @@ mod tests {
         let host = Rc::new(RefCell::new(Host::default()));
         engine.with(|ctx| install(&ctx, &host)).unwrap();
         (engine, host)
+    }
+
+    #[test]
+    fn registering_the_same_callback_twice_keeps_one_entry() {
+        let mut listeners = EventListeners::default();
+        listeners.register(1, "click", 7);
+        listeners.register(1, "click", 7);
+
+        assert_eq!(listeners.callbacks_for(1, "click"), &[7]);
+    }
+
+    #[test]
+    fn unregister_reports_whether_it_removed_anything() {
+        let mut listeners = EventListeners::default();
+        listeners.register(1, "click", 7);
+
+        assert!(listeners.unregister(1, "click", 7));
+        assert!(listeners.callbacks_for(1, "click").is_empty());
+        assert!(!listeners.unregister(1, "click", 7));
+        assert!(!listeners.unregister(99, "click", 7));
+    }
+
+    #[test]
+    fn release_returns_every_callback_on_a_node() {
+        let mut listeners = EventListeners::default();
+        listeners.register(1, "click", 7);
+        listeners.register(1, "focus", 8);
+        listeners.register(2, "click", 9);
+
+        let mut released = listeners.release(1);
+        released.sort_unstable();
+
+        assert_eq!(released, vec![7, 8]);
+        assert!(listeners.callbacks_for(1, "click").is_empty());
+        assert_eq!(
+            listeners.callbacks_for(2, "click"),
+            &[9],
+            "another node's registrations must survive"
+        );
+    }
+
+    #[test]
+    fn destroy_node_frees_the_subtree_and_hands_back_its_callback_ids() {
+        let (engine, host) = engine_with_bindings();
+
+        let released: Vec<u32> = engine
+            .eval(
+                r"
+                const root = __gpjsui_native__.rootNodeId();
+                const branch = __gpjsui_native__.createNode('div');
+                const leaf = __gpjsui_native__.createNode('text');
+                __gpjsui_native__.appendChild(root, branch);
+                __gpjsui_native__.appendChild(branch, leaf);
+                __gpjsui_native__.addEventListener(branch, 'click', 1);
+                __gpjsui_native__.addEventListener(leaf, 'click', 2);
+
+                __gpjsui_native__.destroyNode(branch);
+                ",
+            )
+            .unwrap();
+        let mut released = released;
+        released.sort_unstable();
+
+        assert_eq!(
+            released,
+            vec![1, 2],
+            "a descendant's callback is unreachable from JS once its root is gone"
+        );
+
+        let host = host.borrow();
+        assert!(host.tree.get(host.root).unwrap().children().is_empty());
+        assert!(host.listeners.callbacks_for(1, "click").is_empty());
+    }
+
+    #[test]
+    fn destroy_node_is_idempotent() {
+        let (engine, _host) = engine_with_bindings();
+
+        let second_pass: Vec<u32> = engine
+            .eval(
+                r"
+                const node = __gpjsui_native__.createNode('div');
+                __gpjsui_native__.destroyNode(node);
+                __gpjsui_native__.destroyNode(node);
+                ",
+            )
+            .unwrap();
+
+        assert!(second_pass.is_empty());
+    }
+
+    #[test]
+    fn destroying_the_root_raises_a_catchable_exception() {
+        let (engine, host) = engine_with_bindings();
+
+        let caught: bool = engine
+            .eval(
+                r"
+                let caught = false;
+                try {
+                    __gpjsui_native__.destroyNode(__gpjsui_native__.rootNodeId());
+                } catch (e) {
+                    caught = true;
+                }
+                caught;
+                ",
+            )
+            .unwrap();
+
+        assert!(caught, "the root belongs to the host, not to the app");
+        let host = host.borrow();
+        assert!(host.tree.get(host.root).is_some());
+    }
+
+    #[test]
+    fn remove_event_listener_drops_the_registration() {
+        let (engine, host) = engine_with_bindings();
+
+        let removed: bool = engine
+            .eval(
+                r"
+                const node = __gpjsui_native__.createNode('div');
+                __gpjsui_native__.addEventListener(node, 'click', 3);
+                __gpjsui_native__.removeEventListener(node, 'click', 3);
+                ",
+            )
+            .unwrap();
+
+        assert!(removed);
+        assert!(host.borrow().listeners.callbacks_for(1, "click").is_empty());
+    }
+
+    #[test]
+    fn remove_event_listener_on_a_gone_node_is_not_an_error() {
+        let (engine, _host) = engine_with_bindings();
+
+        let removed: bool = engine
+            .eval(
+                r"
+                const node = __gpjsui_native__.createNode('div');
+                __gpjsui_native__.destroyNode(node);
+                __gpjsui_native__.removeEventListener(node, 'click', 3);
+                ",
+            )
+            .unwrap();
+
+        assert!(
+            !removed,
+            "removing after a destroy races normal teardown and must not throw"
+        );
     }
 
     #[test]

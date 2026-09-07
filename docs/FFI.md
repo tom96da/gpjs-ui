@@ -6,12 +6,10 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 # Host bridge (FFI) reference
 
 The function surface exposed to JS as `globalThis.__gpjsui_native__`, bound
-into the QuickJS context by the Rust host via `rquickjs`. Phase 1's core
-bindings and Phase 2's `setStyle`/`insertBefore` additions are implemented
-and tested (see [AGENTS.md](../AGENTS.md#status) and
-[docs/ROADMAP.md](./ROADMAP.md#phase-1-rust-host--ffi-bridge-core-gpjs-ui));
-the tag/style vocabulary below is deliberately incomplete by design and grows
-as real usage needs more of it — update this file whenever a binding, tag, or
+into the QuickJS context by the Rust host via `rquickjs`. See
+[AGENTS.md](../AGENTS.md#status) for how much of this is built. The
+tag/style vocabulary below is deliberately incomplete by design and grows as
+real usage needs more of it — update this file whenever a binding, tag, or
 style prop actually lands.
 
 It's called "FFI" for the calling-convention style (JS calling into Rust
@@ -20,8 +18,8 @@ JS and Rust share one process.
 
 ## Retained virtual tree
 
-The Rust host keeps an in-memory, arena-allocated node structure
-(`VirtualNode`) that mirrors the custom renderer's output. Each node has:
+The Rust host keeps an in-memory node structure (`VirtualNode`) that mirrors
+the custom renderer's output. Each node has:
 
 | Field | Type | Purpose |
 | --- | --- | --- |
@@ -29,7 +27,18 @@ The Rust host keeps an in-memory, arena-allocated node structure
 | `tag_name` | `String` | Element kind, used to pick a GPUI element builder. |
 | `style_props` | map | Layout/paint style properties. |
 | `attributes` | map | Non-style attributes/props. |
-| `children_ids` | `Vec<u32>` | Ordered child node handles. |
+| `parent` | `Option<u32>` | The node this one is attached to, if any. |
+| `children` | `Vec<u32>` | Ordered child node handles. |
+
+**A node has at most one parent.** `appendChild`/`insertBefore` detach the
+child from wherever it was, so the same call both attaches and moves, and an
+attachment that would make a node its own ancestor throws instead. A walk
+down the tree therefore always terminates, which the render path relies on.
+
+**Nodes are freed only by `destroyNode`,** which frees the whole subtree.
+Detaching with `removeChild` keeps the node alive for re-attachment; a caller
+that drops a subtree without destroying it leaks every node in it, and every
+event listener registered on them.
 
 ### Tag vocabulary (v1)
 
@@ -86,7 +95,9 @@ variants beyond the four above.
 | `removeChild` | `(parentId: number, childId: number) => void` | Detach a child node. |
 | `setAttribute` | `(nodeId: number, key: string, value: any) => void` | Set a non-style attribute prop. |
 | `setStyle` | `(nodeId: number, key: string, value: any) => void` | Set a style prop — the only JS-reachable way to touch `style_props`; `setAttribute` writes to the separate `attributes` map instead. |
-| `addEventListener` | `(nodeId: number, event: string, callbackId: number) => void` | Register a JS callback for a native input event. |
+| `addEventListener` | `(nodeId: number, event: string, callbackId: number) => void` | Register a JS callback for a native input event. Registering a `callbackId` already on that `(nodeId, event)` is a no-op. |
+| `removeEventListener` | `(nodeId: number, event: string, callbackId: number) => boolean` | Drop one registration, reporting whether it was there. Never throws — a node destroyed first is the normal teardown race, not an error. |
+| `destroyNode` | `(nodeId: number) => number[]` | Free `nodeId` and its whole subtree, and return every `callbackId` that was registered anywhere in it, so the caller can drop the JS functions those ids name. Destroying an already-destroyed or unknown id returns `[]`. Destroying the root throws — it belongs to the host. |
 
 On each GPUI `render()` frame cycle, the host recursively converts the
 `VirtualNode` tree into GPUI `AnyElement` instances.
@@ -120,6 +131,9 @@ convention is: **the caller stores it itself**, at
 `addEventListener` with that id. `EventDispatcher::dispatch` looks the real
 function up fresh inside one `Engine::with` call and drops it before that
 call returns — it never crosses into a long-lived Rust struct. A missing
-`__gpjsui_callbacks__`/callback entry, a non-function entry, or an
-exception thrown by the callback are all silently skipped rather than
-propagated: a bad listener must not take down the host.
+`__gpjsui_callbacks__` entry, or one that isn't a function, is skipped: a
+stale id must not take down the host.
+
+That is why `removeEventListener` and `destroyNode` report the ids they
+dropped: each side holds half of a registration, and only the caller can free
+the JS half.

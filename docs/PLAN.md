@@ -496,7 +496,40 @@ can't survive a CLI that doesn't know about the token.
 - [ ] Speak JSON-RPC 2.0: its `id` keeps a response matched to the request
       that caused it, and its error codes are already settled
 
-### Unit iii — `@gpjs-ui/host-client`
+### Unit iii — core corrections
+
+`crates/gpjs-ui` gaps a dev loop running a real app continuously makes
+unavoidable. Unit ii's error reporting depends on the `console` and reporter
+work here.
+
+- [x] A node has one parent: `insertBefore` detaches it from the previous
+      one, and an attachment that would make a node its own ancestor throws —
+      a cycle built from JS has no bottom for the render walk
+- [x] `destroyNode` frees a whole subtree and returns the callback ids it
+      released — Vue's unmount calls `remove` only on the subtree's root, so
+      nothing else can reach the descendants
+- [x] `removeEventListener`, and `addEventListener` no longer stacking a
+      second entry for the same id — a replaced listener stayed registered
+      for the life of the engine
+- [ ] `packages/gpjs-ui`: `destroyNode`/`removeEventListener` wrappers, in
+      place of `disposeNode` clearing only the JS half
+- [ ] `packages/vue`: `remove` and `setElementText` destroy rather than
+      detach, and the fake host in its tests matches the real one's
+      registration semantics
+- [ ] `console`, installed by the host so it exists before any bundle runs
+      and writing to stderr. QuickJS has none, so an app today cannot log at
+      all
+- [ ] Only a node with a registered listener gets a GPUI element id and a
+      click handler. GPUI inserts a hitbox for every element carrying a click
+      listener, so wiring all of them costs a hitbox and two mouse listeners
+      per node per frame
+- [ ] Drain the JS job queue once the window is up, and after every dispatch
+      rather than only when a listener ran. Vue's post-flush queue is a
+      microtask, so `onMounted` and `flush: 'post'` watchers otherwise wait
+      for the first click — forever, in an app that registers none
+- [ ] Tests for each of the above
+
+### Unit iv — `@gpjs-ui/host-client`
 
 The Node end of [docs/PROTOCOL.md](./PROTOCOL.md), and the only package that
 speaks it. Depends on no bundler, so a bundler other than Vite is a new
@@ -527,7 +560,7 @@ integration registered against this channel rather than a change here.
       mismatch, and that the mismatch leaves no child behind
 - [ ] Vitest tests against a mock host process
 
-### Unit iv — `@gpjs-ui/vite`
+### Unit v — `@gpjs-ui/vite`
 
 The Vite half of the build, and the only Node package that imports `vite` —
 Phase 3.4's `@gpjs-ui/vite-runtime` is the other side of the same tool,
@@ -548,7 +581,7 @@ not a rewrite.
       what makes it swappable, and it is checkable in its manifest
 - [ ] Vitest tests
 
-### Unit v — `@gpjs-ui/cli`
+### Unit vi — `@gpjs-ui/cli`
 
 The only package that knows the other two exist. It owns the `Bundler`
 contract the adapters satisfy and injects one, so swapping bundlers is a
@@ -579,7 +612,7 @@ dependency change here rather than an edit anywhere else.
       function. `docs/FFI.md` records the result
 - [ ] Vitest tests
 
-### Unit vi — examples migration
+### Unit vii — examples migration
 
 - [ ] Drop `examples/*/scripts/build.mjs` in favour of the CLI, and remove
       `__GPJSUI_ROOT_ID__` from their entry points
