@@ -19,6 +19,7 @@ publish = false
 [dependencies]
 env_logger.workspace = true
 gpjs-ui = { path = "../gpjs-ui" }
+gpjs-ui-jsenv = { path = "../gpjs-ui-jsenv" }
 gpui.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]

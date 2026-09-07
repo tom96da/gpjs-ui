@@ -1,9 +1,10 @@
 # gpjs-ui-host
 
 The runtime binary behind a gpjs-ui app: given the path to a prebuilt,
-self-contained JS bundle, it installs `__gpjsui_native__` bindings,
-evaluates the bundle as an ES module, and opens a GPUI window rendering
-whatever tree the bundle mounted.
+self-contained JS bundle, it installs `__gpjsui_native__` bindings and a
+`console`, evaluates the bundle as an ES module, and opens a GPUI window
+rendering whatever tree the bundle mounted. The app's `console` output goes
+to stderr.
 
 ```sh
 cargo run -p gpjs-ui-host -- path/to/bundle.js

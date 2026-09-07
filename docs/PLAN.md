@@ -520,7 +520,7 @@ work here.
       realm, depending on `rquickjs` alone. `console` is the first, rendering
       values the way `util.inspect` does rather than `JSON.stringify`, which
       throws on a cycle and drops functions and `undefined`
-- [ ] Install `console` from the host, so it exists before any bundle runs,
+- [x] Install `console` from the host, so it exists before any bundle runs,
       and point it at stderr — stdout is the protocol channel
 - [x] Only a node with a registered listener gets a GPUI element id and a
       click handler. GPUI inserts a hitbox for every element carrying a click

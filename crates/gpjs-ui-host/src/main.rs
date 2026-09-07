@@ -23,6 +23,7 @@ use gpjs_ui::js::bindings::install;
 use gpjs_ui::{
     AttributeValue, Engine, EngineError, EventDispatcher, Host, NodeId, render_tree_with_events,
 };
+use gpjs_ui_jsenv::console;
 
 /// Window size to fall back to when the mounted app's root element doesn't
 /// declare an explicit `width`/`height` style (e.g. a fully fluid layout).
@@ -76,23 +77,41 @@ impl Render for HostedApp {
     }
 }
 
+/// Starts an engine, gives it everything a bundle expects to find, and
+/// evaluates the bundle into a fresh tree.
+///
+/// `console` goes in before the bundle runs, so a bundle that logs while
+/// evaluating is heard rather than met with a `ReferenceError`.
+///
+/// # Errors
+///
+/// Returns the message to report if any of that fails.
+fn load(bundle: &str) -> Result<(Engine, Rc<RefCell<Host>>), String> {
+    let host = Rc::new(RefCell::new(Host::default()));
+
+    let engine = Engine::new().map_err(|err| err.to_string())?;
+    engine
+        .with(|ctx| {
+            console::install(&ctx, &console::to_stderr())
+                .and_then(|()| install(&ctx, &host))
+                .map_err(|err| EngineError::capture(&ctx, &err))
+        })
+        .map_err(|err| err.to_string())?;
+    engine
+        .eval_module("bundle.mjs", bundle)
+        .map_err(|err| err.to_string())?;
+
+    Ok((engine, host))
+}
+
 /// Brings up the engine, the tree and the window.
 ///
 /// # Errors
 ///
 /// Returns the message to report if any of that fails.
 fn start(cx: &mut App, bundle: &str) -> Result<(), String> {
-    let host = Rc::new(RefCell::new(Host::default()));
+    let (engine, host) = load(bundle)?;
     let root = host.borrow().root;
-
-    let engine = Engine::new().map_err(|err| err.to_string())?;
-    engine
-        .with(|ctx| install(&ctx, &host).map_err(|err| EngineError::capture(&ctx, &err)))
-        .map_err(|err| err.to_string())?;
-    engine
-        .eval_module("bundle.mjs", bundle)
-        .map_err(|err| err.to_string())?;
-
     let dispatcher = EventDispatcher::new(Rc::new(engine), Rc::clone(&host));
 
     let (width, height) = content_window_size(&host.borrow(), root);
@@ -158,6 +177,19 @@ fn main() -> ExitCode {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_bundle_can_log_while_it_evaluates() {
+        assert!(
+            load("console.log('mounting', { ready: true });").is_ok(),
+            "console has to exist before the bundle runs, not after"
+        );
+    }
+
+    #[test]
+    fn a_bundle_that_throws_yields_nothing() {
+        assert!(load("throw new Error('boom');").is_err());
+    }
 
     #[test]
     fn content_window_size_reads_the_mounted_root_childs_style() {
