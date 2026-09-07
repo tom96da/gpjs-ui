@@ -21,6 +21,7 @@ gpjs-ui/
 │   ├── ARCHITECTURE.md      # target tech stack, system diagram, HMR delivery design
 │   ├── ROADMAP.md           # planned phased implementation (Vue 3 first, React later)
 │   ├── FFI.md               # JS↔Rust host bridge function surface
+│   ├── PROTOCOL.md          # dev protocol between the host binary and the Node process spawning it
 │   ├── PLAN.md              # checkbox-tracked, per-phase task breakdown of ROADMAP.md
 │   ├── GIT.md               # commit message format and the commit-review policy
 │   ├── TESTING.md           # test placement and required checks, Rust + TypeScript
@@ -76,8 +77,10 @@ gpjs-ui/
 ├── crates/
 │   └── gpjs-ui-macros/      # host bridge binding helper macros
 └── packages/
-    ├── cli/                 # `@gpjs-ui/cli` — the `gpjsui` dev/build CLI, owns Vite and spawns the host (Phase 3.1)
-    ├── vite-runtime/        # `@gpjs-ui/vite-runtime` — Vite Runtime API integration for HMR (Phase 3.4)
+    ├── cli/                 # `@gpjs-ui/cli` — the `gpjsui` dev/build CLI, wires the two below together (Phase 3.1)
+    ├── vite/                # `@gpjs-ui/vite` — the Vite adapter, the only package importing vite (Phase 3.1)
+    ├── host-client/         # `@gpjs-ui/host-client` — launches the host binary and speaks docs/PROTOCOL.md (Phase 3.1)
+    ├── vite-runtime/        # `@gpjs-ui/vite-runtime` — Vite Runtime API integration, runs inside QuickJS (Phase 3.4)
     └── react/               # `@gpjs-ui/react` — React custom renderer, future (Phase 5)
 ```
 

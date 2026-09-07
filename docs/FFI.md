@@ -100,6 +100,9 @@ Implemented by `crates/gpjs-ui/src/render/bridge.rs` (Unit vi):
 for `(nodeId, "click")` via `addEventListener`, then requests a redraw.
 Other event names aren't wired to any real GPUI input yet — extend as
 needed, same "deliberately incomplete" framing as the style vocabulary.
+Neither `addEventListener` nor `EventDispatcher` requires a name to come
+from real input, or the node to be an element, so a host-lifecycle event on
+the `rootNodeId` node reaches JS through this same path.
 
 `addEventListener` itself is unchanged and needs no thread-safe/cross-thread
 callback machinery: gpjs-ui's embedded QuickJS and the GPUI event loop

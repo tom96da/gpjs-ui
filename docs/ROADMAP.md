@@ -47,9 +47,10 @@ only phase where an app author needs a Rust toolchain at all.
 ## Phase 3: Developer tooling & HMR integration
 
 The `gpjsui` CLI's process orchestration is owned by the **JS/TS side**:
-`@gpjs-ui/cli` (`packages/cli`) is the parent process, holding Vite
-in-process and spawning the Rust host (`crates/gpjs-ui-host`) as a child,
-with dev-server messages bridged over the child's stdio. The alternatives
+`@gpjs-ui/cli` (`packages/cli`) is the parent process, driving a bundler
+adapter that holds Vite in-process, while `@gpjs-ui/host-client`
+(`packages/host-client`) spawns the Rust host (`crates/gpjs-ui-host`) as a
+child and bridges dev-server messages over its stdio. The alternatives
 considered — a Rust-primary `crates/gpjs-ui-cli` owning everything, and
 Rust-primary logic behind a thin npm `bin` wrapper — were rejected because:
 
@@ -73,16 +74,26 @@ lands after 3.3, when there is something to release.
 
 ### Phase 3.1: `gpjsui dev` (full reload)
 
-1. **`@gpjs-ui/cli`** (`packages/cli`): `gpjsui dev` runs Vite in
+1. **`@gpjs-ui/cli`** (`packages/cli`): owns the `gpjsui` commands, resolves
+   an app's entry point, and wires the two packages below together. It holds
+   the `Bundler` contract and injects an implementation, so swapping
+   bundlers is a dependency change here and nothing else.
+2. **`@gpjs-ui/vite`** (`packages/vite`): runs Vite in
    library/watch mode (not its browser dev server), using
-   `@vitejs/plugin-vue` to compile `.vue` SFCs, then spawns the host and
-   sends it a reload message on every rebuild.
-2. **`crates/gpjs-ui-host`**: the runtime binary — opens the GPUI window
+   `@vitejs/plugin-vue` to compile `.vue` SFCs, and announces each rebuild.
+   The only package that imports `vite`, and it depends on no first-party
+   package — a `@gpjs-ui/rspack` would be a sibling, not a rewrite.
+3. **`@gpjs-ui/host-client`** (`packages/host-client`): the Node end of
+   [docs/PROTOCOL.md](./PROTOCOL.md) — resolves and launches the host
+   binary, supervises the child, and carries messages both ways. It depends
+   on no bundler and never parses a routed payload, so Vite's HMR traffic
+   (Phase 3.4) rides the same channel as a registered `type` name.
+4. **`crates/gpjs-ui-host`**: the runtime binary — opens the GPUI window
    and evaluates a bundle in QuickJS, and in dev mode reads newline-delimited
    JSON messages on stdin, re-evaluating the bundle in a fresh engine against
    a reset tree on each reload. Its stdout is the protocol channel; logs go
    to stderr.
-3. **Native root handle**: a binding replacing Phase 2's
+5. **Native root handle**: a binding replacing Phase 2's
    `__GPJSUI_ROOT_ID__` source substitution, so an app's entry point is
    plain code (`createGpjsuiApp(App).mount()`) with no host-injected token
    in it.
@@ -105,7 +116,8 @@ Phase 8 can substitute an app-compiled one.
 
 This is the **first release milestone**: once packaging works, the framework
 is published as `v0.0.1`, to npm only (`gpjs-ui`, `@gpjs-ui/vue`,
-`@gpjs-ui/cli`, and the per-platform host packages). The Rust crates stay
+`@gpjs-ui/cli`, `@gpjs-ui/host-client`, `@gpjs-ui/vite`, and the
+per-platform host packages). The Rust crates stay
 `publish = false` — nothing outside this repo depends on them until Phase 8.
 
 ### Phase 3.4: HMR (`@gpjs-ui/vite-runtime`)

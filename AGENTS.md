@@ -55,6 +55,7 @@ Keep this section's status prose accurate as real logic lands — don't let it g
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — tech stack, system diagram, and how HMR is delivered into the embedded QuickJS runtime.
 - [docs/ROADMAP.md](./docs/ROADMAP.md) — the phased build-out plan (Vue 3 first, React later as an additive package).
 - [docs/FFI.md](./docs/FFI.md) — the JS↔Rust host bridge function surface.
+- [docs/PROTOCOL.md](./docs/PROTOCOL.md) — the dev protocol between `gpjs-ui-host` and the Node process that spawns it.
 
 ### Guiding principles
 
