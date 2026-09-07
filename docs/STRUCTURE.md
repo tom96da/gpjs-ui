@@ -81,7 +81,7 @@ gpjs-ui/
     ├── vite/                # `@gpjs-ui/vite` — the Vite adapter, the only package importing vite (Phase 3.1)
     ├── host-client/         # `@gpjs-ui/host-client` — launches the host binary and speaks docs/PROTOCOL.md (Phase 3.1)
     ├── vite-runtime/        # `@gpjs-ui/vite-runtime` — Vite Runtime API integration, runs inside QuickJS (Phase 3.4)
-    └── react/               # `@gpjs-ui/react` — React custom renderer, future (Phase 5)
+    └── react/               # `@gpjs-ui/react` — React custom renderer, future (Phase 9)
 ```
 
 Move an entry up into the tree above once it actually lands, per
