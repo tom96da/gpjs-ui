@@ -21,7 +21,8 @@ use gpui_platform::application;
 
 use gpjs_ui::js::bindings::install;
 use gpjs_ui::{
-    AttributeValue, Engine, EngineError, EventDispatcher, Host, NodeId, render_tree_with_events,
+    AttributeValue, Engine, EngineError, EventDispatcher, Host, NodeId, drain_jobs_and_refresh,
+    render_tree_with_events,
 };
 use gpjs_ui_jsenv::console;
 
@@ -64,6 +65,7 @@ fn content_window_size(host: &Host, root: NodeId) -> (f32, f32) {
 }
 
 struct HostedApp {
+    engine: Rc<Engine>,
     host: Rc<RefCell<Host>>,
     root: NodeId,
     dispatcher: EventDispatcher,
@@ -112,26 +114,37 @@ fn load(bundle: &str) -> Result<(Engine, Rc<RefCell<Host>>), String> {
 fn start(cx: &mut App, bundle: &str) -> Result<(), String> {
     let (engine, host) = load(bundle)?;
     let root = host.borrow().root;
-    let dispatcher = EventDispatcher::new(Rc::new(engine), Rc::clone(&host));
+    let engine = Rc::new(engine);
+    let dispatcher = EventDispatcher::new(Rc::clone(&engine), Rc::clone(&host));
 
     let (width, height) = content_window_size(&host.borrow(), root);
     let bounds = Bounds::centered(None, size(px(width), px(height)), cx);
-    cx.open_window(
-        WindowOptions {
-            window_bounds: Some(WindowBounds::Windowed(bounds)),
-            ..Default::default()
-        },
-        |_, cx| {
-            cx.new(|_| HostedApp {
-                host,
-                root,
-                dispatcher,
-            })
-        },
-    )
-    .map_err(|err| err.to_string())?;
+    let window = cx
+        .open_window(
+            WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(bounds)),
+                ..Default::default()
+            },
+            |_, cx| {
+                cx.new(|_| HostedApp {
+                    engine,
+                    host,
+                    root,
+                    dispatcher,
+                })
+            },
+        )
+        .map_err(|err| err.to_string())?;
     cx.activate(true);
-    Ok(())
+
+    // A reactivity scheduler batches its first effects into a microtask, so
+    // mounting leaves work queued that nothing else would come back for
+    // until the first input event — or never, in an app that takes none.
+    window
+        .update(cx, |app, window, _| {
+            drain_jobs_and_refresh(&app.engine, window);
+        })
+        .map_err(|err| err.to_string())
 }
 
 fn run_bundle(bundle_path: &str) -> ExitCode {
@@ -177,6 +190,7 @@ fn main() -> ExitCode {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use gpui::TestAppContext;
 
     #[test]
     fn a_bundle_can_log_while_it_evaluates() {
@@ -189,6 +203,44 @@ mod tests {
     #[test]
     fn a_bundle_that_throws_yields_nothing() {
         assert!(load("throw new Error('boom');").is_err());
+    }
+
+    const DEFERS_ITS_MOUNT: &str = r"
+        globalThis.mounted = false;
+        Promise.resolve().then(() => { globalThis.mounted = true; });
+    ";
+
+    #[test]
+    fn evaluating_a_bundle_leaves_a_queued_microtask_pending() {
+        let (engine, _host) = load(DEFERS_ITS_MOUNT).unwrap();
+
+        assert!(
+            !engine.eval::<bool>("globalThis.mounted;").unwrap(),
+            "which is what start has to drain once the window is up"
+        );
+    }
+
+    #[gpui::test]
+    fn bringing_the_window_up_runs_what_mounting_only_queued(cx: &mut TestAppContext) {
+        cx.update(|cx| start(cx, DEFERS_ITS_MOUNT).unwrap());
+        cx.run_until_parked();
+
+        let ran: bool = cx.update(|cx| {
+            cx.windows()
+                .first()
+                .and_then(|window| {
+                    window
+                        .downcast::<HostedApp>()?
+                        .read_with(cx, |app, _| {
+                            app.engine.eval::<bool>("globalThis.mounted;").ok()
+                        })
+                        .ok()
+                        .flatten()
+                })
+                .unwrap_or(false)
+        });
+
+        assert!(ran, "an onMounted-style effect must not wait for an event");
     }
 
     #[test]
