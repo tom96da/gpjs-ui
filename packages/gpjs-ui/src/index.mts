@@ -1,10 +1,11 @@
 // Copyright (c) 2026 tom96da
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-export { addEventListener, disposeNode } from "./events.mts";
+export { removeEventListener, setEventListener } from "./events.mts";
 export {
   appendChild,
   createNode,
+  destroyNode,
   insertBefore,
   removeChild,
   rootNodeId,

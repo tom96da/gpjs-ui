@@ -337,6 +337,15 @@ mod tests {
     }
 
     #[test]
+    fn distinct_callbacks_on_one_event_stack() {
+        let mut listeners = EventListeners::default();
+        listeners.register(1, "click", 7);
+        listeners.register(1, "click", 8);
+
+        assert_eq!(listeners.callbacks_for(1, "click"), &[7, 8]);
+    }
+
+    #[test]
     fn unregister_reports_whether_it_removed_anything() {
         let mut listeners = EventListeners::default();
         listeners.register(1, "click", 7);

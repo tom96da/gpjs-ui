@@ -511,9 +511,9 @@ work here.
 - [x] `removeEventListener`, and `addEventListener` no longer stacking a
       second entry for the same id — a replaced listener stayed registered
       for the life of the engine
-- [ ] `packages/gpjs-ui`: `destroyNode`/`removeEventListener` wrappers, in
+- [x] `packages/gpjs-ui`: `destroyNode`/`removeEventListener` wrappers, in
       place of `disposeNode` clearing only the JS half
-- [ ] `packages/vue`: `remove` and `setElementText` destroy rather than
+- [x] `packages/vue`: `remove` and `setElementText` destroy rather than
       detach, and the fake host in its tests matches the real one's
       registration semantics
 - [ ] `console`, installed by the host so it exists before any bundle runs

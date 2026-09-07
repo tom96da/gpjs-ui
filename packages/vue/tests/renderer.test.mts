@@ -16,13 +16,19 @@ interface FakeNode {
   tag: string;
   attributes: Record<string, unknown>;
   style: Record<string, unknown>;
+  parent: NodeId | null;
   children: NodeId[];
-  listeners: Record<string, number>;
+  listeners: Record<string, number[]>;
 }
 
 // A minimal, in-memory stand-in for the native host's retained tree — real
 // enough to drive `gpjs-ui`'s actual wrapper functions and `@gpjs-ui/vue`'s
 // actual `nodeOps`/`patchProp` end to end, without a real Rust process.
+//
+// It matches the real host where the difference is observable: one parent per
+// node, several callbacks per (node, event), and `destroyNode` freeing a whole
+// subtree. It does not refuse a cycle the way the host does — `nodeOps` never
+// builds one.
 function installFakeNative(): Map<NodeId, FakeNode> {
   const nodes = new Map<NodeId, FakeNode>();
   let nextId = 0;
@@ -35,8 +41,19 @@ function installFakeNative(): Map<NodeId, FakeNode> {
 
   function allocate(tag: string): NodeId {
     const id = nextId++;
-    nodes.set(id, { tag, attributes: {}, style: {}, children: [], listeners: {} });
+    nodes.set(id, { tag, attributes: {}, style: {}, parent: null, children: [], listeners: {} });
     return id;
+  }
+
+  function detach(id: NodeId): void {
+    const node = nodes.get(id);
+    if (!node || node.parent === null) return;
+    const parent = nodes.get(node.parent);
+    if (parent) {
+      const index = parent.children.indexOf(id);
+      if (index !== -1) parent.children.splice(index, 1);
+    }
+    node.parent = null;
   }
 
   // The host allocates its root along with the tree, before any JS runs.
@@ -52,18 +69,19 @@ function installFakeNative(): Map<NodeId, FakeNode> {
     },
     insertBefore(parentId: NodeId, childId: NodeId, anchorId: NodeId | null): void {
       const parent = requireNode(parentId);
-      requireNode(childId);
+      const child = requireNode(childId);
+      detach(childId);
       const anchorIndex = anchorId === null ? -1 : parent.children.indexOf(anchorId);
       if (anchorIndex === -1) {
         parent.children.push(childId);
       } else {
         parent.children.splice(anchorIndex, 0, childId);
       }
+      child.parent = parentId;
     },
     removeChild(parentId: NodeId, childId: NodeId): void {
-      const parent = requireNode(parentId);
-      const index = parent.children.indexOf(childId);
-      if (index !== -1) parent.children.splice(index, 1);
+      requireNode(parentId);
+      if (nodes.get(childId)?.parent === parentId) detach(childId);
     },
     setAttribute(nodeId: NodeId, key: string, value: unknown): void {
       requireNode(nodeId).attributes[key] = value;
@@ -72,7 +90,32 @@ function installFakeNative(): Map<NodeId, FakeNode> {
       requireNode(nodeId).style[key] = value;
     },
     addEventListener(nodeId: NodeId, event: string, callbackId: number): void {
-      requireNode(nodeId).listeners[event] = callbackId;
+      const callbacks = (requireNode(nodeId).listeners[event] ??= []);
+      if (!callbacks.includes(callbackId)) callbacks.push(callbackId);
+    },
+    removeEventListener(nodeId: NodeId, event: string, callbackId: number): boolean {
+      const callbacks = nodes.get(nodeId)?.listeners[event];
+      if (!callbacks) return false;
+      const index = callbacks.indexOf(callbackId);
+      if (index === -1) return false;
+      callbacks.splice(index, 1);
+      return true;
+    },
+    destroyNode(nodeId: NodeId): number[] {
+      if (!nodes.has(nodeId)) return [];
+      detach(nodeId);
+
+      const released: number[] = [];
+      const pending = [nodeId];
+      while (pending.length > 0) {
+        const current = pending.pop()!;
+        const node = nodes.get(current);
+        if (!node) continue;
+        nodes.delete(current);
+        pending.push(...node.children);
+        released.push(...Object.values(node.listeners).flat());
+      }
+      return released;
     },
   };
 
@@ -80,11 +123,13 @@ function installFakeNative(): Map<NodeId, FakeNode> {
 }
 
 function dispatch(node: FakeNode, event: string): void {
-  const callbackId = node.listeners[event];
-  if (callbackId === undefined) throw new Error(`no ${event} listener registered`);
-  const callback = globalThis.__gpjsui_callbacks__[callbackId];
-  if (callback === undefined) throw new Error(`no callback registered as ${callbackId}`);
-  callback();
+  const callbackIds = node.listeners[event] ?? [];
+  if (callbackIds.length === 0) throw new Error(`no ${event} listener registered`);
+  for (const callbackId of callbackIds) {
+    const callback = globalThis.__gpjsui_callbacks__[callbackId];
+    if (callback === undefined) throw new Error(`no callback registered as ${callbackId}`);
+    callback();
+  }
 }
 
 describe("@gpjs-ui/vue renderer, driven end to end through a real gpjs-ui core", () => {
@@ -157,6 +202,79 @@ describe("@gpjs-ui/vue renderer, driven end to end through a real gpjs-ui core",
 
     const reordered = nodes.get(containerId)!.children;
     expect(reordered).toEqual([originalOrder[2], originalOrder[0], originalOrder[1]]);
+  });
+
+  it("frees a removed subtree's nodes and every callback inside it", async () => {
+    const state = reactive({ shown: true });
+    const App = {
+      setup() {
+        return () =>
+          h("div", null, [state.shown ? h("div", null, [h("div", { onClick: () => {} })]) : null]);
+      },
+    };
+
+    createGpjsuiApp(App).mount(root);
+    await nextTick();
+
+    const containerId = nodes.get(root.id)!.children[0]!;
+    const branchId = nodes.get(containerId)!.children[0]!;
+    const leafId = nodes.get(branchId)!.children[0]!;
+    expect(Object.keys(globalThis.__gpjsui_callbacks__)).toHaveLength(1);
+
+    state.shown = false;
+    await nextTick();
+
+    expect(nodes.has(branchId)).toBe(false);
+    expect(
+      nodes.has(leafId),
+      "Vue removes only the subtree's root, so the descendant is freed here or nowhere",
+    ).toBe(false);
+    expect(globalThis.__gpjsui_callbacks__).toEqual({});
+  });
+
+  it("keeps one native registration when a handler is replaced on every render", async () => {
+    const state = reactive({ count: 0 });
+    const App = {
+      setup() {
+        return () =>
+          // A fresh closure each render, so Vue patches the prop every time.
+          h("div", { onClick: () => state.count++ }, `${state.count}`);
+      },
+    };
+
+    createGpjsuiApp(App).mount(root);
+    await nextTick();
+
+    const div = nodes.get(nodes.get(root.id)!.children[0]!)!;
+    dispatch(div, "click");
+    await nextTick();
+    dispatch(div, "click");
+    await nextTick();
+
+    expect(state.count).toBe(2);
+    expect(div.listeners["click"]).toHaveLength(1);
+    expect(Object.keys(globalThis.__gpjsui_callbacks__)).toHaveLength(1);
+  });
+
+  it("unbinds a handler that goes away", async () => {
+    const state = reactive({ armed: true });
+    let clicks = 0;
+    const App = {
+      setup() {
+        return () => h("div", { onClick: state.armed ? () => clicks++ : null });
+      },
+    };
+
+    createGpjsuiApp(App).mount(root);
+    await nextTick();
+
+    const div = nodes.get(nodes.get(root.id)!.children[0]!)!;
+    state.armed = false;
+    await nextTick();
+
+    expect(div.listeners["click"]).toHaveLength(0);
+    expect(globalThis.__gpjsui_callbacks__).toEqual({});
+    expect(clicks).toBe(0);
   });
 
   it("mounts against the host's root container when mount gets no argument", async () => {

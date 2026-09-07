@@ -133,6 +133,41 @@ fn click_dispatches_to_js_exactly_once(cx: &mut TestAppContext) {
     );
 }
 
+/// The host holds a list of callbacks per `(node, event)`, the way the DOM
+/// does, and dispatches to all of it. `packages/gpjs-ui` registers one — a
+/// framework adapter composes its own handlers first — so nothing above this
+/// layer exercises the list.
+#[gpui::test]
+fn a_click_reaches_every_callback_registered_for_it(cx: &mut TestAppContext) {
+    let (host, node) = build_clickable_tree();
+    host.borrow_mut().listeners.register(node, "click", 1);
+
+    let engine = Rc::new(Engine::new().unwrap());
+    engine
+        .eval::<()>(
+            "globalThis.__gpjsui_callbacks__ = { \
+                0: () => { globalThis.clicks = (globalThis.clicks || 0) + 1; }, \
+                1: () => { globalThis.clicks = (globalThis.clicks || 0) + 10; } \
+            };",
+        )
+        .unwrap();
+    let dispatcher = EventDispatcher::new(Rc::clone(&engine), Rc::clone(&host));
+
+    let window = cx.add_window(|_, _| ClickableRoot {
+        host: Rc::clone(&host),
+        node,
+        dispatcher,
+    });
+    cx.update_window(window.into(), |_, window, cx| window.draw(cx).clear(cx))
+        .unwrap();
+
+    let mut cx = VisualTestContext::from_window(window.into(), cx);
+    cx.simulate_click(point(px(10.0), px(10.0)), Modifiers::none());
+    cx.run_until_parked();
+
+    assert_eq!(clicks(&engine), 11.0, "both callbacks must run, once each");
+}
+
 /// A callback that only schedules its effect via a microtask (as any real
 /// reactivity scheduler does) must still have that effect applied by the
 /// time `dispatch` returns — not left pending until some later, unrelated

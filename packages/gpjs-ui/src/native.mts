@@ -13,6 +13,8 @@ interface GpjsuiNative {
   setAttribute(nodeId: NodeId, key: string, value: AttributeValue): void;
   setStyle(nodeId: NodeId, key: string, value: AttributeValue): void;
   addEventListener(nodeId: NodeId, event: string, callbackId: CallbackId): void;
+  removeEventListener(nodeId: NodeId, event: string, callbackId: CallbackId): boolean;
+  destroyNode(nodeId: NodeId): CallbackId[];
 }
 
 declare global {

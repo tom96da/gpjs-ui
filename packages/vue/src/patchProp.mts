@@ -1,7 +1,7 @@
 // Copyright (c) 2026 tom96da
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-import { addEventListener, setAttribute, setStyle } from "gpjs-ui";
+import { removeEventListener, setAttribute, setEventListener, setStyle } from "gpjs-ui";
 
 import type { RendererOptions } from "@vue/runtime-core";
 
@@ -24,9 +24,28 @@ function patchStyle(el: GpjsuiElement, nextValue: unknown): void {
   }
 }
 
+// `@vue/runtime-core` types an `onXxx` prop as `Function | Function[]`, so
+// several handlers can arrive for one event. Vue's own DOM renderer collapses
+// them into a single native listener; this does the same.
+function asListener(value: unknown): EventListener | null {
+  if (typeof value === "function") return value as EventListener;
+  if (!Array.isArray(value)) return null;
+
+  const listeners = value.filter((entry): entry is EventListener => typeof entry === "function");
+  if (listeners.length === 0) return null;
+  return (...args: unknown[]) => {
+    for (const listener of listeners) listener(...args);
+  };
+}
+
 function patchEvent(el: GpjsuiElement, rawKey: string, nextValue: unknown): void {
-  if (typeof nextValue !== "function") return;
-  addEventListener(el.id, rawKey.slice(2).toLowerCase(), nextValue as EventListener);
+  const event = rawKey.slice(2).toLowerCase();
+  const listener = asListener(nextValue);
+  if (listener) {
+    setEventListener(el.id, event, listener);
+  } else {
+    removeEventListener(el.id, event);
+  }
 }
 
 /**
@@ -36,9 +55,10 @@ function patchEvent(el: GpjsuiElement, rawKey: string, nextValue: unknown): void
  * - `style` (an object, per `:style="{...}"`) fans out to one
  *   {@link setStyle} call per entry; an entry whose value isn't a
  *   string/number is skipped.
- * - An `onXxx` key registers `nextValue` as an event listener for `xxx`, if
- *   it's a function — only `"click"` is wired to real input by the native
- *   host today, other event names are accepted but never fire.
+ * - An `onXxx` key registers `nextValue` as the listener for `xxx`, taking a
+ *   function or an array of them, and unbinds `xxx` for anything else — only
+ *   `"click"` is wired to real input by the native host today, other event
+ *   names are accepted but never fire.
  * - Everything else falls through to {@link setAttribute}, again skipping
  *   a non-string/number/boolean value rather than passing it through.
  *

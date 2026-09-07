@@ -1,6 +1,7 @@
 // Copyright (c) 2026 tom96da
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+import { releaseCallbacks } from "./events.mts";
 import { native } from "./native.mts";
 
 import type { AttributeValue, NodeId, StyleProps, TagName } from "./types.mts";
@@ -52,12 +53,25 @@ export function insertBefore(parentId: NodeId, childId: NodeId, anchorId: NodeId
 /**
  * Detaches `childId` from `parentId`. The detached node stays alive (and
  * keeps its own children) — it isn't freed, so it can be re-attached
- * elsewhere.
+ * elsewhere. Use {@link destroyNode} for a node that isn't coming back.
  * @param parentId - the current container
  * @param childId - the node being detached
  */
 export function removeChild(parentId: NodeId, childId: NodeId): void {
   native().removeChild(parentId, childId);
+}
+
+/**
+ * Frees `nodeId` and its whole subtree, detaching it first, and drops every
+ * event listener registered anywhere in it. Destroying an already-destroyed
+ * node does nothing. The host's own root cannot be destroyed and raises.
+ *
+ * Nothing else frees a node: a subtree dropped with {@link removeChild}
+ * alone stays allocated for the life of the engine.
+ * @param nodeId - the node that isn't coming back
+ */
+export function destroyNode(nodeId: NodeId): void {
+  releaseCallbacks(native().destroyNode(nodeId));
 }
 
 /**

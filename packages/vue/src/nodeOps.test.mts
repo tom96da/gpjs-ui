@@ -10,7 +10,7 @@ vi.mock("gpjs-ui", () => ({
   removeChild: vi.fn<(parentId: number, childId: number) => void>(),
   setAttribute: vi.fn<(nodeId: number, key: string, value: unknown) => void>(),
   setStyle: vi.fn<(nodeId: number, key: string, value: unknown) => void>(),
-  disposeNode: vi.fn<(nodeId: number) => void>(),
+  destroyNode: vi.fn<(nodeId: number) => void>(),
 }));
 
 import * as gpjsUi from "gpjs-ui";
@@ -75,8 +75,7 @@ describe("setElementText", () => {
 
     nodeOps.setElementText(el, "hello");
 
-    expect(gpjsUi.removeChild).toHaveBeenCalledWith(el.id, oldChild.id);
-    expect(gpjsUi.disposeNode).toHaveBeenCalledWith(oldChild.id);
+    expect(gpjsUi.destroyNode).toHaveBeenCalledWith(oldChild.id);
     expect(oldChild.parent).toBeNull();
     expect(el.children).toHaveLength(1);
     expect(el.children[0]).toMatchObject({ kind: "text", text: "hello" });
@@ -141,7 +140,7 @@ describe("insert", () => {
     nodeOps.insert(child, newParent);
 
     expect(gpjsUi.removeChild).toHaveBeenCalledWith(oldParent.id, child.id);
-    expect(gpjsUi.disposeNode).not.toHaveBeenCalled();
+    expect(gpjsUi.destroyNode).not.toHaveBeenCalled();
     expect(oldParent.children).toHaveLength(0);
     expect(newParent.children).toEqual([child]);
     expect(child.parent).toBe(newParent);
@@ -149,26 +148,30 @@ describe("insert", () => {
 });
 
 describe("remove", () => {
-  it("detaches from the parent and disposes the node's listeners", () => {
+  it("frees the node and unlinks it from its parent", () => {
     const parent = element();
     const child = element();
     nodeOps.insert(child, parent);
+    vi.mocked(gpjsUi.removeChild).mockClear();
 
     nodeOps.remove(child);
 
-    expect(gpjsUi.removeChild).toHaveBeenCalledWith(parent.id, child.id);
-    expect(gpjsUi.disposeNode).toHaveBeenCalledWith(child.id);
+    expect(gpjsUi.destroyNode).toHaveBeenCalledWith(child.id);
+    expect(
+      gpjsUi.removeChild,
+      "destroyNode detaches natively, so a second call would be redundant",
+    ).not.toHaveBeenCalled();
     expect(parent.children).toHaveLength(0);
     expect(child.parent).toBeNull();
   });
 
-  it("is a no-op for a node with no parent", () => {
+  it("frees a node that was never attached", () => {
     const child = element();
 
     nodeOps.remove(child);
 
+    expect(gpjsUi.destroyNode).toHaveBeenCalledWith(child.id);
     expect(gpjsUi.removeChild).not.toHaveBeenCalled();
-    expect(gpjsUi.disposeNode).not.toHaveBeenCalled();
   });
 });
 

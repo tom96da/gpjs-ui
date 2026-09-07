@@ -4,7 +4,7 @@
 import {
   appendChild,
   createNode,
-  disposeNode,
+  destroyNode,
   insertBefore,
   removeChild,
   setAttribute,
@@ -57,18 +57,21 @@ function createTextNode(text: string): GpjsuiText {
   return { id, kind: "text", parent: null, text };
 }
 
-// Detaches `child` from its current parent, in both the native tree and this
-// module's parent/children bookkeeping, without disposing its event
-// listeners — used by `insert` (a move keeps the node alive) as opposed to
-// `remove` (a permanent removal, which does dispose them).
-function detach(child: GpjsuiNode): void {
+// Drops `child` from its parent in this module's shadow of the native tree.
+function unlink(child: GpjsuiNode): void {
   const parent = child.parent;
   if (!parent) return;
 
-  removeChild(parent.id, child.id);
   const index = parent.children.indexOf(child);
   if (index !== -1) parent.children.splice(index, 1);
   child.parent = null;
+}
+
+// Detaches `child` in the native tree as well. `destroyNode` detaches on its
+// own, so the removal path uses `unlink` instead.
+function detach(child: GpjsuiNode): void {
+  if (child.parent) removeChild(child.parent.id, child.id);
+  unlink(child);
 }
 
 /**
@@ -130,8 +133,7 @@ export const nodeOps: Omit<RendererOptions<GpjsuiNode, GpjsuiElement>, "patchPro
    */
   setElementText(el: GpjsuiElement, text: string): void {
     for (const child of el.children.splice(0)) {
-      removeChild(el.id, child.id);
-      disposeNode(child.id);
+      destroyNode(child.id);
       child.parent = null;
     }
     if (!text) return;
@@ -165,16 +167,16 @@ export const nodeOps: Omit<RendererOptions<GpjsuiNode, GpjsuiElement>, "patchPro
   },
 
   /**
-   * Detaches `child` from its parent for good and frees its registered
-   * event listeners. A no-op if `child` has no parent (already removed, or
-   * never attached).
+   * Removes `child` for good: the native node, its whole subtree, and every
+   * event listener registered in it.
+   *
+   * Vue unmounts a subtree by calling this on its root alone, so a node's
+   * descendants are freed here or nowhere.
    * @param child - the node being removed
    */
   remove(child: GpjsuiNode): void {
-    if (!child.parent) return;
-
-    detach(child);
-    disposeNode(child.id);
+    unlink(child);
+    destroyNode(child.id);
   },
 
   /**

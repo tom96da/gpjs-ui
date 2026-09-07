@@ -1,10 +1,12 @@
 // Copyright (c) 2026 tom96da
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+// The package's public type surface.
+
 /** Stable handle to a node in the native retained tree, returned by {@link createNode} and used in every later call that touches that node. */
 export type NodeId = number;
 
-/** Id assigned to one registered event listener. Managed internally by {@link addEventListener}/{@link disposeNode} — callers never see or pass one directly. */
+/** Id assigned to one registered event listener. Managed internally by {@link setEventListener}/{@link removeEventListener}/{@link destroyNode} — callers never see or pass one directly. */
 export type CallbackId = number;
 
 /** A value {@link setAttribute}/{@link setStyle} can take. Anything else raises a catchable exception rather than being silently coerced. */
@@ -55,7 +57,7 @@ export interface StyleProps {
 }
 
 /**
- * Signature of a callback registered via {@link addEventListener}. The
+ * Signature of a callback registered via {@link setEventListener}. The
  * native host currently always calls it with exactly one argument, the
  * {@link NodeId} the event fired on — the type stays variadic so a future
  * event kind can add a richer payload without a breaking signature change.

@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   appendChild,
   createNode,
+  destroyNode,
   insertBefore,
   removeChild,
   rootNodeId,
@@ -22,6 +23,10 @@ const native = {
   setAttribute: vi.fn<(nodeId: number, key: string, value: unknown) => void>(),
   setStyle: vi.fn<(nodeId: number, key: string, value: unknown) => void>(),
   addEventListener: vi.fn<(nodeId: number, event: string, callbackId: number) => void>(),
+  removeEventListener: vi.fn<(nodeId: number, event: string, callbackId: number) => boolean>(
+    () => true,
+  ),
+  destroyNode: vi.fn<(nodeId: number) => number[]>(() => []),
 };
 
 beforeEach(() => {
@@ -63,6 +68,11 @@ describe("wrapper functions forward to __gpjsui_native__", () => {
   it("setAttribute", () => {
     setAttribute(1, "label", "hello");
     expect(native.setAttribute).toHaveBeenCalledWith(1, "label", "hello");
+  });
+
+  it("destroyNode", () => {
+    destroyNode(7);
+    expect(native.destroyNode).toHaveBeenCalledWith(7);
   });
 
   it("setStyle", () => {

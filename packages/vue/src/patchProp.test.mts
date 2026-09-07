@@ -4,8 +4,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("gpjs-ui", () => ({
-  addEventListener:
+  setEventListener:
     vi.fn<(nodeId: number, event: string, listener: (...args: unknown[]) => void) => void>(),
+  removeEventListener: vi.fn<(nodeId: number, event: string) => void>(),
   setAttribute: vi.fn<(nodeId: number, key: string, value: unknown) => void>(),
   setStyle: vi.fn<(nodeId: number, key: string, value: unknown) => void>(),
 }));
@@ -49,13 +50,27 @@ describe("on*", () => {
     const listener = vi.fn<() => void>();
     patchProp(el, "onClick", null, listener, undefined, null);
 
-    expect(gpjsUi.addEventListener).toHaveBeenCalledWith(1, "click", listener);
+    expect(gpjsUi.setEventListener).toHaveBeenCalledWith(1, "click", listener);
   });
 
-  it("ignores a non-function value", () => {
-    patchProp(el, "onClick", null, undefined, undefined, null);
+  it("collapses an array of handlers into one listener", () => {
+    const first = vi.fn<() => void>();
+    const second = vi.fn<() => void>();
 
-    expect(gpjsUi.addEventListener).not.toHaveBeenCalled();
+    patchProp(el, "onClick", null, [first, second], undefined, null);
+
+    expect(gpjsUi.setEventListener).toHaveBeenCalledTimes(1);
+    const registered = vi.mocked(gpjsUi.setEventListener).mock.calls[0]![2];
+    registered();
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
+  it("unbinds the event when the value is no longer a function", () => {
+    patchProp(el, "onClick", vi.fn(), undefined, undefined, null);
+
+    expect(gpjsUi.setEventListener).not.toHaveBeenCalled();
+    expect(gpjsUi.removeEventListener).toHaveBeenCalledWith(1, "click");
   });
 });
 

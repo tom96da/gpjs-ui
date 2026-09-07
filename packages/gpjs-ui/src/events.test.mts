@@ -3,7 +3,8 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { addEventListener, disposeNode } from "./events.mts";
+import { removeEventListener, setEventListener } from "./events.mts";
+import { destroyNode } from "./tree.mts";
 
 const native = {
   rootNodeId: vi.fn<() => number>(() => 0),
@@ -14,6 +15,10 @@ const native = {
   setAttribute: vi.fn<(nodeId: number, key: string, value: unknown) => void>(),
   setStyle: vi.fn<(nodeId: number, key: string, value: unknown) => void>(),
   addEventListener: vi.fn<(nodeId: number, event: string, callbackId: number) => void>(),
+  removeEventListener: vi.fn<(nodeId: number, event: string, callbackId: number) => boolean>(
+    () => true,
+  ),
+  destroyNode: vi.fn<(nodeId: number) => number[]>(() => []),
 };
 
 beforeEach(() => {
@@ -22,11 +27,11 @@ beforeEach(() => {
   delete (globalThis as { __gpjsui_callbacks__?: unknown }).__gpjsui_callbacks__;
 });
 
-describe("addEventListener's callback registry", () => {
+describe("setEventListener's callback registry", () => {
   it("stores the listener at __gpjsui_callbacks__[id] and forwards that id natively", () => {
     const listener = vi.fn<() => void>();
 
-    addEventListener(1, "click", listener);
+    setEventListener(1, "click", listener);
 
     expect(native.addEventListener).toHaveBeenCalledTimes(1);
     const [nodeId, event, callbackId] = native.addEventListener.mock.calls[0]!;
@@ -36,18 +41,18 @@ describe("addEventListener's callback registry", () => {
   });
 
   it("allocates a distinct id per registration", () => {
-    addEventListener(1, "click", vi.fn());
-    addEventListener(2, "click", vi.fn());
+    setEventListener(1, "click", vi.fn());
+    setEventListener(2, "click", vi.fn());
 
     const ids = Object.keys(globalThis.__gpjsui_callbacks__);
     expect(ids).toHaveLength(2);
   });
 
   it("frees the previous callback id when the same (node, event) re-registers", () => {
-    addEventListener(1, "click", vi.fn());
+    setEventListener(1, "click", vi.fn());
     const firstId = native.addEventListener.mock.calls[0]![2];
 
-    addEventListener(1, "click", vi.fn());
+    setEventListener(1, "click", vi.fn());
     const secondId = native.addEventListener.mock.calls[1]![2];
 
     expect(secondId).not.toBe(firstId);
@@ -56,28 +61,69 @@ describe("addEventListener's callback registry", () => {
   });
 });
 
-describe("disposeNode", () => {
-  it("frees every callback id registered for a node, across all event names", () => {
-    addEventListener(1, "click", vi.fn());
-    addEventListener(1, "hover", vi.fn());
-    addEventListener(2, "click", vi.fn());
+describe("removeEventListener", () => {
+  it("drops both halves of the registration", () => {
+    setEventListener(1, "click", vi.fn());
+    const callbackId = native.addEventListener.mock.calls[0]![2];
 
-    disposeNode(1);
+    removeEventListener(1, "click");
+
+    expect(native.removeEventListener).toHaveBeenCalledWith(1, "click", callbackId);
+    expect(globalThis.__gpjsui_callbacks__[callbackId]).toBeUndefined();
+  });
+
+  it("is a no-op when nothing is registered", () => {
+    removeEventListener(999, "click");
+
+    expect(native.removeEventListener).not.toHaveBeenCalled();
+  });
+
+  it("lets a re-registration allocate a fresh id", () => {
+    setEventListener(1, "click", vi.fn());
+    removeEventListener(1, "click");
+    setEventListener(1, "click", vi.fn());
 
     expect(Object.keys(globalThis.__gpjsui_callbacks__)).toHaveLength(1);
   });
+});
 
-  it("re-registering (nodeId, event) after dispose allocates a fresh id, not a stale one", () => {
-    addEventListener(1, "click", vi.fn());
-    disposeNode(1);
-    addEventListener(1, "click", vi.fn());
+describe("destroyNode", () => {
+  it("frees the callback ids the host reports, including a descendant's", () => {
+    setEventListener(1, "click", vi.fn());
+    setEventListener(2, "click", vi.fn());
+    const [parentCallback, childCallback] = native.addEventListener.mock.calls.map(
+      (call) => call[2],
+    );
+    // The host frees the whole subtree, so node 2's id comes back from
+    // destroying node 1.
+    native.destroyNode.mockReturnValueOnce([parentCallback!, childCallback!]);
 
-    const secondId = native.addEventListener.mock.calls[1]![2];
-    expect(globalThis.__gpjsui_callbacks__[secondId]).toBeDefined();
+    destroyNode(1);
+
+    expect(globalThis.__gpjsui_callbacks__).toEqual({});
+  });
+
+  it("leaves another node's registration alone", () => {
+    setEventListener(1, "click", vi.fn());
+    setEventListener(2, "click", vi.fn());
+    const survivor = native.addEventListener.mock.calls[1]![2];
+    native.destroyNode.mockReturnValueOnce([native.addEventListener.mock.calls[0]![2]!]);
+
+    destroyNode(1);
+
+    expect(globalThis.__gpjsui_callbacks__[survivor]).toBeDefined();
     expect(Object.keys(globalThis.__gpjsui_callbacks__)).toHaveLength(1);
   });
 
-  it("is a no-op for a node with no registered listeners", () => {
-    expect(() => disposeNode(999)).not.toThrow();
+  it("re-registering a destroyed node's (nodeId, event) does not resurrect the old id", () => {
+    setEventListener(1, "click", vi.fn());
+    const firstId = native.addEventListener.mock.calls[0]![2];
+    native.destroyNode.mockReturnValueOnce([firstId!]);
+    destroyNode(1);
+
+    setEventListener(1, "click", vi.fn());
+
+    expect(native.removeEventListener).not.toHaveBeenCalled();
+    expect(Object.keys(globalThis.__gpjsui_callbacks__)).toHaveLength(1);
   });
 });
