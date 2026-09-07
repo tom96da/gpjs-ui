@@ -466,23 +466,23 @@ can't survive a CLI that doesn't know about the token.
       existing `<path-to-bundle.js>` one-shot behaviour intact
 - [x] `docs/PROTOCOL.md`: the message surface between the host and the Node
       process that spawns it
-- [ ] Dev mode: read newline-delimited JSON on stdin, write protocol
+- [x] Dev mode: read newline-delimited JSON on stdin, write protocol
       messages on stdout, log to stderr
-- [ ] Handle `shutdown` by closing the window and exiting 0, so an app's
+- [x] Handle `shutdown` by closing the window and exiting 0, so an app's
       cleanup hook has somewhere to attach without a later protocol change
-- [ ] Route stdin off the GPUI main thread — `gpui`'s `AsyncApp` isn't
+- [x] Route stdin off the GPUI main thread — `gpui`'s `AsyncApp` isn't
       `Send` (it holds a `Weak<AppCell>`), so a reader thread hands messages
       to a foreground task via a channel rather than touching the app
-- [ ] Reload: rebuild the `Engine` (the reliable way to discard all QuickJS
+- [x] Reload: rebuild the `Engine` (the reliable way to discard all QuickJS
       state), reset the `Host`, recreate the root node, re-evaluate the
       bundle, then refresh the window
 - [x] Factor the "run JS, drain pending jobs, refresh" sequence out of
       `EventDispatcher::dispatch` (`src/render/bridge.rs`) so reload uses it
       too — today the drain is inline and skipped when no listener fires
-- [ ] Keep `crates/gpjs-ui` free of process/IPC concerns: new dependencies
+- [x] Keep `crates/gpjs-ui` free of process/IPC concerns: new dependencies
       belong to the host crate only
-- [ ] Tests: a reload leaves no stale tree nodes, listeners, or JS callbacks
-- [ ] Tests: protocol line parsing
+- [x] Tests: a reload leaves no stale tree nodes, listeners, or JS callbacks
+- [x] Tests: protocol line parsing
 - [x] `EngineError` carries the thrown value's message and stack, read
       inside the call that failed so a caller cannot get the order wrong. A
       thrown value that isn't an `Error` has no stack to report
@@ -490,10 +490,22 @@ can't survive a CLI that doesn't know about the token.
       injected reporter rather than swallowing it, defaulting to stderr —
       taking the reporter as an argument is what keeps it free of the
       protocol
-- [ ] Point that reporter at an `appError` notification in dev mode
+- [x] Point that reporter at an `appError` notification in dev mode
+- [ ] Write protocol lines through an injected writer rather than
+      `io::stdout()` directly. A slow reader then cannot block the thread
+      that runs the app, and a test can read back what was sent
+- [ ] Show a failed reload or build in the window, drawn by a dev-only
+      engine of the host's own rather than by the app's. It outlives the
+      reload that replaces the app's engine, leaves the app's tree alone,
+      and can still draw when the first bundle never loaded at all
+- [ ] That engine renders into a second root the host stacks over the
+      app's — the same primitive an app's own modal needs. `position`,
+      `z_index` and `overflow` are absent from the style vocabulary, so it
+      waits on Phase 4
 - [ ] Tests: a listener that throws is reported exactly once — to the dev
-      channel or to stderr, never both — and the window keeps rendering
-- [ ] Speak JSON-RPC 2.0: its `id` keeps a response matched to the request
+      channel or to stderr, never both — and the window keeps rendering.
+      Needs the injected writer above
+- [x] Speak JSON-RPC 2.0: its `id` keeps a response matched to the request
       that caused it, and its error codes are already settled
 
 ### Unit iii — core corrections
@@ -579,6 +591,12 @@ not a rewrite.
       Keep `define`-ing `process.env.NODE_ENV` (QuickJS has no `process`)
 - [ ] Announce each rebuild and stop there: this package never starts,
       reloads, or talks to the host
+- [ ] Announce a failed build too. A broken edit that never produces a
+      bundle is the most common way a screen stops updating, and nothing
+      downstream hears about it otherwise
+- [ ] Build dev with `NODE_ENV=development`, so `@vue/runtime-core`'s own
+      warnings survive — they are compiled out at production, and the host
+      now has a `console` for them to reach
 - [ ] No first-party dependency at all — the output path and, in Phase 3.4,
       the channel to answer `fetchModule` over, arrive as arguments. That is
       what makes it swappable, and it is checkable in its manifest
@@ -607,6 +625,8 @@ dependency change here rather than an edit anywhere else.
       a graceful teardown
 - [ ] Print an `appError` where a developer will see it, stack included and
       told apart from the app's own `console` output
+- [ ] Show a failed reload as well: the `-32000` answering the `reload` the
+      CLI itself sent is what says why the screen did not change
 - [ ] Settle the app lifecycle surface before anything dispatches one:
       which moments an app can hook (process exit, and a reload discarding
       the session), whether a handler cancels or only observes, what it may
