@@ -491,7 +491,7 @@ can't survive a CLI that doesn't know about the token.
       taking the reporter as an argument is what keeps it free of the
       protocol
 - [x] Point that reporter at an `appError` notification in dev mode
-- [ ] Write protocol lines through an injected writer rather than
+- [x] Write protocol lines through an injected writer rather than
       `io::stdout()` directly. A slow reader then cannot block the thread
       that runs the app, and a test can read back what was sent
 - [ ] Show a failed reload or build in the window, drawn by a dev-only
@@ -502,9 +502,12 @@ can't survive a CLI that doesn't know about the token.
       app's — the same primitive an app's own modal needs. `position`,
       `z_index` and `overflow` are absent from the style vocabulary, so it
       waits on Phase 4
-- [ ] Tests: a listener that throws is reported exactly once — to the dev
+- [x] Tests: a listener that throws is reported exactly once — to the dev
       channel or to stderr, never both — and the window keeps rendering.
-      Needs the injected writer above
+      Needs the injected writer above — landed as
+      `a_throwing_listener_is_reported_exactly_once_to_the_writer` in
+      `crates/gpjs-ui-host/src/main.rs`, dispatching a real click against a
+      running `HostedApp` window and reading back the captured line
 - [x] Speak JSON-RPC 2.0: its `id` keeps a response matched to the request
       that caused it, and its error codes are already settled
 

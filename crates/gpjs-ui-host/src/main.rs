@@ -141,14 +141,13 @@ impl Render for HostedApp {
     }
 }
 
-/// Where an app's own failures go. In dev the client is listening, and a
-/// fault it can show beats a line it has to notice in a log.
-fn reporter_for(dev: bool) -> ErrorReporter {
-    if dev {
-        Rc::new(|err: &EngineError| send(&Outgoing::app_error(err)))
-    } else {
-        gpjs_ui::stderr_reporter()
-    }
+/// Where an app's own failures go in dev: the client is listening, and a
+/// fault it can show beats a line it has to notice in a log. Outside dev
+/// there is no writer at all — callers fall back to [`gpjs_ui::stderr_reporter`]
+/// directly instead of calling this.
+fn reporter_for(writer: &SharedWriter) -> ErrorReporter {
+    let writer = Rc::clone(writer);
+    Rc::new(move |err: &EngineError| send(&*writer, &Outgoing::app_error(err)))
 }
 
 /// Why a request could not be answered with a result.
@@ -160,16 +159,52 @@ enum Failure {
     Thrown(EngineError),
 }
 
-/// Writes one protocol line to stdout. A failure here means the parent is
-/// gone, which the stdin reader notices on its own.
-fn send(message: &Outgoing) {
-    match protocol::encode(message) {
-        Ok(line) => {
+/// Where an encoded protocol line goes. Production writes to real stdout on
+/// its own thread (see [`StdoutWriter`]); tests substitute something they can
+/// read back.
+trait Writer {
+    fn write_line(&self, line: String);
+}
+
+/// Shared so the same writer reaches every place that reports something —
+/// `respond`, a reload's failure, the dispatcher's reporter — without each
+/// owning a copy of the underlying channel or thread.
+type SharedWriter = Rc<dyn Writer>;
+
+/// Owns real stdout on a dedicated thread. `write_line` only pushes onto an
+/// unbounded channel, so a parent that reads its stdin slowly stalls that
+/// thread, never the one rendering frames.
+struct StdoutWriter(async_channel::Sender<String>);
+
+impl StdoutWriter {
+    fn spawn() -> Self {
+        let (sender, receiver) = async_channel::unbounded::<String>();
+        thread::spawn(move || {
             let mut stdout = io::stdout().lock();
-            if let Err(err) = writeln!(stdout, "{line}").and_then(|()| stdout.flush()) {
-                log::warn!("failed to write to stdout: {err}");
+            while let Ok(line) = receiver.recv_blocking() {
+                if let Err(err) = writeln!(stdout, "{line}").and_then(|()| stdout.flush()) {
+                    log::warn!("failed to write to stdout: {err}");
+                    break;
+                }
             }
+        });
+        Self(sender)
+    }
+}
+
+impl Writer for StdoutWriter {
+    fn write_line(&self, line: String) {
+        if self.0.send_blocking(line).is_err() {
+            log::warn!("stdout writer thread is gone");
         }
+    }
+}
+
+/// Encodes and writes one protocol line. A message that fails to encode
+/// never reaches `writer` — there is nothing sound to send instead.
+fn send(writer: &dyn Writer, message: &Outgoing) {
+    match protocol::encode(message) {
+        Ok(line) => writer.write_line(line),
         Err(err) => log::error!("failed to encode {message:?}: {err}"),
     }
 }
@@ -199,13 +234,18 @@ fn stdin_lines() -> async_channel::Receiver<String> {
 
 /// Answers the request `id` came from. A notification carries no id and
 /// takes no reply.
-fn respond(id: Option<&Value>, outcome: Result<(), Failure>) {
+fn respond(id: Option<&Value>, outcome: Result<(), Failure>, writer: &SharedWriter) {
     let Some(id) = id else { return };
-    send(&match outcome {
-        Ok(()) => Outgoing::result(id.clone()),
-        Err(Failure::Message(code, message)) => Outgoing::error(id.clone(), code, message),
-        Err(Failure::Thrown(err)) => Outgoing::thrown(id.clone(), ErrorCode::BundleFailed, &err),
-    });
+    send(
+        &**writer,
+        &match outcome {
+            Ok(()) => Outgoing::result(id.clone()),
+            Err(Failure::Message(code, message)) => Outgoing::error(id.clone(), code, message),
+            Err(Failure::Thrown(err)) => {
+                Outgoing::thrown(id.clone(), ErrorCode::BundleFailed, &err)
+            }
+        },
+    );
 }
 
 /// Re-reads the bundle and evaluates it into a fresh [`Session`], swapping
@@ -216,6 +256,7 @@ fn reload(
     cx: &mut gpui::AsyncApp,
     bundle_path: &str,
     id: Option<&Value>,
+    writer: &SharedWriter,
 ) {
     let outcome = fs::read_to_string(bundle_path)
         .map_err(|err| {
@@ -224,7 +265,7 @@ fn reload(
                 format!("failed to read {bundle_path}: {err}"),
             )
         })
-        .and_then(|bundle| Session::load(&bundle, reporter_for(true)).map_err(Failure::Thrown))
+        .and_then(|bundle| Session::load(&bundle, reporter_for(writer)).map_err(Failure::Thrown))
         .and_then(|session| {
             window
                 .update(cx, |app, window, _| {
@@ -234,12 +275,17 @@ fn reload(
                 .map_err(|err| Failure::Message(ErrorCode::BundleFailed, err.to_string()))
         });
 
-    respond(id, outcome);
+    respond(id, outcome, writer);
 }
 
 /// Answers protocol messages until `shutdown`, or until the parent closes
 /// stdin, then quits the app.
-fn serve_dev_protocol(cx: &mut App, window: WindowHandle<HostedApp>, bundle_path: String) {
+fn serve_dev_protocol(
+    cx: &mut App,
+    window: WindowHandle<HostedApp>,
+    bundle_path: String,
+    writer: SharedWriter,
+) {
     let lines = stdin_lines();
     cx.spawn(async move |cx: &mut gpui::AsyncApp| {
         while let Ok(line) = lines.recv().await {
@@ -247,15 +293,15 @@ fn serve_dev_protocol(cx: &mut App, window: WindowHandle<HostedApp>, bundle_path
                 Ok(Incoming::Call { id, method }) => (id, method),
                 Ok(Incoming::Empty) => continue,
                 Err((code, message)) => {
-                    send(&Outgoing::error(Value::Null, code, message));
+                    send(&*writer, &Outgoing::error(Value::Null, code, message));
                     continue;
                 }
             };
 
             match method {
-                Method::Reload => reload(&window, cx, &bundle_path, id.as_ref()),
+                Method::Reload => reload(&window, cx, &bundle_path, id.as_ref(), &writer),
                 Method::Shutdown => {
-                    respond(id.as_ref(), Ok(()));
+                    respond(id.as_ref(), Ok(()), &writer);
                     break;
                 }
                 Method::Unknown => respond(
@@ -264,6 +310,7 @@ fn serve_dev_protocol(cx: &mut App, window: WindowHandle<HostedApp>, bundle_path
                         ErrorCode::MethodNotFound,
                         "unknown method".to_owned(),
                     )),
+                    &writer,
                 ),
             }
         }
@@ -277,8 +324,12 @@ fn serve_dev_protocol(cx: &mut App, window: WindowHandle<HostedApp>, bundle_path
 /// # Errors
 ///
 /// Returns the window that failed to open, or the value the bundle threw.
-fn start(cx: &mut App, bundle: &str, dev: bool) -> Result<WindowHandle<HostedApp>, Failure> {
-    let session = Session::load(bundle, reporter_for(dev)).map_err(Failure::Thrown)?;
+fn start(
+    cx: &mut App,
+    bundle: &str,
+    reporter: ErrorReporter,
+) -> Result<WindowHandle<HostedApp>, Failure> {
+    let session = Session::load(bundle, reporter).map_err(Failure::Thrown)?;
     let (width, height) = content_window_size(&session.host.borrow(), session.root);
 
     let bounds = Bounds::centered(None, size(px(width), px(height)), cx);
@@ -306,17 +357,24 @@ fn start(cx: &mut App, bundle: &str, dev: bool) -> Result<WindowHandle<HostedApp
 }
 
 /// Reports a startup failure wherever anyone is listening. There is no
-/// window to keep, so this is the last thing the process says.
-fn report_startup_failure(failure: &Failure, dev: bool) {
-    match (failure, dev) {
-        (Failure::Thrown(err), true) => {
-            send(&Outgoing::thrown(Value::Null, ErrorCode::BundleFailed, err));
+/// window to keep, so this is the last thing the process says. `writer` is
+/// `None` outside dev, where there is nobody on the other end of stdout.
+fn report_startup_failure(failure: &Failure, writer: Option<&SharedWriter>) {
+    match (failure, writer) {
+        (Failure::Thrown(err), Some(writer)) => {
+            send(
+                &**writer,
+                &Outgoing::thrown(Value::Null, ErrorCode::BundleFailed, err),
+            );
         }
-        (Failure::Thrown(err), false) => eprintln!("{err}"),
-        (Failure::Message(code, message), true) => {
-            send(&Outgoing::error(Value::Null, *code, message.clone()));
+        (Failure::Thrown(err), None) => eprintln!("{err}"),
+        (Failure::Message(code, message), Some(writer)) => {
+            send(
+                &**writer,
+                &Outgoing::error(Value::Null, *code, message.clone()),
+            );
         }
-        (Failure::Message(_, message), false) => eprintln!("{message}"),
+        (Failure::Message(_, message), None) => eprintln!("{message}"),
     }
 }
 
@@ -329,22 +387,28 @@ fn run_bundle(bundle_path: &str, dev: bool) -> ExitCode {
         }
     };
     let bundle_path = bundle_path.to_owned();
+    let writer: Option<SharedWriter> = dev.then(|| Rc::new(StdoutWriter::spawn()) as SharedWriter);
 
     // `run` blocks until the app quits, so the outcome comes back out
     // through a cell rather than a return value.
     let failed = Rc::new(Cell::new(false));
     let reported = Rc::clone(&failed);
-    application().run(move |cx: &mut App| match start(cx, &bundle, dev) {
-        Ok(window) => {
-            if dev {
-                send(&Outgoing::ready());
-                serve_dev_protocol(cx, window, bundle_path.clone());
+    application().run(move |cx: &mut App| {
+        let error_reporter = writer
+            .as_ref()
+            .map_or_else(gpjs_ui::stderr_reporter, reporter_for);
+        match start(cx, &bundle, error_reporter) {
+            Ok(window) => {
+                if let Some(writer) = &writer {
+                    send(&**writer, &Outgoing::ready());
+                    serve_dev_protocol(cx, window, bundle_path.clone(), Rc::clone(writer));
+                }
             }
-        }
-        Err(failure) => {
-            report_startup_failure(&failure, dev);
-            reported.set(true);
-            cx.quit();
+            Err(failure) => {
+                report_startup_failure(&failure, writer.as_ref());
+                reported.set(true);
+                cx.quit();
+            }
         }
     });
 
@@ -378,7 +442,18 @@ mod tests {
     use gpui::TestAppContext;
 
     fn load(bundle: &str) -> Result<Session, EngineError> {
-        Session::load(bundle, reporter_for(false))
+        Session::load(bundle, gpjs_ui::stderr_reporter())
+    }
+
+    /// Captures every line written to it instead of touching real stdout, so
+    /// a test can read back what was sent.
+    #[derive(Default)]
+    struct CapturingWriter(RefCell<Vec<String>>);
+
+    impl Writer for CapturingWriter {
+        fn write_line(&self, line: String) {
+            self.0.borrow_mut().push(line);
+        }
     }
 
     #[test]
@@ -417,7 +492,7 @@ mod tests {
 
     #[gpui::test]
     fn bringing_the_window_up_runs_what_mounting_only_queued(cx: &mut TestAppContext) {
-        cx.update(|cx| start(cx, DEFERS_ITS_MOUNT, false).unwrap());
+        cx.update(|cx| start(cx, DEFERS_ITS_MOUNT, gpjs_ui::stderr_reporter()).unwrap());
         cx.run_until_parked();
 
         let ran: bool = cx.update(|cx| {
@@ -469,6 +544,51 @@ mod tests {
                 .unwrap(),
             "the fresh engine must not carry the previous callback registry"
         );
+    }
+
+    const THROWING_LISTENER_BUNDLE: &str = r"
+        const node = __gpjsui_native__.createNode('div');
+        __gpjsui_native__.appendChild(__gpjsui_native__.rootNodeId(), node);
+        __gpjsui_native__.addEventListener(node, 'click', 0);
+        globalThis.__gpjsui_callbacks__ = {
+            0: () => { throw new Error('boom'); },
+        };
+    ";
+
+    #[gpui::test]
+    fn a_throwing_listener_is_reported_exactly_once_to_the_writer(cx: &mut TestAppContext) {
+        let capturing = Rc::new(CapturingWriter::default());
+        let writer: SharedWriter = Rc::clone(&capturing) as SharedWriter;
+        let reporter = reporter_for(&writer);
+
+        let window = cx.update(|cx| start(cx, THROWING_LISTENER_BUNDLE, reporter).unwrap());
+        cx.run_until_parked();
+
+        cx.update(|cx| {
+            window
+                .update(cx, |app, window, _| {
+                    let node = app
+                        .session
+                        .host
+                        .borrow()
+                        .tree
+                        .get(app.session.root)
+                        .unwrap()
+                        .children()[0];
+                    app.session.dispatcher.dispatch(node, "click", window);
+                })
+                .unwrap();
+        });
+        cx.run_until_parked();
+
+        let sent = capturing.0.borrow();
+        assert_eq!(
+            sent.len(),
+            1,
+            "a throwing listener must be reported exactly once, not once per drain"
+        );
+        assert!(sent[0].contains(r#""method":"appError""#));
+        assert!(sent[0].contains("boom"));
     }
 
     #[test]
