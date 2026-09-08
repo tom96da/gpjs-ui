@@ -91,7 +91,7 @@ jobs:
           cache: pnpm
 
       - name: Install deps
-        run: pnpm install --frozen-lockfile
+        run: pnpm ci
 
       # Root scripts, so examples/ is covered too — it defines no `pretest`.
       - name: Lint
@@ -129,7 +129,7 @@ jobs:
           cache: pnpm
 
       - name: Install deps
-        run: pnpm install --frozen-lockfile
+        run: pnpm ci
 
       - name: Build
         run: pnpm -r build
@@ -140,6 +140,13 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+
+      # Node 20 can't run .mts natively; route it through tsx.
+      - name: Install tsx
+        if: env.NODE_VERSION == '20'
+        run: |
+          npm install -g tsx@4.23.13
+          echo "NODE_OPTIONS=--import=$(npm root -g)/tsx/dist/esm/index.mjs" >> "$GITHUB_ENV"
 
       - name: Test
         run: pnpm exec vitest run
@@ -219,7 +226,7 @@ jobs:
           cache: pnpm
 
       - name: Install deps
-        run: pnpm install --frozen-lockfile
+        run: pnpm ci
 
       # tests/js_core_integration.rs reads this package's dist/ off disk.
       - name: Build the gpjs-ui package
