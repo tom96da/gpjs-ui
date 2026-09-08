@@ -4,9 +4,9 @@
 import path from "node:path";
 
 import dts from "unplugin-dts/vite";
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite";
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   build: {
     lib: {
       entry: path.resolve(import.meta.dirname, "src/index.mts"),
@@ -18,10 +18,4 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: [dts({ include: ["src"], exclude: ["src/**/*.test.mts"] })],
-  // Only for `vitest` (mode "test"): resolve gpjs-ui from source.
-  resolve: mode === "test" ? { conditions: ["source"] } : undefined,
-  ssr: mode === "test" ? { resolve: { conditions: ["source"] } } : undefined,
-  test: {
-    passWithNoTests: true,
-  },
-}));
+});

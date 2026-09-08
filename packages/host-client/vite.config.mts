@@ -4,7 +4,7 @@
 import path from "node:path";
 
 import dts from "unplugin-dts/vite";
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite";
 
 export default defineConfig({
   build: {
@@ -21,7 +21,4 @@ export default defineConfig({
     },
   },
   plugins: [dts({ include: ["src"], exclude: ["src/**/*.test.mts"] })],
-  test: {
-    passWithNoTests: true,
-  },
 });
