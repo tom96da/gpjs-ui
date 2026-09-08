@@ -69,9 +69,36 @@ jobs:
               - 'oxfmt.config.mts'
               - '.github/workflows/ci.yml'
 
-  lint:
-    name: "Lint: node-26, ubuntu-latest"
+  build:
+    name: "Build: Node.js 26, ubuntu-latest"
     needs: changed
+    if: needs.changed.outputs.js == 'true'
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set node version to 26
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm ci
+
+      - name: Build
+        run: pnpm -r build
+
+  lint:
+    name: "Lint: Node.js 26, ubuntu-latest"
+    needs: [changed, build]
     if: needs.changed.outputs.js == 'true'
     timeout-minutes: 10
     runs-on: ubuntu-latest
@@ -105,8 +132,8 @@ jobs:
 
   # One job per version instead of a strategy.matrix, so a skip keeps its name.
   test-node-20:
-    name: "Build&Test: node-20, ubuntu-latest"
-    needs: changed
+    name: "Test: Node.js 20, ubuntu-latest"
+    needs: [changed, build]
     if: needs.changed.outputs.js == 'true'
     timeout-minutes: 15
     runs-on: ubuntu-latest
@@ -121,25 +148,14 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v6
 
-      # Build on 26, test on the target version: older Node as a consumer, not as tooling.
-      - name: Set node version to 26 for install and build
-        uses: actions/setup-node@v7
-        with:
-          node-version: 26
-          cache: pnpm
-
-      - name: Install deps
-        run: pnpm ci
-
-      - name: Build
-        run: pnpm -r build
-
       - name: Set node version to ${{ env.NODE_VERSION }}
-        if: env.NODE_VERSION != '26'
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+
+      - name: Install deps
+        run: pnpm ci
 
       # Node 20 can't run .mts natively; route it through tsx.
       - name: Install tsx
@@ -155,8 +171,8 @@ jobs:
         run: pnpm exec vitest run
 
   test-node-22:
-    name: "Build&Test: node-22, ubuntu-latest"
-    needs: changed
+    name: "Test: Node.js 22, ubuntu-latest"
+    needs: [changed, build]
     if: needs.changed.outputs.js == 'true'
     timeout-minutes: 15
     runs-on: ubuntu-latest
@@ -165,8 +181,8 @@ jobs:
     steps: *test_node_steps
 
   test-node-24:
-    name: "Build&Test: node-24, ubuntu-latest"
-    needs: changed
+    name: "Test: Node.js 24, ubuntu-latest"
+    needs: [changed, build]
     if: needs.changed.outputs.js == 'true'
     timeout-minutes: 15
     runs-on: ubuntu-latest
@@ -175,8 +191,8 @@ jobs:
     steps: *test_node_steps
 
   test-node-26:
-    name: "Build&Test: node-26, ubuntu-latest"
-    needs: changed
+    name: "Test: Node.js 26, ubuntu-latest"
+    needs: [changed, build]
     if: needs.changed.outputs.js == 'true'
     timeout-minutes: 15
     runs-on: ubuntu-latest
@@ -262,6 +278,7 @@ jobs:
     needs:
       [
         changed,
+        build,
         lint,
         test-node-20,
         test-node-22,
