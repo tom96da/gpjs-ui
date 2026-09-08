@@ -17,6 +17,7 @@ describe("HostClient", () => {
       hostBin: mockHost,
       bundlePath: "bundle.js",
       onNotification: (method, params) => notifications.push({ method, params }),
+      onStderr: () => {},
     });
 
     await client.start();
@@ -43,7 +44,11 @@ describe("HostClient", () => {
   });
 
   it("rejects a call the host answers with a JSON-RPC error", async () => {
-    const client = new HostClient({ hostBin: mockHost, bundlePath: "bundle.js" });
+    const client = new HostClient({
+      hostBin: mockHost,
+      bundlePath: "bundle.js",
+      onStderr: () => {},
+    });
     await client.start();
 
     await expect(client.call("bogus")).rejects.toThrow(HostError);
