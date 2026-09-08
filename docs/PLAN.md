@@ -422,13 +422,16 @@ release to protect.
       or type-check them — a separate `lint` job runs the root `pnpm lint`,
       `pnpm format`, and `pnpm typecheck` as three named steps, which do
       cover `examples/`
-- [x] Vitest runs across Node 20/22/24/26, following `third_party/vite`'s own
-      CI: install and build on 26, then drop to the matrix version, so an
-      older Node is exercised the way a consumer would use these packages
-      rather than as the build toolchain. Note the root `package.json`'s
-      `engines.node: ">=26"` only constrains this (private) workspace; no
-      published package declares an `engines` floor yet — settle one when
-      Phase 3.3 actually publishes
+- [x] Vitest runs across Node 20/22/24/26, each test job installing and
+      testing on its own version directly. Node 20 has no native `.mts`
+      execution, so its job installs `tsx` and runs the test fixtures
+      through it. A separate `build` job (Node 26) builds the workspace
+      once; `lint` and the test jobs depend on it via `needs:`. The root
+      `package.json`'s `engines.node: ">=22"` is the oldest Node still
+      under LTS (20 reached end-of-life 2026-04-30; it stays in the test
+      matrix but isn't required) and only constrains this (private)
+      workspace; no published package declares an `engines` floor yet —
+      settle one when Phase 3.3 actually publishes
 - [x] `permissions: {}` and `persist-credentials: false`, from Vite's
       workflow. Actions stay **tag**-pinned rather than SHA-pinned, though:
       this workflow uses no secrets and the token is left read-only, so a

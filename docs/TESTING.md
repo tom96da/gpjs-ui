@@ -132,11 +132,10 @@ modes are the only output-shaping options it has.
   from the build's `lib.entry` — without the `exclude`, a co-located test
   file leaks a stray `dist/*.test.d.mts` into the published package.
   Apply the same pattern to any new package's `vite.config.mts`.
-- `vitest.config`'s `test.passWithNoTests: true` (already set in every
-  package's `vite.config.mts`) lets `pnpm -r test` succeed for a package
-  that hasn't landed its first test yet (e.g. a newly scaffolded package,
-  before its first test lands) without treating "zero tests" as a
-  failure.
+- `vitest.config`'s `test.passWithNoTests: true` treats a package with
+  zero tests as passing rather than failing `pnpm -r test`. Add it when
+  scaffolding a new package's `vite.config.mts`, and drop it again once
+  real tests land — none of the current packages carry it.
 - Each package's `exports` carries a `"source"` condition pointing at
   `src/index.mts`, and `tsconfig.base.json` sets
   `customConditions: ["source"]`, so type-checking resolves workspace
@@ -144,11 +143,11 @@ modes are the only output-shaping options it has.
   `customConditions`, so a package testing against another workspace
   package needs the same condition set explicitly, on both
   `resolve.conditions` and `ssr.resolve.conditions` (vitest resolves
-  through Vite's SSR path) — see `packages/vue/vite.config.mts`, gated to
-  `mode === "test"` so the real build still resolves `gpjs-ui` through
-  `import` and bundles it. `publishConfig.exports` drops the `source`
-  condition again when packing, since `files: ["dist"]` doesn't ship
-  `src/`.
+  through Vite's SSR path) — see `packages/vue/vitest.config.mts`, which
+  merges these onto `vite.config.mts` via `mergeConfig` so the real build
+  still resolves `gpjs-ui` through `import` and bundles it.
+  `publishConfig.exports` drops the `source` condition again when
+  packing, since `files: ["dist"]` doesn't ship `src/`.
 - A package's `tsconfig.json` `include` has to list every directory whose
   files are checked, `tests/` included. A file outside it still gets
   linted, but under default compiler options rather than
