@@ -143,12 +143,15 @@ jobs:
 
       # Node 20 can't run .mts natively; route it through tsx.
       - name: Install tsx
+        id: install_tsx
         if: env.NODE_VERSION == '20'
         run: |
           npm install -g tsx@4.23.13
-          echo "NODE_OPTIONS=--import=$(npm root -g)/tsx/dist/esm/index.mjs" >> "$GITHUB_ENV"
+          echo "node_options=--import=$(npm root -g)/tsx/dist/esm/index.mjs" >> "$GITHUB_OUTPUT"
 
       - name: Test
+        env:
+          NODE_OPTIONS: ${{ steps.install_tsx.outputs.node_options }}
         run: pnpm exec vitest run
 
   test-node-22:
