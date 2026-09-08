@@ -8,9 +8,11 @@ import { setTimeout as delay } from "node:timers/promises";
 
 import { resolveHostBin } from "./hostBin.mts";
 import { HostError } from "./hostError.mts";
-import { JSONRPC, isRpcMessage } from "./protocol.mts";
+import { HOST_PROTOCOL_VERSION, JSONRPC, isRpcMessage } from "./protocol.mts";
 
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
+
+import type { AppErrorParams, ReadyParams } from "./protocol.mts";
 
 interface PendingCall {
   resolve: (result: unknown) => void;
@@ -24,12 +26,23 @@ export interface HostClientOptions {
   hostBin?: string;
   /**
    * Every diagnostic line the transport itself produces: the host's real
-   * stderr, and a stray stdout line that isn't a JSON-RPC message. Defaults
-   * to writing straight to this process's own stderr.
+   * stderr, a stray stdout line, and a `ready` protocol mismatch. Defaults
+   * to this process's own stderr.
    */
   onStderr?: (line: string) => void;
-  /** Every notification the host sends — `ready`, `appError`, and beyond. */
-  onNotification?: (method: string, params: unknown) => void;
+  /**
+   * The window is up and the first bundle has been evaluated, and the host
+   * speaks the protocol revision this package was built for.
+   */
+  onReady?: () => void;
+  /** An app's own event listener threw; the host caught it and kept rendering. */
+  onAppError?: (error: AppErrorParams) => void;
+  /**
+   * Handlers for notification `method`s this package doesn't implement
+   * itself (e.g. a future Vite integration), keyed by method name —
+   * `params` forwarded untouched.
+   */
+  integrations?: Record<string, (params: unknown) => void>;
 }
 
 const defaultOnStderr = (line: string): void => {
@@ -97,7 +110,7 @@ export class HostClient {
     }
 
     if ("method" in message) {
-      this.#options.onNotification?.(message.method, message.params);
+      this.#handleNotification(message.method, message.params, onStderr);
       return;
     }
 
@@ -112,6 +125,39 @@ export class HostClient {
     } else {
       pending.resolve(message.result);
     }
+  }
+
+  #handleNotification(method: string, params: unknown, onStderr: (line: string) => void): void {
+    switch (method) {
+      case "ready": {
+        const { protocol } = params as ReadyParams;
+        if (protocol !== HOST_PROTOCOL_VERSION) {
+          onStderr(
+            `gpjs-ui-host speaks protocol ${String(protocol)}, this package was built for ` +
+              `${String(HOST_PROTOCOL_VERSION)} — stopping it rather than carrying on`,
+          );
+          if (this.#child) void this.#kill(this.#child);
+          return;
+        }
+        this.#options.onReady?.();
+        return;
+      }
+      case "appError":
+        this.#options.onAppError?.(params as AppErrorParams);
+        return;
+      default: {
+        const integration = this.#options.integrations?.[method];
+        if (integration) integration(params);
+        else onStderr(`[unhandled notification] ${method}`);
+      }
+    }
+  }
+
+  /** Kills the child and waits for it to actually exit. */
+  async #kill(child: ChildProcessWithoutNullStreams): Promise<void> {
+    const exited = once(child, "exit");
+    child.kill();
+    await exited;
   }
 
   /** Sends a request and resolves with its result once the host answers. */

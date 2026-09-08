@@ -9,14 +9,25 @@ import { HostClient, HostError } from "../src/index.mts";
 
 const mockHost = path.join(import.meta.dirname, "fixtures/mock-host.mts");
 const wedgedMockHost = path.join(import.meta.dirname, "fixtures/mock-host-wedged.mts");
+const protocolMismatchMockHost = path.join(
+  import.meta.dirname,
+  "fixtures/mock-host-protocol-mismatch.mts",
+);
+const appErrorMockHost = path.join(import.meta.dirname, "fixtures/mock-host-app-error.mts");
+const unknownMethodMockHost = path.join(
+  import.meta.dirname,
+  "fixtures/mock-host-unknown-method.mts",
+);
 
 describe("HostClient", () => {
   it("spawns the host, calls it, and correlates the response by id", async () => {
-    const notifications: { method: string; params: unknown }[] = [];
+    let ready = false;
     const client = new HostClient({
       hostBin: mockHost,
       bundlePath: "bundle.js",
-      onNotification: (method, params) => notifications.push({ method, params }),
+      onReady: () => {
+        ready = true;
+      },
       onStderr: () => {},
     });
 
@@ -24,7 +35,7 @@ describe("HostClient", () => {
     await expect(client.call("reload")).resolves.toBeNull();
     await client.stop();
 
-    expect(notifications).toEqual([{ method: "ready", params: { protocol: 0 } }]);
+    expect(ready).toBe(true);
   });
 
   it("relays the host's real stderr and a stray stdout line, distinguishably", async () => {
@@ -60,8 +71,68 @@ describe("HostClient", () => {
     const client = new HostClient({ hostBin: wedgedMockHost, bundlePath: "bundle.js" });
     await client.start();
 
-    // A wedged app that ignores `shutdown` would otherwise hang this
-    // `await` forever — resolving at all is the kill fallback working.
+    // A wedged app ignores `shutdown` and never exits on its own —
+    // resolving here is the kill fallback firing.
     await expect(client.stop(50)).resolves.toBeUndefined();
   }, 5000);
+
+  it("forwards appError to its own callback rather than a generic notification handler", async () => {
+    const errors: { message: string; stack: string | null }[] = [];
+    const client = new HostClient({
+      hostBin: appErrorMockHost,
+      bundlePath: "bundle.js",
+      onAppError: (error) => errors.push(error),
+      onStderr: () => {},
+    });
+
+    await client.start();
+    await client.stop();
+
+    expect(errors).toEqual([{ message: "boom", stack: "Error: boom\n    at somewhere" }]);
+  });
+
+  it("routes a method it doesn't handle to the integration registered for it", async () => {
+    const calls: { method: string; params: unknown }[] = [];
+    const client = new HostClient({
+      hostBin: unknownMethodMockHost,
+      bundlePath: "bundle.js",
+      integrations: {
+        someIntegration: (params) => calls.push({ method: "someIntegration", params }),
+      },
+      onStderr: () => {},
+    });
+
+    await client.start();
+    await client.stop();
+
+    expect(calls).toEqual([{ method: "someIntegration", params: { hello: "world" } }]);
+  });
+
+  it("logs an unrecognized method to stderr when no integration claims it", async () => {
+    const lines: string[] = [];
+    const client = new HostClient({
+      hostBin: unknownMethodMockHost,
+      bundlePath: "bundle.js",
+      onStderr: (line) => lines.push(line),
+    });
+
+    await client.start();
+    await client.stop();
+
+    expect(lines.some((line) => line.includes("someIntegration"))).toBe(true);
+  });
+
+  it("stops the host when ready reports a protocol this package wasn't built for, leaving no child behind", async () => {
+    const client = new HostClient({
+      hostBin: protocolMismatchMockHost,
+      bundlePath: "bundle.js",
+      onStderr: () => {},
+    });
+
+    await client.start();
+
+    // The fixture never exits or answers on its own, so a rejected call
+    // here can only mean the mismatch handling killed it.
+    await expect(client.call("reload")).rejects.toThrow(/exited/);
+  });
 });

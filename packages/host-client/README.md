@@ -6,10 +6,14 @@ answers on. `@gpjs-ui/cli` drives this package rather than the host
 directly, so it is the only package that knows the wire format.
 
 `HostClient` correlates each request it sends with the response that
-answers it, relays the host's stderr, and hands every notification it
-receives (`ready`, `appError`, and any a future bundler integration adds) to
-a callback the caller supplies — this package assigns no special meaning to
-any particular method name itself.
+answers it and relays the host's stderr. Two notification methods carry
+meaning of their own: `ready`, whose `params.protocol` it checks against
+the revision it was built for, reporting and terminating the child on any
+mismatch; and `appError`, an app fault the host caught and kept rendering
+past, handed to its own callback rather than a generic one. Any other
+method name is routed, `params` untouched and unparsed, to whichever
+integration the caller registered for it — how a future bundler
+integration (e.g. Vite) rides this channel.
 
 A line the host writes that doesn't parse as a JSON-RPC message is treated
 as stray output from a dependency, not a protocol violation: it's logged

@@ -573,18 +573,21 @@ integration registered against this channel rather than a change here.
       a dependency: log it and keep reading, never fail the stream —
       `HostClient`'s line handler falls back to `onStderr` for anything that
       doesn't parse as `{"jsonrpc":"2.0",...}`
-- [ ] Surface `appError` to the caller rather than dropping it as a method
-      nothing registered for — an app fault the client swallows is the
-      failure that message exists to prevent. Cover it in the mock-host
-      tests
-- [ ] Route a `method` this package doesn't handle to whichever integration
+- [x] Surface `appError` to the caller through its own callback
+      (`onAppError`) rather than the generic notification handler that used
+      to carry it — landed alongside removing that generic handler
+      entirely, replaced by `onReady`/`onAppError`/`integrations`
+- [x] Route a `method` this package doesn't handle to whichever integration
       registered that name, `params` untouched and unparsed — the rule that
-      keeps `vite` out of its manifest
-- [ ] Check `ready`'s `params.protocol` against the revision this package was
-      built for, and on any difference report it, terminate the child and
-      wait for it to exit rather than carry on. Test both the match and the
-      mismatch, and that the mismatch leaves no child behind
-- [ ] Vitest tests against a mock host process
+      keeps `vite` out of its manifest; an unclaimed method name is logged
+      to `onStderr` rather than silently dropped
+- [x] Check `ready`'s `params.protocol` against the revision this package was
+      built for (`HOST_PROTOCOL_VERSION`, mirroring the host's own
+      `PROTOCOL_VERSION`), and on any difference report it through
+      `onStderr` and kill the child, awaiting its exit
+- [x] Vitest tests against a mock host process — one fixture per scenario
+      (`appError`, an unrecognized method, a protocol mismatch), alongside
+      the existing shared `mock-host.mts`/`mock-host-wedged.mts`
 
 ### Unit v — `@gpjs-ui/vite`
 
