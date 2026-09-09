@@ -43,6 +43,7 @@ async function createBuildWatcher({ entry, outDir, mode }: BuildOptions): Promis
     root: path.dirname(entry),
     mode,
     clearScreen: false,
+    logLevel: "silent",
     define: {
       "process.env.NODE_ENV": JSON.stringify(mode),
     },

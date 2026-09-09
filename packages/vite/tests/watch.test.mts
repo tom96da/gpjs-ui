@@ -49,10 +49,12 @@ describe("watch", () => {
         mode: "development",
         onBuild: resolve,
         onError: (error) => reject(new Error(error.message)),
-      }).then((w) => {
-        watcher = w;
-        watchers.push(w);
-      });
+      })
+        .then((w) => {
+          watcher = w;
+          watchers.push(w);
+        })
+        .catch(reject);
     });
 
     expect(watcher.bundlePath).toBe(bundlePath);
@@ -115,7 +117,9 @@ describe("watch", () => {
           mode: "development",
           onBuild: () => reject(new Error("expected a build error, got a successful build")),
           onError: resolve,
-        }).then((watcher) => watchers.push(watcher));
+        })
+          .then((watcher) => watchers.push(watcher))
+          .catch(reject);
       },
     );
 
