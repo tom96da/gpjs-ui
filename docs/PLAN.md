@@ -596,25 +596,32 @@ Phase 3.4's `@gpjs-ui/vite-runtime` is the other side of the same tool,
 running inside QuickJS. A `@gpjs-ui/rspack` would be a sibling of this one,
 not a rewrite.
 
-- [ ] `packages/vite` (npm name `@gpjs-ui/vite`), following
+- [x] `packages/vite` (npm name `@gpjs-ui/vite`), following
       the existing `packages/*` conventions (`vite.config.mts`,
       `unplugin-dts`, `pretest`)
-- [ ] Library/watch build producing one self-contained bundle, compiling
+- [x] Library/watch build producing one self-contained bundle, compiling
       `.vue` via `@vitejs/plugin-vue` instead of the examples' hand-rolled
       `@vue/compiler-sfc` call — it isn't in the lockfile yet, so add it.
-      Keep `define`-ing `process.env.NODE_ENV` (QuickJS has no `process`)
-- [ ] Announce each rebuild and stop there: this package never starts,
+      Keep `define`-ing `process.env.NODE_ENV` (QuickJS has no `process`) —
+      landed as `watch()` in `src/watch.mts`. `@vitejs/plugin-vue` itself
+      imports the `vue` meta-package unconditionally (confirmed by reading
+      its published output), so `vue` is a peer dependency here despite
+      this repo's own apps never depending on it — see the package's
+      README for why that's still true past this one package's own
+      `node_modules`
+- [x] Announce each rebuild and stop there: this package never starts,
       reloads, or talks to the host
-- [ ] Announce a failed build too. A broken edit that never produces a
+- [x] Announce a failed build too. A broken edit that never produces a
       bundle is the most common way a screen stops updating, and nothing
       downstream hears about it otherwise
-- [ ] Build dev with `NODE_ENV=development`, so `@vue/runtime-core`'s own
+- [x] Build dev with `NODE_ENV=development`, so `@vue/runtime-core`'s own
       warnings survive — they are compiled out at production, and the host
       now has a `console` for them to reach
-- [ ] No first-party dependency at all — the output path and, in Phase 3.4,
+- [x] No first-party dependency at all — the output path and, in Phase 3.4,
       the channel to answer `fetchModule` over, arrive as arguments. That is
       what makes it swappable, and it is checkable in its manifest
-- [ ] Vitest tests
+- [x] Vitest tests — compiling a `.vue` file, rebuilding on change, and
+      reporting a syntax error without throwing
 
 ### Unit vi — `@gpjs-ui/cli`
 
