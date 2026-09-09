@@ -12,8 +12,9 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "lint": "oxlint",
-    "format": "oxfmt --check ."
+    "lint": "oxlint --type-aware",
+    "format": "oxfmt --check .",
+    "typecheck": "oxlint -A all --type-aware --type-check"
   },
   "dependencies": {
     "@gpjs-ui/vue": "workspace:*",

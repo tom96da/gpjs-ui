@@ -42,7 +42,7 @@
   "scripts": {
     "build": "vite build",
     "test": "vitest run",
-    "lint": "oxlint",
+    "lint": "oxlint --type-aware",
     "format": "oxfmt --check .",
     "typecheck": "oxlint -A all --type-aware --type-check"
   },
