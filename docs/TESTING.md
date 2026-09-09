@@ -80,62 +80,48 @@ full gpui build under its own `Swatinem/rust-cache` key.
 Mirrors the Rust split above, using Vitest:
 
 - **Unit tests**: `*.test.mts` co-located next to the module it tests
-  (e.g. `packages/gpjs-ui/src/tree.test.mts` next to `src/tree.mts`).
-  These mock `globalThis.__gpjsui_native__`/`__gpjsui_callbacks__` rather
-  than driving a real QuickJS engine — see `tree.test.mts` for the
-  pattern (install a mock native object, assert the wrapper forwards to
-  it correctly). A barrel (`src/index.mts`) re-exports only; its modules
-  carry the tests.
+  (e.g. `packages/gpjs-ui/src/tree.test.mts` next to `src/tree.mts`),
+  mocking `globalThis.__gpjsui_native__`/`__gpjsui_callbacks__` rather
+  than driving a real QuickJS engine. A barrel (`src/index.mts`)
+  re-exports only; its modules carry the tests.
 - **Integration tests**: a `tests/` directory at the package root, for
-  tests that exercise real cross-module wiring against a real (unmocked)
-  `packages/gpjs-ui` instead of a mock — e.g.
-  `packages/vue/tests/renderer.test.mts`, which drives `createGpjsuiApp`
-  end-to-end against a small in-memory fake standing in for
-  `globalThis.__gpjsui_native__`, asserting on that fake's resulting tree
-  state rather than on individual host-node-lifecycle calls the way the
-  co-located unit tests do.
+  whatever a package's own unit tests can't reach mocked — e.g.
+  `packages/vue/tests/renderer.test.mts`, driving `createGpjsuiApp`
+  end-to-end against a real (unmocked) `packages/gpjs-ui`.
 
 ### Required checks
 
-Every package under `packages/*` defines the same four scripts, all of
-which must pass:
+**A change isn't done until root `pnpm test` passes with no warnings.**
 
-- `lint` — `oxlint`
+Every package under `packages/*` defines the same four scripts, each
+individually useful for checking just one thing directly:
+
+- `lint` — `oxlint --type-aware`
 - `format` — `oxfmt --check .`
 - `typecheck` — `oxlint -A all --type-aware --type-check`
 - `test` — `vitest run`
 
-The repo root defines a `pretest`
-(`oxlint --type-aware --type-check && oxfmt --check .`) that pnpm runs
-automatically as its own separate step before the root's `test` — not
-chained into `test` itself. So `pnpm test` from the root already covers
-lint, type-check, and format; the standalone scripts exist for running
-just one check directly. `pnpm -r test` does not fire it — `-r` skips the
-root project — which is what lets CI run those checks as their own steps.
+CI runs `lint`, `format`, and `typecheck` as their own separate steps,
+not merely as a side effect of `test`.
 
-#### Agent-friendly lint/format output
+#### Agent-friendly lint output
 
-When running these tools directly (not through `pnpm test`), pass
-`oxlint`'s `-f`/`--format=agent` (e.g. `oxlint --format=agent`,
-`oxlint -A all --type-aware --type-check --format=agent`) for output
-meant to be parsed rather than read in a terminal — plain lines, no
-decoration. `oxfmt` has no equivalent flag (`--check`'s own output is
-already a few plain text lines); its `--write`/`--check`/`--list-different`
-modes are the only output-shaping options it has.
+`oxlint` takes `-f`/`--format=agent` (e.g. `oxlint --type-aware
+--format=agent`) for plain, undecorated lines meant to be parsed rather
+than read in a terminal.
 
-### Build-tooling gotchas this split runs into
+### Build-tooling gotchas
+
+Watch for these when scaffolding a new package too:
 
 - Each package's `vite.config.mts` must exclude test files from
-  `unplugin-dts`'s declaration scan:
-  `dts({ include: ["src"], exclude: ["src/**/*.test.mts"] })`.
-  `include` controls what the plugin emits declarations _for_, separate
-  from the build's `lib.entry` — without the `exclude`, a co-located test
-  file leaks a stray `dist/*.test.d.mts` into the published package.
-  Apply the same pattern to any new package's `vite.config.mts`.
+  `unplugin-dts`'s declaration scan
+  (`dts({ include: ["src"], exclude: ["src/**/*.test.mts"] })`) —
+  otherwise a co-located test file gets published too, as a stray
+  `dist/*.test.d.mts`.
 - `vitest.config`'s `test.passWithNoTests: true` treats a package with
-  zero tests as passing rather than failing `pnpm -r test`. Add it when
-  scaffolding a new package's `vite.config.mts`, and drop it again once
-  real tests land — none of the current packages carry it.
+  zero tests as passing rather than failing `pnpm -r test` — drop it
+  again once real tests land (none of the current packages carry it).
 - Each package's `exports` carries a `"source"` condition pointing at
   `src/index.mts`, and `tsconfig.base.json` sets
   `customConditions: ["source"]`, so type-checking resolves workspace
@@ -143,32 +129,26 @@ modes are the only output-shaping options it has.
   `customConditions`, so a package testing against another workspace
   package needs the same condition set explicitly, on both
   `resolve.conditions` and `ssr.resolve.conditions` (vitest resolves
-  through Vite's SSR path) — see `packages/vue/vitest.config.mts`, which
-  merges these onto `vite.config.mts` via `mergeConfig` so the real build
-  still resolves `gpjs-ui` through `import` and bundles it.
-  `publishConfig.exports` drops the `source` condition again when
-  packing, since `files: ["dist"]` doesn't ship `src/`.
+  through Vite's SSR path) — see `packages/vue/vitest.config.mts`.
 - A package's `tsconfig.json` `include` has to list every directory whose
-  files are checked, `tests/` included. A file outside it still gets
-  linted, but under default compiler options rather than
-  `tsconfig.base.json`'s — so `strict` and `customConditions` silently
-  don't apply to it.
-- A co-located `*.test.mts` importing its sibling module needs the
-  literal `.mts` extension (`from "./index.mts"`, not extensionless or
-  `.js`/`.mjs`) — see `docs/PLAN.md`'s Phase 2 Unit i/ii notes for why
-  `module: "preserve"`'s implied `moduleResolution: "bundler"` requires
-  this, and why `tsconfig.base.json` sets
-  `allowImportingTsExtensions: true` to allow it.
+  files are checked, plus a `*.mts` glob for its own root-level config
+  files — a file outside `include` still gets linted, but under default
+  compiler options rather than `tsconfig.base.json`'s, so `strict` and
+  `customConditions` silently don't apply to it.
 - Vitest replaces rather than merges an array option (`exclude`, etc.) with
   its default, so extending one means spreading `configDefaults` from
   `vitest/config` instead of retyping it — see the root `vitest.config.ts`.
+- A test fixture spawned directly as a process (`packages/host-client`'s
+  `tests/fixtures/*.mts`) needs its executable bit set. One added without
+  it fails the test with `EACCES`, not a parse or module-resolution error.
 
 ## Running tests
 
-- Single package: `pnpm --filter <pkg> test` / `typecheck` / `build`
-- Whole workspace: `pnpm test` (all packages in one process, via
-  `vitest.config.ts`'s `projects`) / `pnpm typecheck` (root-level; covers
-  `examples/*` too) / `pnpm -r build` — from the repo root
+- Whole workspace, from the repo root: `pnpm test` (all packages in one
+  process, via `vitest.config.ts`'s `projects`) / `pnpm typecheck` (covers
+  `examples/*` too) / `pnpm -r build`
+- Single package, for iterating on one — may be incomplete on its own:
+  `pnpm --filter <pkg> test` / `typecheck` / `build`
 - Coverage: `pnpm test:coverage`, same run with `--coverage` added
 - Rust: `cargo test -p gpjs-ui` (see [AGENTS.md](../AGENTS.md#status)) —
   plus `cargo clippy`/`cargo fmt --check` from the Required checks list
