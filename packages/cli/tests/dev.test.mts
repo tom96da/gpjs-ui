@@ -1,0 +1,210 @@
+// Copyright (c) 2026 tom96da
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
+import path from "node:path";
+import { Writable } from "node:stream";
+
+import { describe, expect, it, vi } from "vitest";
+
+import { dev } from "../src/dev.mts";
+
+import type { Bundler, BundlerOptions, Watcher } from "../src/bundler.mts";
+
+const mockHost = path.join(import.meta.dirname, "fixtures/mock-host.mts");
+const reloadFailsMockHost = path.join(import.meta.dirname, "fixtures/mock-host-reload-fails.mts");
+const appErrorMockHost = path.join(import.meta.dirname, "fixtures/mock-host-app-error.mts");
+
+interface FakeBundler extends Bundler {
+  /** Simulates a successful (re)build. */
+  build(bundlePath: string): void;
+  /** Simulates a build failure. */
+  fail(error: { message: string; stack: string | null }): void;
+  closed: boolean;
+}
+
+function makeFakeBundler(): FakeBundler {
+  let handlers: Pick<BundlerOptions, "onBuild" | "onError"> | undefined;
+
+  const fake: FakeBundler = {
+    closed: false,
+    watch(options): Promise<Watcher> {
+      handlers = options;
+      return Promise.resolve({
+        bundlePath: "unused",
+        close: () => {
+          fake.closed = true;
+          return Promise.resolve();
+        },
+      });
+    },
+    build(bundlePath) {
+      handlers?.onBuild(bundlePath);
+    },
+    fail(error) {
+      handlers?.onError(error);
+    },
+  };
+  return fake;
+}
+
+function makeSink(): { stream: NodeJS.WritableStream; text: () => string } {
+  let data = "";
+  const stream = new Writable({
+    write(chunk: Buffer, _encoding, callback) {
+      data += chunk.toString();
+      callback();
+    },
+  });
+  return { stream, text: () => data };
+}
+
+describe("dev", () => {
+  it("starts the host and prints ready once the first build lands", async () => {
+    const bundler = makeFakeBundler();
+    const stdout = makeSink();
+    const controller = new AbortController();
+
+    const running = dev({
+      entry: "unused",
+      bundler,
+      hostBin: mockHost,
+      stdout: stdout.stream,
+      stderr: makeSink().stream,
+      signal: controller.signal,
+    });
+
+    bundler.build("bundle.js");
+    await vi.waitFor(() => expect(stdout.text()).toContain("[gpjsui] ready"));
+
+    controller.abort();
+    await running;
+
+    expect(stdout.text()).toContain("[gpjsui] ready");
+  });
+
+  it("reloads the host on a later build without restarting it", async () => {
+    const bundler = makeFakeBundler();
+    const stdout = makeSink();
+    const stderr = makeSink();
+    const controller = new AbortController();
+
+    const running = dev({
+      entry: "unused",
+      bundler,
+      hostBin: mockHost,
+      stdout: stdout.stream,
+      stderr: stderr.stream,
+      signal: controller.signal,
+    });
+
+    bundler.build("bundle.js");
+    await vi.waitFor(() => expect(stdout.text()).toContain("[gpjsui] ready"));
+    bundler.build("bundle.js");
+
+    controller.abort();
+    await running;
+
+    expect(stderr.text()).not.toContain("[gpjsui]");
+  });
+
+  it("prints a build failure without ever starting the host", async () => {
+    const bundler = makeFakeBundler();
+    const stderr = makeSink();
+    const controller = new AbortController();
+
+    const running = dev({
+      entry: "unused",
+      bundler,
+      // Deliberately unspawnable: a build failure must never reach the
+      // point of starting a host at all.
+      hostBin: "/nonexistent/gpjs-ui-host",
+      stdout: makeSink().stream,
+      stderr: stderr.stream,
+      signal: controller.signal,
+    });
+
+    bundler.fail({ message: "syntax error", stack: "at somewhere" });
+    await vi.waitFor(() => expect(stderr.text()).toContain("[gpjsui] build failed"));
+
+    controller.abort();
+    await running;
+
+    expect(stderr.text()).toContain("[gpjsui] build failed: syntax error");
+    expect(stderr.text()).toContain("at somewhere");
+  });
+
+  it("prints a failed reload (-32000) without throwing", async () => {
+    const bundler = makeFakeBundler();
+    const stdout = makeSink();
+    const stderr = makeSink();
+    const controller = new AbortController();
+
+    const running = dev({
+      entry: "unused",
+      bundler,
+      hostBin: reloadFailsMockHost,
+      stdout: stdout.stream,
+      stderr: stderr.stream,
+      signal: controller.signal,
+    });
+
+    bundler.build("bundle.js");
+    await vi.waitFor(() => expect(stdout.text()).toContain("[gpjsui] ready"));
+    bundler.build("bundle.js");
+    await vi.waitFor(() => expect(stderr.text()).toContain("[gpjsui] reload failed"));
+
+    controller.abort();
+    await running;
+
+    expect(stderr.text()).toContain("[gpjsui] reload failed: boom");
+    expect(stderr.text()).toContain("Error: boom");
+  });
+
+  it("prints an appError distinctly from the host's ready notification", async () => {
+    const bundler = makeFakeBundler();
+    const stdout = makeSink();
+    const stderr = makeSink();
+    const controller = new AbortController();
+
+    const running = dev({
+      entry: "unused",
+      bundler,
+      hostBin: appErrorMockHost,
+      stdout: stdout.stream,
+      stderr: stderr.stream,
+      signal: controller.signal,
+    });
+
+    bundler.build("bundle.js");
+    await vi.waitFor(() => expect(stderr.text()).toContain("[gpjsui] app error"));
+
+    controller.abort();
+    await running;
+
+    expect(stderr.text()).toContain("[gpjsui] app error: boom");
+    expect(stderr.text()).toContain("Error: boom");
+  });
+
+  it("tears down both the host and the bundler watcher on abort", async () => {
+    const bundler = makeFakeBundler();
+    const stdout = makeSink();
+    const controller = new AbortController();
+
+    const running = dev({
+      entry: "unused",
+      bundler,
+      hostBin: mockHost,
+      stdout: stdout.stream,
+      stderr: makeSink().stream,
+      signal: controller.signal,
+    });
+
+    bundler.build("bundle.js");
+    await vi.waitFor(() => expect(stdout.text()).toContain("[gpjsui] ready"));
+
+    controller.abort();
+    await running;
+
+    expect(bundler.closed).toBe(true);
+  });
+});

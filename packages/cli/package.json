@@ -1,0 +1,63 @@
+{
+  "name": "@gpjs-ui/cli",
+  "version": "0.0.0-0",
+  "private": true,
+  "description": "The gpjsui CLI: watches an app's entry point through a Bundler adapter, starts gpjs-ui-host once the first bundle lands, and reloads it on every rebuild.",
+  "keywords": [
+    "cli",
+    "desktop-app",
+    "dev-server",
+    "gpjs-ui",
+    "gpui",
+    "gui",
+    "quickjs"
+  ],
+  "license": "(MIT OR Apache-2.0)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tom96da/gpjs-ui.git",
+    "directory": "packages/cli"
+  },
+  "bin": {
+    "gpjsui": "./bin/gpjsui.mjs"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "source": "./src/index.mts",
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "lint": "oxlint --type-aware",
+    "format": "oxfmt --check .",
+    "typecheck": "oxlint -A all --type-aware --type-check"
+  },
+  "dependencies": {
+    "@gpjs-ui/host-client": "workspace:*",
+    "@gpjs-ui/vite": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "oxfmt": "^0.66.0",
+    "oxlint": "^1.81.0"
+  }
+}
