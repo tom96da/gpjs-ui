@@ -143,3 +143,32 @@ down neither the host nor its siblings.
 That is why `removeEventListener` and `destroyNode` report the ids they
 dropped: each side holds half of a registration, and only the caller can free
 the JS half.
+
+### App lifecycle surface (decided, not yet dispatched)
+
+Settled ahead of `@gpjs-ui/cli`'s `gpjsui dev` needing it, per
+`docs/PROTOCOL.md`'s own note that an app lifecycle hook is "a name the
+host agrees to dispatch, not a new binding." Recorded here so a future
+unit implements this rather than deciding it again:
+
+- **Moments**: exactly the two the dev protocol itself creates — a reload
+  about to discard the current session, and process exit (`shutdown`).
+  Nothing else; window close/focus/a platform quit request is Phase 9.
+- **Mechanism**: no new binding. A named event (e.g. `"beforeReload"`,
+  `"beforeUnmount"`) dispatched on `rootNodeId()` through the existing
+  `addEventListener`/`EventDispatcher` path above.
+- **Cancellation**: observe-only. By the time a reload's hook would fire,
+  the new bundle has already loaded successfully — `gpjs-ui-host`'s
+  `reload()` only swaps sessions after that succeeds — so there is
+  nothing left to veto. Shutdown can't be blocked indefinitely either.
+- **What a handler may await**: only already-settled microtasks. The job
+  queue drains once right after the hook fires, the same as every
+  existing `drain_jobs_and_refresh` call site, and nothing pumps it again
+  afterward — QuickJS has no timers or I/O to resume it, so awaiting a
+  timer or `fetch` would hang forever, not fail loudly.
+- **Wrapping**: `packages/gpjs-ui` should expose named helpers (e.g.
+  `onBeforeReload`/`onBeforeUnmount`) over the raw `addEventListener`
+  call, so the event-name strings never become app-facing API.
+
+Nothing dispatches either event yet — wiring `crates/gpjs-ui-host` to
+actually fire them is separate, future work.

@@ -629,32 +629,40 @@ The only package that knows the other two exist. It owns the `Bundler`
 contract the adapters satisfy and injects one, so swapping bundlers is a
 dependency change here rather than an edit anywhere else.
 
-- [ ] `packages/cli` (npm name `@gpjs-ui/cli`, `bin: { gpjsui }`), following
+- [x] `packages/cli` (npm name `@gpjs-ui/cli`, `bin: { gpjsui }`), following
       the existing `packages/*` conventions (`vite.config.mts`,
-      `unplugin-dts`, `pretest`)
-- [ ] Export the `Bundler` contract as a type, so a third-party adapter can
-      target it. Extract it into a types-only package instead if adapters
-      turn out to need a compile-time link back
-- [ ] `gpjsui dev`: bundler watch → start the host through
+      `unplugin-dts`). `pretest` turned out to be a root-only script, not a
+      per-package one — no sibling package has its own, so this one doesn't
+      either
+- [x] Export the `Bundler` contract as a type (`src/bundler.mts`), kept
+      independent of `@gpjs-ui/vite`'s own `WatchOptions`/`Watcher` rather
+      than imported from there, even though a single adapter exists today
+      — extracting a types-only package is still the move if that changes
+- [x] `gpjsui dev`: bundler watch → start the host through
       `@gpjs-ui/host-client` once the first bundle lands → reload on each
-      rebuild
-- [ ] App entry resolution: decide and document how the CLI finds an app's
-      entry point and bundler config (a convention over an explicit flag,
-      since `examples/*` and any real app should both work unconfigured)
-- [ ] Name `@gpjs-ui/vite` as the default in exactly one place
-- [ ] Terminal behaviour: print what the client relays, and turn Ctrl-C into
-      a graceful teardown
-- [ ] Print an `appError` where a developer will see it, stack included and
-      told apart from the app's own `console` output
-- [ ] Show a failed reload as well: the `-32000` answering the `reload` the
+      rebuild — `src/dev.mts`
+- [x] App entry resolution: no entry point required. `src/App.vue` alone is
+      wrapped in a synthesized `createGpjsuiApp(App).mount()`; a committed
+      `src/main.mts` overrides that outright — `src/entry.mts`
+- [x] Name `@gpjs-ui/vite` as the default in exactly one place — `src/dev.mts`'s
+      `bundler ?? { watch }`
+- [x] Terminal behaviour: print what the client relays, and turn Ctrl-C into
+      a graceful teardown — `src/cli.mts`'s `SIGINT` → `AbortController`
+- [x] Print an `appError` where a developer will see it, stack included and
+      told apart from the app's own `console` output — the two already ride
+      distinct `HostClientOptions` callbacks, so no extra bookkeeping was
+      needed to tell them apart
+- [x] Show a failed reload as well: the `-32000` answering the `reload` the
       CLI itself sent is what says why the screen did not change
-- [ ] Settle the app lifecycle surface before anything dispatches one:
+- [x] Settle the app lifecycle surface before anything dispatches one:
       which moments an app can hook (process exit, and a reload discarding
       the session), whether a handler cancels or only observes, what it may
       await given QuickJS drains microtasks but has no timers or I/O, and
       whether `packages/gpjs-ui` wraps the root-node listener in a named
-      function. `docs/FFI.md` records the result
-- [ ] Vitest tests
+      function. Recorded in `docs/FFI.md`'s "App lifecycle surface" section
+      — design only, nothing dispatches either event yet
+- [x] Vitest tests — `src/entry.test.mts`, `tests/dev.test.mts`, mock host
+      fixtures under `tests/fixtures/`
 
 ### Unit vii — examples migration
 
