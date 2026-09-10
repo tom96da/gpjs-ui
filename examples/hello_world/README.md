@@ -2,16 +2,15 @@
 
 A Vue port of [`crates/gpjs-ui/examples/hello_world.rs`](../../crates/gpjs-ui/examples/hello_world.rs):
 a static tree — a bordered box, a text label, and a row of six colored
-squares — built as a real `.vue` SFC (`src/hello_world.vue`) instead of
-Rust `VirtualTree` calls.
+squares — built as a real `.vue` SFC (`src/App.vue`) instead of Rust
+`VirtualTree` calls.
 
 ```sh
-pnpm --filter hello_world build
-cargo run -p gpjs-ui-host -- examples/hello_world/dist/bundle.js
+cargo build -p gpjs-ui-host
+pnpm --filter hello_world dev
 ```
 
-`scripts/build.mjs` is a one-shot, ahead-of-time build (no Vite dev server):
-it compiles the SFC via `@vue/compiler-sfc` directly, then bundles the result
-together with `@gpjs-ui/vue` and `@vue/runtime-core` into one self-contained
-`dist/bundle.js`, consumable by
-[`gpjs-ui-host`](../../crates/gpjs-ui-host/README.md).
+`gpjsui dev` (from [`@gpjs-ui/cli`](../../packages/cli/README.md)) builds
+`src/App.vue` and every rebuild after, starts
+[`gpjs-ui-host`](../../crates/gpjs-ui-host/README.md) once the first build
+lands, and reloads it on every following one.
