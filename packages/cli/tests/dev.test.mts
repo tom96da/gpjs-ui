@@ -13,6 +13,7 @@ import type { Bundler, BundlerOptions, Watcher } from "../src/bundler.mts";
 const mockHost = path.join(import.meta.dirname, "fixtures/mock-host.mts");
 const reloadFailsMockHost = path.join(import.meta.dirname, "fixtures/mock-host-reload-fails.mts");
 const appErrorMockHost = path.join(import.meta.dirname, "fixtures/mock-host-app-error.mts");
+const slowReadyMockHost = path.join(import.meta.dirname, "fixtures/mock-host-slow-ready.mts");
 
 interface FakeBundler extends Bundler {
   /** Simulates a successful (re)build. */
@@ -104,7 +105,7 @@ describe("dev", () => {
     controller.abort();
     await running;
 
-    expect(stderr.text()).not.toContain("[gpjsui]");
+    expect(stderr.text()).not.toContain("reload failed");
   });
 
   it("prints a build failure without ever starting the host", async () => {
@@ -206,5 +207,33 @@ describe("dev", () => {
     await running;
 
     expect(bundler.closed).toBe(true);
+  });
+
+  it("defers a build that lands before ready, then reloads once instead of racing it", async () => {
+    const bundler = makeFakeBundler();
+    const stdout = makeSink();
+    const stderr = makeSink();
+    const controller = new AbortController();
+
+    const running = dev({
+      entry: "unused",
+      bundler,
+      hostBin: slowReadyMockHost,
+      stdout: stdout.stream,
+      stderr: stderr.stream,
+      signal: controller.signal,
+    });
+
+    bundler.build("bundle.js");
+    bundler.build("bundle.js");
+
+    await vi.waitFor(() => expect(stdout.text()).toContain("[gpjsui] ready"));
+    await vi.waitFor(() => expect(stderr.text()).toContain("reload #1"));
+
+    controller.abort();
+    await running;
+
+    expect(stderr.text()).not.toContain("reload failed");
+    expect(stderr.text()).not.toContain("reload #2");
   });
 });

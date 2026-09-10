@@ -46,7 +46,17 @@ export async function dev(options: DevOptions): Promise<void> {
   const entry = options.entry ?? (await resolveEntry(cwd));
 
   let client: HostClient | undefined;
+  let ready = false;
+  let pendingReload = false;
   let queue = Promise.resolve();
+
+  async function reloadHost(): Promise<void> {
+    try {
+      await client?.call("reload");
+    } catch (error) {
+      printFault(stderr, "reload failed", toFault(error));
+    }
+  }
 
   async function onBuild(bundlePath: string): Promise<void> {
     if (!client) {
@@ -54,7 +64,14 @@ export async function dev(options: DevOptions): Promise<void> {
         bundlePath,
         hostBin: options.hostBin,
         onStderr: (line) => stderr.write(line),
-        onReady: () => stdout.write("[gpjsui] ready\n"),
+        onReady: () => {
+          ready = true;
+          stdout.write("[gpjsui] ready\n");
+          if (pendingReload) {
+            pendingReload = false;
+            void reloadHost();
+          }
+        },
         onAppError: (error) => printFault(stderr, "app error", error),
       });
       try {
@@ -67,11 +84,15 @@ export async function dev(options: DevOptions): Promise<void> {
       return;
     }
 
-    try {
-      await client.call("reload");
-    } catch (error) {
-      printFault(stderr, "reload failed", toFault(error));
+    if (!ready) {
+      // The host hasn't finished its first load yet — bundlePath is
+      // always the same file, so it picks up this build's content on its
+      // own once it gets there; a reload now would only race it.
+      pendingReload = true;
+      return;
     }
+
+    await reloadHost();
   }
 
   const watcher = await bundler.watch({
