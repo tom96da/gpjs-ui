@@ -14,9 +14,15 @@ export async function run(argv: readonly string[] = process.argv): Promise<void>
   }
 
   const controller = new AbortController();
-  process.on("SIGINT", () => {
+  const onSignal = (): void => {
+    process.stderr.write("[gpjsui] shutting down\n");
     controller.abort();
-  });
+  };
+  // A wrapper script runner (e.g. `pnpm run`) commonly delivers SIGTERM to
+  // its child directly on Ctrl-C, rather than relying on the terminal to
+  // signal the whole process group — SIGINT alone left the host orphaned.
+  process.on("SIGINT", onSignal);
+  process.on("SIGTERM", onSignal);
 
   await dev({ signal: controller.signal });
 }
