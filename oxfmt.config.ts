@@ -33,19 +33,26 @@ export default defineConfig({
     ],
     groups: [
       "builtin",
+      { newlinesBetween: false },
+      "type-builtin",
+
       "external",
+      { newlinesBetween: false },
+      "type-external",
+
       "first-party",
       { newlinesBetween: false },
-      "scoped-first-party",
-      ["internal", "subpath"],
-      ["parent", "sibling", "index"],
-
-      "type-builtin",
-      "type-external",
       "type-first-party",
+
+      "scoped-first-party",
       { newlinesBetween: false },
       "type-scoped-first-party",
+
+      ["internal", "subpath"],
+      { newlinesBetween: false },
       ["type-internal", "type-subpath"],
+
+      ["parent", "sibling", "index"],
       { newlinesBetween: false },
       ["type-parent", "type-sibling", "type-index"],
 
