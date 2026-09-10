@@ -666,12 +666,19 @@ dependency change here rather than an edit anywhere else.
 
 ### Unit vii — examples migration
 
-- [ ] Drop `examples/*/scripts/build.mjs` in favour of the CLI, and remove
-      `__GPJSUI_ROOT_ID__` from their entry points
-- [ ] Update `docs/MANUAL_GUI_CHECK.md` and `docs/TESTING.md` for the new
-      crate/package names and commands
+- [x] Drop `examples/*/scripts/build.mjs` in favour of the CLI, and remove
+      `__GPJSUI_ROOT_ID__` from their entry points. Each example's SFC is
+      now `src/App.vue`, so `gpjsui dev` builds and starts it with no
+      config; `__GPJSUI_ROOT_ID__` was already gone (Unit i's native root
+      handle superseded it before this unit started)
+- [x] Update `docs/MANUAL_GUI_CHECK.md` for the new command
+      (`cargo build -p gpjs-ui-host` + `pnpm --filter <name> dev` replaces
+      the old build-then-`cargo run` two-liner). `docs/TESTING.md` needed
+      no change — its `examples/` mentions are all about the Cargo
+      examples, unrelated to these Vue ports
 - [ ] Manual: edit a `.vue` file and confirm the window remounts (state loss
-      is expected here — that's what Phase 3.4 fixes)
+      is expected here — that's what Phase 3.4 fixes) — needs a human, see
+      `docs/MANUAL_GUI_CHECK.md`
 
 ### Docs
 

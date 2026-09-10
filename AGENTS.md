@@ -31,13 +31,16 @@ Phase 3's design is settled ([docs/ROADMAP.md](./docs/ROADMAP.md)): the
 3.1 (`gpjsui dev`, full reload) through 3.4 (HMR), with a `v0.0.1` release
 after 3.3.
 
-Phase 3.1 is underway: the CI workflow, native root handle (Unit i), and
-most of the host's dev protocol/reload/error-reporting and the core's
-tree/listener/console fixes (Units ii–iii) are implemented and tested.
-Still open: an injected protocol writer and dev-only error panel (Unit
-ii), and `@gpjs-ui/host-client`, `@gpjs-ui/vite`, `@gpjs-ui/cli`, and the
-examples migration (Units iv–vii) — see [docs/PLAN.md](./docs/PLAN.md) for
-the exact checklist.
+Phase 3.1 (`gpjsui dev`, full reload) works end-to-end: the native root
+handle, the host's dev protocol/reload/error-reporting and `console`,
+`@gpjs-ui/host-client`, `@gpjs-ui/vite`, `@gpjs-ui/cli`, and both
+`examples/*` apps running through `gpjsui dev` with no build script of
+their own. Two things remain, neither blocking Phase 3.2: a dev-only
+error panel drawn in the window, deliberately deferred — it needs
+`position`/`z_index`/`overflow`, which don't exist before Phase 4 — and
+the manual confirmation that a `.vue` edit remounts the window, see
+[docs/MANUAL_GUI_CHECK.md](./docs/MANUAL_GUI_CHECK.md). See
+[docs/PLAN.md](./docs/PLAN.md) for the unit-by-unit detail.
 
 Keep this section's status prose accurate as real logic lands — don't let it go stale.
 

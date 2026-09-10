@@ -40,12 +40,12 @@ colored boxes should appear.
 
 ### The Vue ports (`examples/hello_world`, `examples/click_counter`)
 
-These aren't Cargo examples — build the `.vue` app first, then run it
-through `gpjs-ui-host`:
+These aren't Cargo examples — build `gpjs-ui-host` once, then let `gpjsui
+dev` build the `.vue` app and start it:
 
 ```sh
-pnpm --filter hello_world build
-cargo run -p gpjs-ui-host -- examples/hello_world/dist/bundle.js
+cargo build -p gpjs-ui-host
+pnpm --filter hello_world dev
 ```
 
 Same look as `hello_world`/`gpui_hello_world` above. Swap in
@@ -154,9 +154,10 @@ background — for a reason not yet found.
    ```sh
    DISPLAY=host.docker.internal:0 cargo run -p gpjs-ui --example hello_world
    ```
-   or, for one of the Vue ports (build it first, same as Option A):
+   or, for one of the Vue ports (build `gpjs-ui-host` first, same as
+   Option A):
    ```sh
-   DISPLAY=host.docker.internal:0 cargo run -p gpjs-ui-host -- examples/hello_world/dist/bundle.js
+   DISPLAY=host.docker.internal:0 pnpm --filter hello_world dev
    ```
 
 The same window appears on the Mac desktop, rendered by XQuartz.
