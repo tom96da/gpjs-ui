@@ -7,7 +7,6 @@ import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { watch } from "../src/index.mts";
-
 import type { Watcher } from "../src/index.mts";
 
 // Scratch apps live under tests/tmp/ (gitignored) rather than a real OS

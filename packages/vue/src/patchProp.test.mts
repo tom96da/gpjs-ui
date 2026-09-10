@@ -14,7 +14,6 @@ vi.mock("gpjs-ui", () => ({
 import * as gpjsUi from "gpjs-ui";
 
 import { patchProp } from "./patchProp.mts";
-
 import type { GpjsuiElement } from "./nodeOps.mts";
 
 const el: GpjsuiElement = { id: 1, kind: "element", parent: null, children: [] };

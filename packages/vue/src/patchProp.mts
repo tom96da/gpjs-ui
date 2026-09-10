@@ -1,10 +1,9 @@
 // Copyright (c) 2026 tom96da
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-import { removeEventListener, setAttribute, setEventListener, setStyle } from "gpjs-ui";
-
 import type { RendererOptions } from "@vue/runtime-core";
 
+import { removeEventListener, setAttribute, setEventListener, setStyle } from "gpjs-ui";
 import type { EventListener } from "gpjs-ui";
 
 import type { GpjsuiElement } from "./nodeOps.mts";

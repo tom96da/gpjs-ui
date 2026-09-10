@@ -1,6 +1,8 @@
 // Copyright (c) 2026 tom96da
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+import type { RendererOptions } from "@vue/runtime-core";
+
 import {
   appendChild,
   createNode,
@@ -10,9 +12,6 @@ import {
   setAttribute,
   setStyle,
 } from "gpjs-ui";
-
-import type { RendererOptions } from "@vue/runtime-core";
-
 import type { NodeId, TagName } from "gpjs-ui";
 
 /**

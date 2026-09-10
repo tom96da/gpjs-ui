@@ -5,7 +5,6 @@ import path from "node:path";
 
 import vue from "@vitejs/plugin-vue";
 import { build } from "vite";
-
 import type { RolldownWatcher } from "rolldown";
 
 const BUNDLE_FILE_NAME = "bundle.js";

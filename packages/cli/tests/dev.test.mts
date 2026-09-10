@@ -7,7 +7,6 @@ import { Writable } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
 
 import { dev } from "../src/dev.mts";
-
 import type { Bundler, BundlerOptions, Watcher } from "../src/bundler.mts";
 
 const mockHost = path.join(import.meta.dirname, "fixtures/mock-host.mts");

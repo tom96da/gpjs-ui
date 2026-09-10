@@ -5,11 +5,9 @@ import { h, nextTick, reactive } from "@vue/runtime-core";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { createNode, rootNodeId } from "gpjs-ui";
-
-import { createGpjsuiApp } from "../src/index.mts";
-
 import type { NodeId } from "gpjs-ui";
 
+import { createGpjsuiApp } from "../src/index.mts";
 import type { GpjsuiElement } from "../src/index.mts";
 
 interface FakeNode {

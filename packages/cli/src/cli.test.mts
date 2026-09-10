@@ -9,7 +9,6 @@ vi.mock("./dev.mts", () => ({
 
 import { run } from "./cli.mts";
 import { dev } from "./dev.mts";
-
 import type { DevOptions } from "./dev.mts";
 
 const mockedDev = vi.mocked(dev);

@@ -2,14 +2,12 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 import { createRenderer } from "@vue/runtime-core";
+import type { App, Component, ComponentPublicInstance } from "@vue/runtime-core";
 
 import { rootNodeId } from "gpjs-ui";
 
 import { nodeOps } from "./nodeOps.mts";
 import { patchProp } from "./patchProp.mts";
-
-import type { App, Component, ComponentPublicInstance } from "@vue/runtime-core";
-
 import type { GpjsuiElement, GpjsuiNode } from "./nodeOps.mts";
 
 const renderer = createRenderer<GpjsuiNode, GpjsuiElement>({ ...nodeOps, patchProp });

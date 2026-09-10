@@ -3,7 +3,6 @@
 
 import { releaseCallbacks } from "./events.mts";
 import { native } from "./native.mts";
-
 import type { AttributeValue, NodeId, StyleProps, TagName } from "./types.mts";
 
 /**

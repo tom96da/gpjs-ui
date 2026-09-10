@@ -16,7 +16,6 @@ vi.mock("gpjs-ui", () => ({
 import * as gpjsUi from "gpjs-ui";
 
 import { nodeOps } from "./nodeOps.mts";
-
 import type { GpjsuiElement, GpjsuiText } from "./nodeOps.mts";
 
 let nextId = 1;

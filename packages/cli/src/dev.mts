@@ -7,7 +7,6 @@ import { HostClient, HostError } from "@gpjs-ui/host-client";
 import { watch } from "@gpjs-ui/vite";
 
 import { resolveEntry } from "./entry.mts";
-
 import type { Bundler } from "./bundler.mts";
 
 export interface DevOptions {

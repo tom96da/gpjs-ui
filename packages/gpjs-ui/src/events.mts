@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 import { native } from "./native.mts";
-
 import type { CallbackId, EventListener, NodeId } from "./types.mts";
 
 /**
