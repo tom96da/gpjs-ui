@@ -31,16 +31,15 @@ Phase 3's design is settled ([docs/ROADMAP.md](./docs/ROADMAP.md)): the
 3.1 (`gpjsui dev`, full reload) through 3.4 (HMR), with a `v0.0.1` release
 after 3.3.
 
-Phase 3.1 (`gpjsui dev`, full reload) works end-to-end: the native root
-handle, the host's dev protocol/reload/error-reporting and `console`,
-`@gpjs-ui/host-client`, `@gpjs-ui/vite`, `@gpjs-ui/cli`, and both
-`examples/*` apps running through `gpjsui dev` with no build script of
-their own. Two things remain, neither blocking Phase 3.2: a dev-only
-error panel drawn in the window, deliberately deferred — it needs
-`position`/`z_index`/`overflow`, which don't exist before Phase 4 — and
-the manual confirmation that a `.vue` edit remounts the window, see
-[docs/MANUAL_GUI_CHECK.md](./docs/MANUAL_GUI_CHECK.md). See
-[docs/PLAN.md](./docs/PLAN.md) for the unit-by-unit detail.
+Phase 3.1 (`gpjsui dev`, full reload) works end-to-end and is confirmed on
+both backends (macOS and Linux): the native root handle, the host's dev
+protocol/reload/error-reporting and `console`, `@gpjs-ui/host-client`,
+`@gpjs-ui/vite`, `@gpjs-ui/cli`, and both `examples/*` apps running
+through `gpjsui dev` with no build script of their own, editing a `.vue`
+file remounting the window live. One thing remains, not blocking Phase
+3.2: a dev-only error panel drawn in the window, deliberately deferred —
+it needs `position`/`z_index`/`overflow`, which don't exist before Phase
+4. See [docs/PLAN.md](./docs/PLAN.md) for the unit-by-unit detail.
 
 Keep this section's status prose accurate as real logic lands — don't let it go stale.
 

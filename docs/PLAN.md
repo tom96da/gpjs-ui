@@ -676,9 +676,10 @@ dependency change here rather than an edit anywhere else.
       the old build-then-`cargo run` two-liner). `docs/TESTING.md` needed
       no change — its `examples/` mentions are all about the Cargo
       examples, unrelated to these Vue ports
-- [ ] Manual: edit a `.vue` file and confirm the window remounts (state loss
-      is expected here — that's what Phase 3.4 fixes) — needs a human, see
-      `docs/MANUAL_GUI_CHECK.md`
+- [x] Manual: edit a `.vue` file and confirm the window remounts (state loss
+      is expected here — that's what Phase 3.4 fixes) — confirmed with
+      `hello_world` on both backends: natively on macOS, and on Linux
+      (the devcontainer) via XQuartz
 
 ### Docs
 
