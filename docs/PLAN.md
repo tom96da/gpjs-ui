@@ -685,6 +685,13 @@ machinery.
       drift into producing differently-shaped bundles
 - [ ] Non-zero exit and a readable error on build failure — this is the
       command CI and the future release workflow call
+- [ ] `outDir` is never emptied (`@gpjs-ui/vite`'s `watch()` sets
+      `emptyOutDir: false` — `outDir` sits outside `root` in this project's
+      layout, so Vite would default to that anyway, just without the
+      warning). Harmless today since the only output is one fixed-name
+      `bundle.js`, but a one-shot production build is exactly where a
+      leftover file from an old build shouldn't linger — decide whether
+      `build` clears `outDir` itself before writing
 
 ### Unit ii — examples and docs
 

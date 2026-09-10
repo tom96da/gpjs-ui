@@ -10,6 +10,7 @@ import type { RolldownWatcher } from "rolldown";
 
 const BUNDLE_FILE_NAME = "bundle.js";
 
+/** Options for {@link watch}. */
 export interface WatchOptions {
   /** The app's own entry point — may import `.vue` files. */
   entry: string;
@@ -23,6 +24,7 @@ export interface WatchOptions {
   onError: (error: { message: string; stack: string | null }) => void;
 }
 
+/** A running build watch — the value {@link watch} resolves to. */
 export interface Watcher {
   /** Where the bundle is written — read this rather than assuming a name. */
   bundlePath: string;
@@ -61,6 +63,9 @@ async function createBuildWatcher({ entry, outDir, mode }: BuildOptions): Promis
         fileName: () => BUNDLE_FILE_NAME,
       },
       outDir,
+      // Silences Vite's own notice about defaulting to false here — outDir
+      // sits outside root in this project's layout either way.
+      emptyOutDir: false,
       minify: mode === "production",
       watch: {},
     },
