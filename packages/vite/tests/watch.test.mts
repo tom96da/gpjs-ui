@@ -1,38 +1,22 @@
 // Copyright (c) 2026 tom96da
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { readFile, writeFile } from "node:fs/promises";
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { watch } from "../src/index.mts";
+import { makeApp, setUpScratchRoot, tearDownScratchRoot } from "./scratchApp.mts";
 import type { Watcher } from "../src/index.mts";
-
-// Scratch apps live under tests/tmp/ (gitignored) rather than a real OS
-// tmpdir: this mirrors how Vite resolves a real app's @vue/runtime-core
-// import, by walking up to this package's own node_modules.
-const scratchRoot = path.join(import.meta.dirname, "tmp");
 
 let watchers: Watcher[] = [];
 
-beforeAll(() => mkdir(scratchRoot, { recursive: true }));
-afterAll(() => rm(scratchRoot, { recursive: true, force: true }));
+beforeAll(setUpScratchRoot);
+afterAll(tearDownScratchRoot);
 afterEach(async () => {
   await Promise.all(watchers.map((watcher) => watcher.close()));
   watchers = [];
 });
-
-async function makeApp(
-  vueSource: string,
-): Promise<{ entry: string; outDir: string; vuePath: string }> {
-  const appDir = await mkdtemp(path.join(scratchRoot, "app-"));
-  const vuePath = path.join(appDir, "App.vue");
-  const entry = path.join(appDir, "entry.mts");
-  await writeFile(vuePath, vueSource);
-  await writeFile(entry, `import App from "./App.vue";\nexport default App;\n`);
-  return { entry, outDir: path.join(appDir, "dist"), vuePath };
-}
 
 describe("watch", () => {
   it("compiles a .vue file into a self-contained bundle", async () => {

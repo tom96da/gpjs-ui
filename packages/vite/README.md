@@ -8,11 +8,14 @@ unresolved imports, no dependency on QuickJS having Node.js globals.
 `watch(options)` builds `options.entry` into a bundle under
 `options.outDir` — the returned `Watcher`'s `bundlePath` names the exact
 file — rebuilding it on every change and reporting each result through
-`options.onBuild`/`options.onError`. This package never starts, reloads,
-or talks to `gpjs-ui-host` itself — driving that from a build is
-`@gpjs-ui/cli`'s job, which is also the only place either package name is
-written down, so swapping bundlers is a dependency change there rather
-than an edit here.
+`options.onBuild`/`options.onError`. `build(options)` runs the same
+pipeline once, minified and with `outDir` cleared first, resolving with
+the bundle's path or rejecting on failure rather than reporting it
+through a callback. This package never starts, reloads, or talks to
+`gpjs-ui-host` itself — driving that from a build is `@gpjs-ui/cli`'s
+job, which is also the only place either package name is written down,
+so swapping bundlers is a dependency change there rather than an edit
+here.
 
 The template compiler is retargeted at `@vue/runtime-core` — the only Vue
 runtime package this repo's own apps depend on — instead of the default

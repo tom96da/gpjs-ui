@@ -3,11 +3,10 @@
 
 import path from "node:path";
 
-import vue from "@vitejs/plugin-vue";
 import { build } from "vite";
 import type { RolldownWatcher } from "rolldown";
 
-const BUNDLE_FILE_NAME = "bundle.js";
+import { BUNDLE_FILE_NAME, resolveViteConfig } from "./config.mts";
 
 /** Options for {@link watch}. */
 export interface WatchOptions {
@@ -31,50 +30,6 @@ export interface Watcher {
   close(): Promise<void>;
 }
 
-type BuildOptions = Omit<WatchOptions, "onBuild" | "onError">;
-
-/**
- * Starts the underlying Vite build in watch mode, compiling `.vue` files
- * via `@vitejs/plugin-vue` targeted at `@vue/runtime-core` rather than the
- * `vue` meta-package it requires to run.
- */
-async function createBuildWatcher({ entry, outDir, mode }: BuildOptions): Promise<RolldownWatcher> {
-  const result = await build({
-    configFile: false,
-    root: path.dirname(entry),
-    mode,
-    clearScreen: false,
-    logLevel: "silent",
-    define: {
-      "process.env.NODE_ENV": JSON.stringify(mode),
-    },
-    plugins: [
-      vue({
-        template: {
-          compilerOptions: { runtimeModuleName: "@vue/runtime-core" },
-        },
-      }),
-    ],
-    build: {
-      lib: {
-        entry,
-        formats: ["es"],
-        fileName: () => BUNDLE_FILE_NAME,
-      },
-      outDir,
-      // Silences Vite's own notice about defaulting to false here — outDir
-      // sits outside root in this project's layout either way.
-      emptyOutDir: false,
-      minify: mode === "production",
-      watch: {},
-    },
-  });
-
-  // build() types its return as the non-watch output too, since a single
-  // call signature covers both — watch: {} above means it's always this.
-  return result as RolldownWatcher;
-}
-
 /**
  * Builds `entry` into a bundle under `outDir` and rebuilds it on every
  * change. Never starts, reloads, or talks to `gpjs-ui-host` — that's
@@ -82,7 +37,12 @@ async function createBuildWatcher({ entry, outDir, mode }: BuildOptions): Promis
  */
 export async function watch({ onBuild, onError, ...buildOptions }: WatchOptions): Promise<Watcher> {
   const bundlePath = path.join(buildOptions.outDir, BUNDLE_FILE_NAME);
-  const watcher = await createBuildWatcher(buildOptions);
+  const result = await build(resolveViteConfig({ ...buildOptions, watch: true }));
+
+  // build() types its return as the non-watch output too, since a single
+  // call signature covers both — watch: {} in the resolved config means
+  // it's always this.
+  const watcher = result as RolldownWatcher;
 
   watcher.on("event", (event) => {
     if (event.code === "END") {
