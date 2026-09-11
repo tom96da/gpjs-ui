@@ -16,9 +16,9 @@ const slowReadyMockHost = path.join(import.meta.dirname, "fixtures/mock-host-slo
 
 interface FakeBundler extends Bundler {
   /** Simulates a successful (re)build. */
-  build(bundlePath: string): void;
+  emitBuild(bundlePath: string): void;
   /** Simulates a build failure. */
-  fail(error: { message: string; stack: string | null }): void;
+  emitError(error: { message: string; stack: string | null }): void;
   closed: boolean;
 }
 
@@ -37,10 +37,12 @@ function makeFakeBundler(): FakeBundler {
         },
       });
     },
-    build(bundlePath) {
+    // Never exercised here — dev() only ever calls watch().
+    build: () => Promise.reject(new Error("not used by dev()")),
+    emitBuild(bundlePath) {
       handlers?.onBuild(bundlePath);
     },
-    fail(error) {
+    emitError(error) {
       handlers?.onError(error);
     },
   };
@@ -73,7 +75,7 @@ describe("dev", () => {
       signal: controller.signal,
     });
 
-    bundler.build("bundle.js");
+    bundler.emitBuild("bundle.js");
     await vi.waitFor(() => expect(stdout.text()).toContain("[gpjsui] ready"));
 
     controller.abort();
@@ -97,9 +99,9 @@ describe("dev", () => {
       signal: controller.signal,
     });
 
-    bundler.build("bundle.js");
+    bundler.emitBuild("bundle.js");
     await vi.waitFor(() => expect(stdout.text()).toContain("[gpjsui] ready"));
-    bundler.build("bundle.js");
+    bundler.emitBuild("bundle.js");
 
     controller.abort();
     await running;
@@ -123,7 +125,7 @@ describe("dev", () => {
       signal: controller.signal,
     });
 
-    bundler.fail({ message: "syntax error", stack: "at somewhere" });
+    bundler.emitError({ message: "syntax error", stack: "at somewhere" });
     await vi.waitFor(() => expect(stderr.text()).toContain("[gpjsui] build failed"));
 
     controller.abort();
@@ -148,9 +150,9 @@ describe("dev", () => {
       signal: controller.signal,
     });
 
-    bundler.build("bundle.js");
+    bundler.emitBuild("bundle.js");
     await vi.waitFor(() => expect(stdout.text()).toContain("[gpjsui] ready"));
-    bundler.build("bundle.js");
+    bundler.emitBuild("bundle.js");
     await vi.waitFor(() => expect(stderr.text()).toContain("[gpjsui] reload failed"));
 
     controller.abort();
@@ -175,7 +177,7 @@ describe("dev", () => {
       signal: controller.signal,
     });
 
-    bundler.build("bundle.js");
+    bundler.emitBuild("bundle.js");
     await vi.waitFor(() => expect(stderr.text()).toContain("[gpjsui] app error"));
 
     controller.abort();
@@ -199,7 +201,7 @@ describe("dev", () => {
       signal: controller.signal,
     });
 
-    bundler.build("bundle.js");
+    bundler.emitBuild("bundle.js");
     await vi.waitFor(() => expect(stdout.text()).toContain("[gpjsui] ready"));
 
     controller.abort();
@@ -223,8 +225,8 @@ describe("dev", () => {
       signal: controller.signal,
     });
 
-    bundler.build("bundle.js");
-    bundler.build("bundle.js");
+    bundler.emitBuild("bundle.js");
+    bundler.emitBuild("bundle.js");
 
     await vi.waitFor(() => expect(stdout.text()).toContain("[gpjsui] ready"));
     await vi.waitFor(() => expect(stderr.text()).toContain("reload #1"));

@@ -6,26 +6,58 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("./dev.mts", () => ({
   dev: vi.fn<(options: DevOptions) => Promise<void>>(() => new Promise(() => {})),
 }));
+vi.mock("./build.mts", () => ({
+  build: vi.fn<(options?: BuildAppOptions) => Promise<string>>(),
+}));
 
+import { build } from "./build.mts";
 import { run } from "./cli.mts";
 import { dev } from "./dev.mts";
+import type { BuildAppOptions } from "./build.mts";
 import type { DevOptions } from "./dev.mts";
 
 const mockedDev = vi.mocked(dev);
+const mockedBuild = vi.mocked(build);
 
 afterEach(() => {
   mockedDev.mockClear();
+  mockedBuild.mockClear();
   process.removeAllListeners("SIGINT");
   process.removeAllListeners("SIGTERM");
   process.exitCode = undefined;
 });
 
 describe("run", () => {
-  it("prints usage and sets a non-zero exit code for anything but dev", async () => {
+  it("prints usage and sets a non-zero exit code for anything but dev/build", async () => {
     await run(["node", "gpjsui"]);
 
     expect(process.exitCode).toBe(1);
     expect(mockedDev).not.toHaveBeenCalled();
+    expect(mockedBuild).not.toHaveBeenCalled();
+  });
+
+  it("runs build and leaves the exit code untouched on success", async () => {
+    mockedBuild.mockResolvedValue("/app/dist/bundle.js");
+
+    await run(["node", "gpjsui", "build"]);
+
+    expect(mockedBuild).toHaveBeenCalled();
+    expect(mockedDev).not.toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it("sets a non-zero exit code and prints a readable error when build fails", async () => {
+    mockedBuild.mockRejectedValue(new Error("syntax error"));
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+
+    await run(["node", "gpjsui", "build"]);
+
+    expect(process.exitCode).toBe(1);
+    expect(stderr.mock.calls.map(([chunk]) => String(chunk)).join("")).toContain(
+      "[gpjsui] build failed: syntax error",
+    );
+
+    stderr.mockRestore();
   });
 
   it.each(["SIGINT", "SIGTERM"] as const)(

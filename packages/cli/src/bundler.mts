@@ -23,12 +23,28 @@ export interface BundlerOptions {
   onError: (error: { message: string; stack: string | null }) => void;
 }
 
+/** Options for {@link Bundler.build}. */
+export interface BuildOptions {
+  /** The app's own entry point — may import `.vue` files. */
+  entry: string;
+  /** Where the self-contained bundle is written — see `BuildResult.bundlePath` for the exact file. */
+  outDir: string;
+}
+
+/** The result of a one-shot {@link Bundler.build}. */
+export interface BuildResult {
+  /** Where the bundle was written — read this rather than assuming a name. */
+  bundlePath: string;
+}
+
 /**
- * The contract a bundler adapter satisfies. `@gpjs-ui/vite`'s `watch`
- * already matches this shape structurally, so swapping bundlers means
+ * The contract a bundler adapter satisfies. `@gpjs-ui/vite`'s `watch`/`build`
+ * already match this shape structurally, so swapping bundlers means
  * injecting a different `Bundler` here — never editing this package's own
  * types, and never requiring the adapter itself to import from here.
  */
 export interface Bundler {
   watch(options: BundlerOptions): Promise<Watcher>;
+  /** One-shot production build, used by `gpjsui build` — rejects on failure. */
+  build(options: BuildOptions): Promise<BuildResult>;
 }

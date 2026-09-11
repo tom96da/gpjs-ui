@@ -1,13 +1,28 @@
 // Copyright (c) 2026 tom96da
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+import { build } from "./build.mts";
 import { dev } from "./dev.mts";
+import { printFault, toFault } from "./fault.mts";
 
-const USAGE = "Usage: gpjsui dev";
+const USAGE = "Usage: gpjsui <dev|build>";
 
-/** Parses argv and runs the named subcommand — today, only `dev`. */
+/** Parses argv and runs the named subcommand: `dev` or `build`. */
 export async function run(argv: readonly string[] = process.argv): Promise<void> {
-  if (argv[2] !== "dev") {
+  const command = argv[2];
+
+  if (command === "build") {
+    try {
+      const bundlePath = await build();
+      process.stdout.write(`[gpjsui] built ${bundlePath}\n`);
+    } catch (error) {
+      printFault(process.stderr, "build failed", toFault(error));
+      process.exitCode = 1;
+    }
+    return;
+  }
+
+  if (command !== "dev") {
     process.stderr.write(`${USAGE}\n`);
     process.exitCode = 1;
     return;

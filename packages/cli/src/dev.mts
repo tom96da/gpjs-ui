@@ -3,10 +3,11 @@
 
 import path from "node:path";
 
-import { HostClient, HostError } from "@gpjs-ui/host-client";
-import { watch } from "@gpjs-ui/vite";
+import { HostClient } from "@gpjs-ui/host-client";
 
+import { defaultBundler } from "./defaultBundler.mts";
 import { resolveEntry } from "./entry.mts";
+import { printFault, toFault } from "./fault.mts";
 import type { Bundler } from "./bundler.mts";
 
 export interface DevOptions {
@@ -26,11 +27,6 @@ export interface DevOptions {
   signal: AbortSignal;
 }
 
-interface Fault {
-  message: string;
-  stack: string | null;
-}
-
 /**
  * Builds the app, starts `gpjs-ui-host` once the first bundle lands, and
  * reloads it on every rebuild — until `options.signal` aborts.
@@ -38,7 +34,7 @@ interface Fault {
 export async function dev(options: DevOptions): Promise<void> {
   const cwd = options.cwd ?? process.cwd();
   const outDir = path.join(cwd, "dist");
-  const bundler: Bundler = options.bundler ?? { watch };
+  const bundler: Bundler = options.bundler ?? defaultBundler;
   const stdout = options.stdout ?? process.stdout;
   const stderr = options.stderr ?? process.stderr;
 
@@ -120,15 +116,4 @@ export async function dev(options: DevOptions): Promise<void> {
   await queue;
   await client?.stop();
   await watcher.close();
-}
-
-function toFault(error: unknown): Fault {
-  if (error instanceof HostError) return { message: error.message, stack: error.hostStack };
-  if (error instanceof Error) return { message: error.message, stack: error.stack ?? null };
-  return { message: String(error), stack: null };
-}
-
-function printFault(stream: NodeJS.WritableStream, label: string, fault: Fault): void {
-  stream.write(`[gpjsui] ${label}: ${fault.message}\n`);
-  if (fault.stack) stream.write(`${fault.stack}\n`);
 }
