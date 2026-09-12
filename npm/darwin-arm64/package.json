@@ -1,0 +1,28 @@
+{
+  "name": "@gpjs-ui/host-darwin-arm64",
+  "version": "0.0.0-0",
+  "private": true,
+  "description": "Prebuilt gpjs-ui-host binary for macOS on Apple Silicon (arm64).",
+  "keywords": [
+    "desktop-app",
+    "gpjs-ui",
+    "gpui",
+    "gui",
+    "quickjs"
+  ],
+  "license": "(MIT OR Apache-2.0)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tom96da/gpjs-ui.git",
+    "directory": "npm/darwin-arm64"
+  },
+  "files": [
+    "bin"
+  ],
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ]
+}

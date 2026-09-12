@@ -20,7 +20,7 @@ interface PendingCall {
 export interface HostClientOptions {
   /** The bundle passed to the host as `--dev <bundlePath>`. */
   bundlePath: string;
-  /** Overrides {@link resolveHostBin} — mainly so tests can spawn a stand-in. */
+  /** Overrides which `gpjs-ui-host` binary gets spawned, in place of automatic resolution. */
   hostBin?: string;
   /**
    * Every diagnostic line the transport itself produces: the host's real

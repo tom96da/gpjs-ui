@@ -12,3 +12,6 @@ Desktop.ini
 tmp/
 temp/
 *.tmp
+
+# Prebuilt host binaries a CD workflow drops into npm/<os>-<arch>/ before publish
+/npm/*/bin/

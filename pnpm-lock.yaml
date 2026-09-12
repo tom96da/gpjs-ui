@@ -178,6 +178,14 @@ importers:
         specifier: ^1.81.0
         version: 1.81.0(oxlint-tsgolint@7.0.2001)
 
+  npm/darwin-arm64: {}
+
+  npm/darwin-x64: {}
+
+  npm/linux-arm64: {}
+
+  npm/linux-x64: {}
+
   packages/cli:
     dependencies:
       '@gpjs-ui/host-client':
@@ -217,6 +225,19 @@ importers:
       oxlint:
         specifier: ^1.81.0
         version: 1.81.0(oxlint-tsgolint@7.0.2001)
+    optionalDependencies:
+      '@gpjs-ui/host-darwin-arm64':
+        specifier: workspace:*
+        version: link:../../npm/darwin-arm64
+      '@gpjs-ui/host-darwin-x64':
+        specifier: workspace:*
+        version: link:../../npm/darwin-x64
+      '@gpjs-ui/host-linux-arm64':
+        specifier: workspace:*
+        version: link:../../npm/linux-arm64
+      '@gpjs-ui/host-linux-x64':
+        specifier: workspace:*
+        version: link:../../npm/linux-x64
 
   packages/vite:
     dependencies:

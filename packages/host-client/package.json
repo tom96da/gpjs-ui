@@ -51,5 +51,11 @@
     "@types/node": "^26.4.1",
     "oxfmt": "^0.66.0",
     "oxlint": "^1.81.0"
+  },
+  "optionalDependencies": {
+    "@gpjs-ui/host-darwin-arm64": "workspace:*",
+    "@gpjs-ui/host-darwin-x64": "workspace:*",
+    "@gpjs-ui/host-linux-arm64": "workspace:*",
+    "@gpjs-ui/host-linux-x64": "workspace:*"
   }
 }

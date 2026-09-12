@@ -61,12 +61,13 @@ jobs:
             js:
               - 'packages/**'
               - 'examples/**'
+              - 'npm/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
               - 'tsconfig*.json'
               - 'oxlint.config.ts'
-              - 'oxfmt.config.mts'
+              - 'oxfmt.config.ts'
               - '.github/workflows/ci.yml'
 
   build:

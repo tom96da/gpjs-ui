@@ -21,7 +21,12 @@ and the channel keeps reading.
 
 ## Host binary resolution
 
-`GPJS_UI_HOST_BIN`, if set, names the binary to spawn outright. Otherwise
-this package resolves it relative to its own install location, which today
-only ever resolves inside this workspace's own Cargo build output — a
-per-platform npm-distributed binary is a later addition, not yet wired in.
+`resolveHostBin` tries, in order:
+
+1. `GPJS_UI_HOST_BIN`, if set — names the binary to spawn outright.
+2. The `optionalDependency` matching this OS/arch
+   (`@gpjs-ui/host-darwin-arm64`, `-darwin-x64`, `-linux-arm64`,
+   `-linux-x64` — Windows isn't supported yet).
+3. This workspace's own Cargo build output, at `target/debug/gpjs-ui-host`
+   by default — pass `{ profile: "release" }` to resolve the release build
+   instead.
