@@ -22,24 +22,20 @@ See [README.md](./README.md) for the full pitch. `gpjs-ui` is currently a develo
 
 Phase 1 (`crates/gpjs-ui`'s FFI bridge core) and Phase 2 (the pnpm
 workspace, `packages/gpjs-ui`, `packages/vue`'s Vue 3 custom renderer, and
-two working `.vue` examples) are complete and visually confirmed — see
-[docs/PLAN.md](./docs/PLAN.md) for the unit-by-unit detail and
-[docs/FFI.md](./docs/FFI.md) for the current binding vocabulary.
+two working `.vue` examples) are complete and visually confirmed —
+[docs/FFI.md](./docs/FFI.md) has the current binding vocabulary.
 
-Phase 3's design is settled ([docs/ROADMAP.md](./docs/ROADMAP.md)): the
-`gpjsui` CLI's process orchestration lives on the JS/TS side, split into
-3.1 (`gpjsui dev`, full reload) through 3.4 (HMR), with a `v0.0.1` release
-after 3.3.
+Phase 3 (the `gpjsui` CLI, on the JS/TS side) is split into 3.1 through
+3.4, with a `v0.0.1` release after 3.3. 3.1 (`gpjsui dev`, full reload)
+and 3.2 (`gpjsui build`) are both done and confirmed on macOS and Linux.
+One item from 3.1 remains, not blocking 3.2 or 3.3: a dev-only error
+panel drawn in the window, deliberately deferred — it needs
+`position`/`z_index`/`overflow`, which don't exist before Phase 4.
 
-Phase 3.1 (`gpjsui dev`, full reload) works end-to-end and is confirmed on
-both backends (macOS and Linux): the native root handle, the host's dev
-protocol/reload/error-reporting and `console`, `@gpjs-ui/host-client`,
-`@gpjs-ui/vite`, `@gpjs-ui/cli`, and both `examples/*` apps running
-through `gpjsui dev` with no build script of their own, editing a `.vue`
-file remounting the window live. One thing remains, not blocking Phase
-3.2: a dev-only error panel drawn in the window, deliberately deferred —
-it needs `position`/`z_index`/`overflow`, which don't exist before Phase
-4. See [docs/PLAN.md](./docs/PLAN.md) for the unit-by-unit detail.
+See [docs/PLAN.md](./docs/PLAN.md) for unit-by-unit detail on every phase
+above, and [docs/ROADMAP.md#phase-33](./docs/ROADMAP.md#phase-33-application-packaging)
+for what's next: Phase 3.3 (application packaging and the `v0.0.1`
+release).
 
 Keep this section's status prose accurate as real logic lands — don't let it go stale.
 

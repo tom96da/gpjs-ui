@@ -694,14 +694,14 @@ machinery.
 
 ### Unit i — the `build` command
 
-- [ ] `gpjsui build`: one-shot build through the same `Bundler` the `dev`
+- [x] `gpjsui build`: one-shot build through the same `Bundler` the `dev`
       command uses, with `NODE_ENV=production`, minification on, and no host
       spawned
-- [ ] Factor the shared config/entry resolution so `dev` and `build` can't
+- [x] Factor the shared config/entry resolution so `dev` and `build` can't
       drift into producing differently-shaped bundles
-- [ ] Non-zero exit and a readable error on build failure — this is the
+- [x] Non-zero exit and a readable error on build failure — this is the
       command CI and the future release workflow call
-- [ ] `outDir` is never emptied (`@gpjs-ui/vite`'s `watch()` sets
+- [x] `outDir` is never emptied (`@gpjs-ui/vite`'s `watch()` sets
       `emptyOutDir: false` — `outDir` sits outside `root` in this project's
       layout, so Vite would default to that anyway, just without the
       warning). Harmless today since the only output is one fixed-name
@@ -709,12 +709,15 @@ machinery.
       leftover file from an old build shouldn't linger — decide whether
       `build` clears `outDir` itself before writing
 
+  Decided: `resolveViteConfig` sets `emptyOutDir: mode === "production"`,
+  so `build` clears `outDir` and `watch` doesn't.
+
 ### Unit ii — examples and docs
 
-- [ ] `examples/*` switch their `build` script to `gpjsui build`, and
+- [x] `examples/*` switch their `build` script to `gpjsui build`, and
       `scripts/build.mjs` is deleted (3.1 already stopped using it)
-- [ ] Update `docs/TESTING.md`'s required checks if the build command moves
-- [ ] Update `AGENTS.md`'s Status section
+- [x] Update `docs/TESTING.md`'s required checks if the build command moves
+- [x] Update `AGENTS.md`'s Status section
 
 ## Phase 3.3: Application packaging and the `v0.0.1` release
 
