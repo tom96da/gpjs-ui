@@ -12,6 +12,7 @@
   "type": "module",
   "scripts": {
     "dev": "gpjsui dev",
+    "build": "gpjsui build",
     "lint": "oxlint --type-aware",
     "format": "oxfmt --check .",
     "typecheck": "oxlint -A all --type-aware --type-check"
