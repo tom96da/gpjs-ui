@@ -40,15 +40,22 @@ gpjs-ui/
 │   ├── gpjs-ui/             # Rust host: retained tree, QuickJS bridge, GPUI render (Phase 1, done)
 │   ├── gpjs-ui-jsenv/       # the host objects installed into the QuickJS realm — console today, more in Phase 6
 │   └── gpjs-ui-host/        # the runtime binary: loads a bundle and opens the window (Phase 2 Unit iv, done; grows a dev mode in Phase 3.1)
-├── pnpm-workspace.yaml       # pnpm workspace member globs (packages/*, examples/*)
+├── pnpm-workspace.yaml       # pnpm workspace member globs (packages/*, examples/*, npm/*)
 ├── package.json              # root workspace manifest — lint/format/typecheck/test/build scripts
 ├── pnpm-lock.yaml
 ├── tsconfig.base.json         # shared TS compiler options, extended by each package's tsconfig.json
-├── oxlint.config.ts / oxfmt.config.mts  # shared lint/format config for all TS packages
+├── oxlint.config.ts / oxfmt.config.ts  # shared lint/format config for all TS packages
 ├── packages/
 │   ├── gpjs-ui/             # `gpjs-ui` — framework-agnostic host bridge wrapper (Phase 2 Unit i–ii, done)
 │   ├── vue/                 # `@gpjs-ui/vue` — Vue 3 custom renderer (Phase 2 Unit iii, done)
-│   └── host-client/         # `@gpjs-ui/host-client` — launches the host binary and speaks its dev protocol (Phase 3.1 Unit iv, underway)
+│   ├── host-client/         # `@gpjs-ui/host-client` — launches the host binary and speaks its dev protocol (Phase 3.1 Unit iv, done)
+│   ├── vite/                 # `@gpjs-ui/vite` — the Vite adapter, the only package importing vite (Phase 3.1 Unit v, done)
+│   └── cli/                  # `@gpjs-ui/cli` — the `gpjsui` dev/build/package CLI (Phase 3.1 Unit vi, done)
+├── npm/                      # per-platform npm packages carrying a prebuilt gpjs-ui-host each (Phase 3.3 Unit i)
+│   ├── darwin-arm64/
+│   ├── darwin-x64/
+│   ├── linux-arm64/
+│   └── linux-x64/
 ├── examples/
 │   ├── hello_world/         # Vue port of crates/gpjs-ui/examples/hello_world.rs (Phase 2 Unit iv, done)
 │   └── click_counter/       # Vue port of crates/gpjs-ui/examples/click_counter.rs (Phase 2 Unit iv, done)
@@ -79,8 +86,6 @@ gpjs-ui/
 ├── crates/
 │   └── gpjs-ui-macros/      # host bridge binding helper macros
 └── packages/
-    ├── cli/                 # `@gpjs-ui/cli` — the `gpjsui` dev/build CLI, wires the two below together (Phase 3.1)
-    ├── vite/                # `@gpjs-ui/vite` — the Vite adapter, the only package importing vite (Phase 3.1)
     ├── vite-runtime/        # `@gpjs-ui/vite-runtime` — Vite Runtime API integration, runs inside QuickJS (Phase 3.4)
     └── react/               # `@gpjs-ui/react` — React custom renderer, future (Phase 10)
 ```

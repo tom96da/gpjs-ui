@@ -54,6 +54,24 @@ Same look as `hello_world`/`gpui_hello_world` above. Swap in
 `EventDispatcher` correctly drains `@vue/runtime-core`'s
 microtask-scheduled reactivity update (see `docs/PLAN.md`'s Unit iv notes).
 
+### A packaged app (`gpjsui package`)
+
+Confirms the same thing about a distributable `.app`, launched the way a
+real user would rather than through `cargo run`/`gpjsui dev`:
+
+```sh
+cargo build -p gpjs-ui-host --release
+pnpm --filter click_counter package
+open examples/click_counter/dist/click_counter.app
+```
+
+Double-click it from Finder instead if you want to also confirm it starts
+with no terminal attached at all. Same look and click behavior as the dev
+run above — this is the check `docs/PLAN.md`'s Phase 3.3 Unit ii still
+needs on macOS specifically (the exe-relative bundle search itself is
+already confirmed on Linux, inside the devcontainer, with no display to
+carry it further).
+
 ### No text, but the background/boxes render fine
 
 `gpui_platform`'s `font-kit` feature isn't enabled for this platform (see

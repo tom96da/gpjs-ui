@@ -32,10 +32,14 @@ One item from 3.1 remains, not blocking 3.2 or 3.3: a dev-only error
 panel drawn in the window, deliberately deferred — it needs
 `position`/`z_index`/`overflow`, which don't exist before Phase 4.
 
+3.3 (application packaging) has landed through Unit ii: per-platform
+`gpjs-ui-host` npm packages and `gpjsui package`, confirmed with a real
+launch on Linux (macOS checked structurally only — no display to launch
+one on here). What's left before `v0.0.1`: Unit iii, the CD workflow and
+the npm publish itself.
+
 See [docs/PLAN.md](./docs/PLAN.md) for unit-by-unit detail on every phase
-above, and [docs/ROADMAP.md#phase-33](./docs/ROADMAP.md#phase-33-application-packaging)
-for what's next: Phase 3.3 (application packaging and the `v0.0.1`
-release).
+above.
 
 Keep this section's status prose accurate as real logic lands — don't let it go stale.
 

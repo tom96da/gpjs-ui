@@ -726,23 +726,34 @@ The first release milestone: after this, the framework is publishable.
 
 ### Unit i — host binary distribution
 
-- [ ] Per-platform npm packages carrying a prebuilt `gpjs-ui-host`, selected
-      by `optionalDependencies` (the pattern `oxlint`/`esbuild` use)
-- [ ] `@gpjs-ui/cli` resolves the host through those packages, falling back
+- [x] Per-platform npm packages carrying a prebuilt `gpjs-ui-host`, selected
+      by `optionalDependencies` — `npm/<os>-<arch>/`, four of them
+      (`darwin`/`linux` × `arm64`/`x64`), kept out of `packages/*` since
+      they carry no source or tests of their own
+- [x] `@gpjs-ui/cli` resolves the host through those packages, falling back
       to the workspace build during development
-- [ ] Keep the host binary swappable rather than baked into the CLI —
+- [x] Keep the host binary swappable rather than baked into the CLI —
       app-owned Rust extensions (roadmap Phase 13) depend on being able to
       substitute a locally compiled host
 
 ### Unit ii — packaging a distributable app
 
-- [ ] `gpjsui package`: pairs a production bundle with the prebuilt host and
-      emits a platform-native application — `.app` on macOS, with each other
-      platform's target following its support in roadmap Phase 11
-- [ ] App metadata (display name, identifier, icon, version) sourced from
-      the app's own `package.json` plus a small config, not hard-coded
-- [ ] Decide what the host reads at startup in a packaged app — the bundle
-      as a sibling resource file is the obvious first cut
+- [x] `gpjsui package`: pairs a production bundle with the prebuilt host and
+      emits a platform-native application — a `.app` on macOS, a plain
+      directory on Linux, with each other platform's target following its
+      support in roadmap Phase 11
+- [x] App metadata (display name, identifier, icon, version) sourced from
+      the app's own `package.json` plus a `"gpjsui"` key, not hard-coded
+- [x] Decided: the host reads its bundle from beside its own executable —
+      `gpjs-ui-host` itself now falls back to an exe-relative search
+      (`bundle.js` beside it, or `../Resources/bundle.js`) when launched
+      with no arguments, covering both layouts above without either one
+      needing a wrapper script
+- [x] Confirmed on Linux: a packaged `examples/click_counter` finds its
+      bundle and starts with no arguments, and fails with a clear message
+      when the bundle is missing — this container has no display to
+      confirm pixel content beyond that (see
+      [docs/MANUAL_GUI_CHECK.md](./MANUAL_GUI_CHECK.md))
 - [ ] Manual: launch a packaged `examples/click_counter` on macOS, outside
       any terminal, and confirm it behaves like the dev run
 
