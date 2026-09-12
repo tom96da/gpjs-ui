@@ -14,3 +14,11 @@ pnpm --filter hello_world dev
 `src/App.vue` and every rebuild after, starts
 [`gpjs-ui-host`](../../crates/gpjs-ui-host/README.md) once the first build
 lands, and reloads it on every following one.
+
+`pnpm --filter hello_world build` runs the same build once, minified and
+without starting a host, writing `dist/bundle.js`. Launch the built bundle
+directly, without the dev protocol, with:
+
+```sh
+cargo run -p gpjs-ui-host -- examples/hello_world/dist/bundle.js
+```
