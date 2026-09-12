@@ -22,3 +22,17 @@ directly, without the dev protocol, with:
 ```sh
 cargo run -p gpjs-ui-host -- examples/hello_world/dist/bundle.js
 ```
+
+`pnpm --filter hello_world package` (see
+[`gpjsui package`](../../packages/cli/README.md#gpjsui-package)) pairs that
+same build with a prebuilt `gpjs-ui-host` into a distributable application
+at `examples/hello_world/dist/hello_world.app` (macOS) or
+`examples/hello_world/dist/hello_world/` (Linux) — double-click it, or
+launch it directly:
+
+```sh
+cargo build -p gpjs-ui-host --release
+pnpm --filter hello_world package
+./examples/hello_world/dist/hello_world/hello_world  # Linux
+open examples/hello_world/dist/hello_world.app        # macOS
+```

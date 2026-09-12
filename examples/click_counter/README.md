@@ -22,3 +22,17 @@ directly, without the dev protocol, with:
 ```sh
 cargo run -p gpjs-ui-host -- examples/click_counter/dist/bundle.js
 ```
+
+`pnpm --filter click_counter package` (see
+[`gpjsui package`](../../packages/cli/README.md#gpjsui-package)) pairs that
+same build with a prebuilt `gpjs-ui-host` into a distributable application
+at `examples/click_counter/dist/click_counter.app` (macOS) or
+`examples/click_counter/dist/click_counter/` (Linux) — double-click it, or
+launch it directly:
+
+```sh
+cargo build -p gpjs-ui-host --release
+pnpm --filter click_counter package
+./examples/click_counter/dist/click_counter/click_counter  # Linux
+open examples/click_counter/dist/click_counter.app          # macOS
+```
