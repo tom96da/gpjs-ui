@@ -10,7 +10,10 @@ import type { Bundler } from "./bundler.mts";
 export interface BuildAppOptions {
   /** The app's root directory. Defaults to `process.cwd()`. */
   cwd?: string;
-  /** Skips {@link resolveEntry} — mainly so tests don't need a real app on disk. */
+  /**
+   * The app's entry point. Defaults to resolving it automatically: a
+   * committed `src/main.mts`, or `src/App.vue` wrapped in a synthesized one.
+   */
   entry?: string;
   /** Overrides the bundler — `@gpjs-ui/vite` is the only one wired in by default. */
   bundler?: Bundler;

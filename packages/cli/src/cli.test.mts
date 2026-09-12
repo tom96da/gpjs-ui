@@ -9,31 +9,39 @@ vi.mock("./dev.mts", () => ({
 vi.mock("./build.mts", () => ({
   build: vi.fn<(options?: BuildAppOptions) => Promise<string>>(),
 }));
+vi.mock("./package.mts", () => ({
+  packageApp: vi.fn<(options?: PackageAppOptions) => Promise<PackageResult>>(),
+}));
 
 import { build } from "./build.mts";
 import { run } from "./cli.mts";
 import { dev } from "./dev.mts";
+import { packageApp } from "./package.mts";
 import type { BuildAppOptions } from "./build.mts";
 import type { DevOptions } from "./dev.mts";
+import type { PackageAppOptions, PackageResult } from "./package.mts";
 
 const mockedDev = vi.mocked(dev);
 const mockedBuild = vi.mocked(build);
+const mockedPackageApp = vi.mocked(packageApp);
 
 afterEach(() => {
   mockedDev.mockClear();
   mockedBuild.mockClear();
+  mockedPackageApp.mockClear();
   process.removeAllListeners("SIGINT");
   process.removeAllListeners("SIGTERM");
   process.exitCode = undefined;
 });
 
 describe("run", () => {
-  it("prints usage and sets a non-zero exit code for anything but dev/build", async () => {
+  it("prints usage and sets a non-zero exit code for anything but dev/build/package", async () => {
     await run(["node", "gpjsui"]);
 
     expect(process.exitCode).toBe(1);
     expect(mockedDev).not.toHaveBeenCalled();
     expect(mockedBuild).not.toHaveBeenCalled();
+    expect(mockedPackageApp).not.toHaveBeenCalled();
   });
 
   it("runs build and leaves the exit code untouched on success", async () => {
@@ -55,6 +63,29 @@ describe("run", () => {
     expect(process.exitCode).toBe(1);
     expect(stderr.mock.calls.map(([chunk]) => String(chunk)).join("")).toContain(
       "[gpjsui] build failed: syntax error",
+    );
+
+    stderr.mockRestore();
+  });
+
+  it("runs package and leaves the exit code untouched on success", async () => {
+    mockedPackageApp.mockResolvedValue({ appPath: "/app/dist/click_counter.app" });
+
+    await run(["node", "gpjsui", "package"]);
+
+    expect(mockedPackageApp).toHaveBeenCalled();
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it("sets a non-zero exit code and prints a readable error when package fails", async () => {
+    mockedPackageApp.mockRejectedValue(new Error("no host binary"));
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+
+    await run(["node", "gpjsui", "package"]);
+
+    expect(process.exitCode).toBe(1);
+    expect(stderr.mock.calls.map(([chunk]) => String(chunk)).join("")).toContain(
+      "[gpjsui] package failed: no host binary",
     );
 
     stderr.mockRestore();
