@@ -6,10 +6,12 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { build } from "../src/index.mts";
-import { makeApp, setUpScratchRoot, tearDownScratchRoot } from "./scratchApp.mts";
+import { scratchApp } from "./scratchApp.mts";
 
-beforeAll(setUpScratchRoot);
-afterAll(tearDownScratchRoot);
+const { setUp, tearDown, makeApp } = scratchApp("build");
+
+beforeAll(setUp);
+afterAll(tearDown);
 
 describe("build", () => {
   it("compiles a .vue file into a self-contained, minified bundle", async () => {

@@ -6,13 +6,15 @@ import { readFile, writeFile } from "node:fs/promises";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { watch } from "../src/index.mts";
-import { makeApp, setUpScratchRoot, tearDownScratchRoot } from "./scratchApp.mts";
+import { scratchApp } from "./scratchApp.mts";
 import type { Watcher } from "../src/index.mts";
+
+const { setUp, tearDown, makeApp } = scratchApp("watch");
 
 let watchers: Watcher[] = [];
 
-beforeAll(setUpScratchRoot);
-afterAll(tearDownScratchRoot);
+beforeAll(setUp);
+afterAll(tearDown);
 afterEach(async () => {
   await Promise.all(watchers.map((watcher) => watcher.close()));
   watchers = [];
