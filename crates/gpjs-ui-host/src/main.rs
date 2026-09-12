@@ -21,6 +21,7 @@ use std::cell::{Cell, RefCell};
 use std::env;
 use std::fs;
 use std::io::{self, BufRead, Write};
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::rc::Rc;
 use std::thread;
@@ -419,20 +420,49 @@ fn run_bundle(bundle_path: &str, dev: bool) -> ExitCode {
     }
 }
 
+/// Where a packaged app's bundle lives relative to `exe_dir`, tried in
+/// order: a flat layout (Linux, `bundle.js` beside the executable) then a
+/// macOS `.app`'s (`Contents/MacOS/<exe>` next to `Contents/Resources/`).
+fn bundle_beside(exe_dir: &Path) -> Option<PathBuf> {
+    [
+        exe_dir.join("bundle.js"),
+        exe_dir.join("../Resources/bundle.js"),
+    ]
+    .into_iter()
+    .find(|candidate| candidate.is_file())
+}
+
+/// Tried when no bundle path is given on the command line — the case a
+/// packaged app launches into, with no argv and an unpredictable cwd.
+fn bundle_beside_exe() -> Option<PathBuf> {
+    let exe = env::current_exe().ok()?;
+    bundle_beside(exe.parent()?)
+}
+
 fn main() -> ExitCode {
     env_logger::init();
 
     let args: Vec<String> = env::args().skip(1).collect();
     let (dev, bundle_path) = match args.as_slice() {
-        [path] => (false, path),
-        [flag, path] if flag == "--dev" => (true, path),
+        [] => {
+            let Some(path) = bundle_beside_exe() else {
+                eprintln!(
+                    "usage: gpjs-ui-host [--dev] [<path-to-bundle.js>]\n\
+                     no bundle.js found beside the executable"
+                );
+                return ExitCode::FAILURE;
+            };
+            (false, path.to_string_lossy().into_owned())
+        }
+        [path] => (false, path.clone()),
+        [flag, path] if flag == "--dev" => (true, path.clone()),
         _ => {
-            eprintln!("usage: gpjs-ui-host [--dev] <path-to-bundle.js>");
+            eprintln!("usage: gpjs-ui-host [--dev] [<path-to-bundle.js>]");
             return ExitCode::FAILURE;
         }
     };
 
-    run_bundle(bundle_path, dev)
+    run_bundle(&bundle_path, dev)
 }
 
 #[cfg(test)]
@@ -618,5 +648,57 @@ mod tests {
         let host = Host::default();
 
         assert_eq!(content_window_size(&host, host.root), DEFAULT_WINDOW_SIZE);
+    }
+
+    /// A directory under the OS temp root, unique per test invocation, torn
+    /// down on drop — this crate has no `tempfile` dependency to reach for.
+    struct ScratchDir(PathBuf);
+
+    impl ScratchDir {
+        fn new(name: &str) -> Self {
+            let path = env::temp_dir().join(format!(
+                "gpjs-ui-host-test-{name}-{}-{:?}",
+                std::process::id(),
+                std::thread::current().id()
+            ));
+            fs::create_dir_all(&path).unwrap();
+            Self(path)
+        }
+    }
+
+    impl Drop for ScratchDir {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn bundle_beside_finds_a_flat_sibling_bundle() {
+        let dir = ScratchDir::new("flat");
+        fs::write(dir.0.join("bundle.js"), "").unwrap();
+
+        assert_eq!(bundle_beside(&dir.0), Some(dir.0.join("bundle.js")));
+    }
+
+    #[test]
+    fn bundle_beside_finds_a_macos_app_bundles_resources() {
+        let dir = ScratchDir::new("app-bundle");
+        let macos_dir = dir.0.join("Contents/MacOS");
+        let resources_dir = dir.0.join("Contents/Resources");
+        fs::create_dir_all(&macos_dir).unwrap();
+        fs::create_dir_all(&resources_dir).unwrap();
+        fs::write(resources_dir.join("bundle.js"), "").unwrap();
+
+        assert_eq!(
+            bundle_beside(&macos_dir),
+            Some(macos_dir.join("../Resources/bundle.js"))
+        );
+    }
+
+    #[test]
+    fn bundle_beside_is_none_when_nothing_is_there() {
+        let dir = ScratchDir::new("empty");
+
+        assert_eq!(bundle_beside(&dir.0), None);
     }
 }

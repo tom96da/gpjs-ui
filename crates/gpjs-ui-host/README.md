@@ -10,6 +10,11 @@ to stderr.
 cargo run -p gpjs-ui-host -- path/to/bundle.js
 ```
 
+Run with no arguments, it looks for `bundle.js` beside its own executable,
+then beside it in `../Resources/` (a macOS `.app`'s layout) — the search a
+packaged app's launcher relies on, since a double-clicked `.app` gets no
+argv and an unpredictable working directory.
+
 It loads one fixed, already-bundled file and nothing else: no knowledge of
 Vite, dev servers, or HMR, and never watches for changes. Rebuild the
 bundle and re-run it to pick up an edit.
