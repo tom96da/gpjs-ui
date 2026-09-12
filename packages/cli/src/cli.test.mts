@@ -1,7 +1,8 @@
 // Copyright (c) 2026 tom96da
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { MockInstance } from "vitest";
 
 vi.mock("./dev.mts", () => ({
   dev: vi.fn<(options: DevOptions) => Promise<void>>(() => new Promise(() => {})),
@@ -25,7 +26,21 @@ const mockedDev = vi.mocked(dev);
 const mockedBuild = vi.mocked(build);
 const mockedPackageApp = vi.mocked(packageApp);
 
+let stdout: MockInstance;
+let stderr: MockInstance;
+
+function written(spy: MockInstance): string {
+  return spy.mock.calls.map((call) => String(call[0])).join("");
+}
+
+beforeEach(() => {
+  stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+  stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+});
+
 afterEach(() => {
+  stdout.mockRestore();
+  stderr.mockRestore();
   mockedDev.mockClear();
   mockedBuild.mockClear();
   mockedPackageApp.mockClear();
@@ -39,6 +54,7 @@ describe("run", () => {
     await run(["node", "gpjsui"]);
 
     expect(process.exitCode).toBe(1);
+    expect(written(stderr)).toContain("Usage: gpjsui <dev|build|package>");
     expect(mockedDev).not.toHaveBeenCalled();
     expect(mockedBuild).not.toHaveBeenCalled();
     expect(mockedPackageApp).not.toHaveBeenCalled();
@@ -52,20 +68,16 @@ describe("run", () => {
     expect(mockedBuild).toHaveBeenCalled();
     expect(mockedDev).not.toHaveBeenCalled();
     expect(process.exitCode).toBeUndefined();
+    expect(written(stdout)).toContain("[gpjsui] built /app/dist/bundle.js");
   });
 
   it("sets a non-zero exit code and prints a readable error when build fails", async () => {
     mockedBuild.mockRejectedValue(new Error("syntax error"));
-    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 
     await run(["node", "gpjsui", "build"]);
 
     expect(process.exitCode).toBe(1);
-    expect(stderr.mock.calls.map(([chunk]) => String(chunk)).join("")).toContain(
-      "[gpjsui] build failed: syntax error",
-    );
-
-    stderr.mockRestore();
+    expect(written(stderr)).toContain("[gpjsui] build failed: syntax error");
   });
 
   it("runs package and leaves the exit code untouched on success", async () => {
@@ -75,20 +87,16 @@ describe("run", () => {
 
     expect(mockedPackageApp).toHaveBeenCalled();
     expect(process.exitCode).toBeUndefined();
+    expect(written(stdout)).toContain("[gpjsui] packaged /app/dist/click_counter.app");
   });
 
   it("sets a non-zero exit code and prints a readable error when package fails", async () => {
     mockedPackageApp.mockRejectedValue(new Error("no host binary"));
-    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 
     await run(["node", "gpjsui", "package"]);
 
     expect(process.exitCode).toBe(1);
-    expect(stderr.mock.calls.map(([chunk]) => String(chunk)).join("")).toContain(
-      "[gpjsui] package failed: no host binary",
-    );
-
-    stderr.mockRestore();
+    expect(written(stderr)).toContain("[gpjsui] package failed: no host binary");
   });
 
   it.each(["SIGINT", "SIGTERM"] as const)(
@@ -102,6 +110,7 @@ describe("run", () => {
       process.emit(signal);
 
       expect(options?.signal.aborted).toBe(true);
+      expect(written(stderr)).toContain("[gpjsui] shutting down");
     },
   );
 });
