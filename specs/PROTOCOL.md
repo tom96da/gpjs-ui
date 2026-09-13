@@ -8,12 +8,11 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 The message surface between `gpjs-ui-host` and the Node process that spawns
 it during development. `@gpjs-ui/host-client` owns that end — it resolves and
 launches the host binary and speaks everything below; `@gpjs-ui/cli` drives
-it. The counterpart to [docs/FFI.md](./FFI.md), which covers the other
-boundary — JS calling into Rust inside the host's own process.
+it. The counterpart to [FFI.md](./FFI.md), which covers the other boundary
+— JS calling into Rust inside the host's own process.
 
 See [AGENTS.md](../AGENTS.md#status) for how much of this is built. Update
-this file whenever a message lands or changes, same as
-[docs/FFI.md](./FFI.md).
+this file whenever a message lands or changes, same as [FFI.md](./FFI.md).
 
 ## Transport
 
@@ -141,8 +140,8 @@ an app a target not tied to any element, so an app lifecycle hook — cleanup
 before `shutdown`, a warning before a reload discards state — would be a name
 the host agrees to dispatch, not a new binding and not a new message. **No
 lifecycle name is defined and nothing dispatches one**; a click on an element
-is the only event that reaches JS today, and [docs/FFI.md](./FFI.md) is where
-a lifecycle surface gets settled.
+is the only event that reaches JS today, and [FFI.md](./FFI.md) is where a
+lifecycle surface gets settled.
 
 ## Failure handling
 

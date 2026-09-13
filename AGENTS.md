@@ -14,7 +14,7 @@ Instructions for AI coding agents working in this repository.
 - **Engine / Core**: Rust, built on [`gpui`](https://www.gpui.rs/) for direct GPU rendering (no Chromium/DOM).
 - **JS Runtime**: QuickJS via [`rquickjs`](https://github.com/DelSkayn/rquickjs), for a micro-sized, sub-second-startup runtime.
 - **Frontend**: Vue 3 (first-class support, built first) via a custom renderer. React and other frameworks are a future, additive goal — not yet implemented, and not started until Vue 3 support is stable.
-- **Bundler / dev tooling**: Vite, used in library/build mode (not as a browser dev server) — see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
+- **Bundler / dev tooling**: Vite, used in library/build mode (not as a browser dev server) — see [ARCHITECTURE.md](./specs/ARCHITECTURE.md).
 
 See [README.md](./README.md) for the full pitch. `gpjs-ui` is currently a development code name.
 
@@ -23,7 +23,7 @@ See [README.md](./README.md) for the full pitch. `gpjs-ui` is currently a develo
 Phase 1 (`crates/gpjs-ui`'s FFI bridge core) and Phase 2 (the pnpm
 workspace, `packages/gpjs-ui`, `packages/vue`'s Vue 3 custom renderer, and
 two working `.vue` examples) are complete and visually confirmed —
-[docs/FFI.md](./docs/FFI.md) has the current binding vocabulary.
+[FFI.md](./specs/FFI.md) has the current binding vocabulary.
 
 Phase 3 (the `gpjsui` CLI, on the JS/TS side) is split into 3.1 through
 3.4, with a `v0.0.1` release after 3.3. 3.1 (`gpjsui dev`, full reload)
@@ -38,17 +38,17 @@ launch on Linux (macOS checked structurally only — no display to launch
 one on here). What's left before `v0.0.1`: Unit iii, the CD workflow and
 the npm publish itself.
 
-See [docs/PLAN.md](./docs/PLAN.md) for unit-by-unit detail on every phase
+See [PLAN.md](./specs/PLAN.md) for unit-by-unit detail on every phase
 above.
 
 Keep this section's status prose accurate as real logic lands — don't let it go stale.
 
 ## Architecture
 
-- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — tech stack, system diagram, and how HMR is delivered into the embedded QuickJS runtime.
-- [docs/ROADMAP.md](./docs/ROADMAP.md) — the phased build-out plan (Vue 3 first, React later as an additive package).
-- [docs/FFI.md](./docs/FFI.md) — the JS↔Rust host bridge function surface.
-- [docs/PROTOCOL.md](./docs/PROTOCOL.md) — the dev protocol between `gpjs-ui-host` and the Node process that spawns it.
+- [ARCHITECTURE.md](./specs/ARCHITECTURE.md) — tech stack, system diagram, and how HMR is delivered into the embedded QuickJS runtime.
+- [ROADMAP.md](./specs/ROADMAP.md) — the phased build-out plan (Vue 3 first, React later as an additive package).
+- [FFI.md](./specs/FFI.md) — the JS↔Rust host bridge function surface.
+- [PROTOCOL.md](./specs/PROTOCOL.md) — the dev protocol between `gpjs-ui-host` and the Node process that spawns it.
 
 ### Guiding principles
 
@@ -58,7 +58,7 @@ Keep this section's status prose accurate as real logic lands — don't let it g
 
 ## Repository structure
 
-See [docs/STRUCTURE.md](./docs/STRUCTURE.md) for the full directory map, including the pinned `third_party/` submodules (zed, rquickjs, quickjs-ng) and how to init/update them.
+See [STRUCTURE.md](./specs/STRUCTURE.md) for the full directory map, including the pinned `third_party/` submodules (zed, rquickjs, quickjs-ng) and how to init/update them.
 
 ## Conventions
 
@@ -68,6 +68,6 @@ See [docs/STRUCTURE.md](./docs/STRUCTURE.md) for the full directory map, includi
   SPDX-License-Identifier: MIT OR Apache-2.0
   ```
 - **Dev container**: `.devcontainer/Dockerfile` builds on `mcr.microsoft.com/devcontainers/rust:2-1-trixie`, adding the native build/runtime dependencies `gpui` needs (windowing, Vulkan, fontconfig — see the Dockerfile's comment), plus the `node` devcontainer feature. Use `pnpm` for any JS/frontend tooling — Vite's officially supported and tested runtime is Node.js, and this project's HMR bridge builds directly on Vite's less battle-tested Runtime API (`vite/module-runner`), so avoid introducing a second, less-proven runtime (e.g. Bun) there.
-- **Git & commits**: see [docs/GIT.md](./docs/GIT.md) for the commit message format and, most importantly, the review policy — never run `git commit`/`git commit --amend` without first showing the exact diff and message for explicit approval.
-- **Testing & tooling**: see [docs/TESTING.md](./docs/TESTING.md) for where tests live and the full set of checks (lint, format, type-check, tests) that must pass, for both Rust and TypeScript.
+- **Git & commits**: see [GIT.md](./specs/GIT.md) for the commit message format and, most importantly, the review policy — never run `git commit`/`git commit --amend` without first showing the exact diff and message for explicit approval.
+- **Testing & tooling**: see [TESTING.md](./specs/TESTING.md) for where tests live and the full set of checks (lint, format, type-check, tests) that must pass, for both Rust and TypeScript.
 - Keep this file (not just README.md) up to date as real architecture, module boundaries, and commands land — this is the file agents read first.

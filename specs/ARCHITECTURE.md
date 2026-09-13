@@ -12,8 +12,8 @@ are still forward-looking (the Vue custom renderer, the Vite/HMR bridge, and
 everything after). Update it as each piece actually lands; don't let it drift
 from reality.
 
-The phased build-out of this design is tracked in [docs/ROADMAP.md](./ROADMAP.md).
-The JS↔Rust binding surface is specced in [docs/FFI.md](./FFI.md).
+The phased build-out of this design is tracked in [ROADMAP.md](./ROADMAP.md).
+The JS↔Rust binding surface is specced in [FFI.md](./FFI.md).
 
 ## Tech stack
 
@@ -26,7 +26,7 @@ The JS↔Rust binding surface is specced in [docs/FFI.md](./FFI.md).
 | **Bundler & dev tooling** | Vite, used in library/build mode (no browser dev server) | Compiles `.vue`/`.tsx` via the official `@vitejs/plugin-vue` (and later `@vitejs/plugin-react`); HMR is delivered through Vite's Runtime API instead of Vite's browser client — see [HMR delivery](#hmr-delivery). |
 | **Dev CLI** | `@gpjs-ui/cli` (Node) | Parent process during development: owns the commands and wires a bundler adapter to the host client — see [Roadmap](./ROADMAP.md#phase-3-developer-tooling--hmr-integration) for why orchestration lives on the JS side. |
 | **Bundler adapter** | `@gpjs-ui/vite` (Node) | Runs Vite in library/watch mode and announces each rebuild. The only package that imports `vite`; the CLI injects it, so another bundler is a sibling package. |
-| **Host client** | `@gpjs-ui/host-client` (Node) | Launches and supervises the Rust host as a child and carries messages over its stdio — see [docs/PROTOCOL.md](./PROTOCOL.md). Depends on no bundler, so bundler traffic rides the channel as a registered message name. |
+| **Host client** | `@gpjs-ui/host-client` (Node) | Launches and supervises the Rust host as a child and carries messages over its stdio — see [PROTOCOL.md](./PROTOCOL.md). Depends on no bundler, so bundler traffic rides the channel as a registered message name. |
 | **Host bridge** | In-process Rust functions bound into the QuickJS context via `rquickjs` | Transfers mutation operations (`createNode`, `setAttribute`, `appendChild`, ...) from JS to the Rust host. Not a real C ABI or IPC boundary — everything runs in one process. |
 
 Why Vite instead of a bare bundler (e.g. raw Rolldown): Vite owns the official,
@@ -101,10 +101,10 @@ the transport and the evaluator.
 
 ## Host bridge (FFI)
 
-See [docs/FFI.md](./FFI.md) for the exact function surface and the retained
-virtual tree's node structure.
+See [FFI.md](./FFI.md) for the exact function surface and the retained virtual
+tree's node structure.
 
 ## Dev protocol (host ↔ host-client)
 
-See [docs/PROTOCOL.md](./PROTOCOL.md) for the message surface the host and
-the Node process that spawns it exchange over the child's stdio.
+See [PROTOCOL.md](./PROTOCOL.md) for the message surface the host and the Node
+process that spawns it exchange over the child's stdio.

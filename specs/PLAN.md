@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 # Implementation Plan
 
 Granular, checkbox-tracked task breakdown that complements
-[docs/ROADMAP.md](./ROADMAP.md)'s phase-level design intent with per-task
+[ROADMAP.md](./ROADMAP.md)'s phase-level design intent with per-task
 tracking.
 
 **Finished work is append-only.** A section whose boxes are ticked is never
@@ -22,8 +22,8 @@ a partly-ticked unit only by agreement; a wholly unticked one needs none.
 
 ## Phase 1: Rust host & FFI bridge core (`gpjs-ui`)
 
-See [docs/ROADMAP.md#phase-1](./ROADMAP.md#phase-1-rust-host--ffi-bridge-core-gpjs-ui)
-and [docs/FFI.md](./FFI.md) for the design this implements.
+See [ROADMAP.md#phase-1](./ROADMAP.md#phase-1-rust-host--ffi-bridge-core-gpjs-ui)
+and [FFI.md](./FFI.md) for the design this implements.
 
 ### Prerequisites
 
@@ -68,7 +68,7 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
       catch the class of bug this unit cares about. `cargo check -p
       gpjs-ui --all-targets` compile-checks the example instead.
 - [ ] Manual: run the example and look at the window — confirmed on macOS
-      only so far; see [docs/MANUAL_GUI_CHECK.md](./MANUAL_GUI_CHECK.md).
+      only so far; see [MANUAL_GUI_CHECK.md](./MANUAL_GUI_CHECK.md).
 
 ### Unit v — VirtualNode → AnyElement conversion
 
@@ -88,7 +88,7 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
       colors, and text all matched; the six squares' dashed borders didn't —
       GPUI's `border_style` (solid vs. dashed) isn't in the v1 style
       vocabulary yet, so it always renders solid
-- [ ] The v1 style vocabulary (`docs/FFI.md`) is deliberately incomplete:
+- [ ] The v1 style vocabulary (`specs/FFI.md`) is deliberately incomplete:
       percentage lengths, min/max size, margin/padding,
       flex-grow/shrink/basis, per-side border/corner values, box-shadow, and
       align/justify variants beyond start/end/center/stretch are not yet
@@ -97,7 +97,7 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
 ### Unit vi — event-driven JS invocation (zero-overhead render loop)
 
 - [x] `crates/gpjs-ui/src/render/bridge.rs` — `EventDispatcher`, dispatching
-      `"click"` only so far (see docs/FFI.md's "Event dispatch" section);
+      `"click"` only so far (see specs/FFI.md's "Event dispatch" section);
       other event names aren't wired to real GPUI input yet
 - [x] Give every container a real GPUI `ElementId` (e.g.
       `ElementId::Integer(node_id as u64)`, reusing our existing stable
@@ -135,13 +135,13 @@ and [docs/FFI.md](./FFI.md) for the design this implements.
 
 ### Docs
 
-- [x] Update `docs/STRUCTURE.md` and `AGENTS.md`'s Status section to match
+- [x] Update `specs/STRUCTURE.md` and `AGENTS.md`'s Status section to match
       what actually landed
 
 ## Phase 2: JS core bridge (`gpjs-ui`) & Vue 3 custom renderer (`@gpjs-ui/vue`)
 
-See [docs/ROADMAP.md#phase-2](./ROADMAP.md#phase-2-js-core-bridge-gpjs-ui--vue-3-custom-renderer-gpjs-uivue)
-and [docs/FFI.md](./FFI.md) for the design this implements.
+See [ROADMAP.md#phase-2](./ROADMAP.md#phase-2-js-core-bridge-gpjs-ui--vue-3-custom-renderer-gpjs-uivue)
+and [FFI.md](./FFI.md) for the design this implements.
 
 Scope grew beyond ROADMAP.md's four bullet points once planning dug into
 the actual `@vue/runtime-core` `createRenderer` API surface: the native
@@ -170,7 +170,7 @@ anchor)` needs to insert before a specific sibling for correct Vue list
 - [x] Bind it as `insertBefore(parentId, childId, anchorId | null)` in
       `bindings.rs`, same error-mapping pattern as `appendChild`
 - [x] Tests: insert at start/middle/end, unknown parent/child/anchor id
-- [x] Update `docs/FFI.md`'s binding function table and prose to add
+- [x] Update `specs/FFI.md`'s binding function table and prose to add
       `setStyle`/`insertBefore`, and correct the note that folds style
       into `setAttribute`
 
@@ -209,13 +209,13 @@ anchor)` needs to insert before a specific sibling for correct Vue list
       same `(nodeId, event)` frees its previous callback id; a stale id
       left behind in Rust's `EventListeners` is harmless once its
       JS-side entry is gone (dispatch just finds nothing, per
-      `docs/FFI.md`'s event dispatch section). Not yet handled: a
+      `specs/FFI.md`'s event dispatch section). Not yet handled: a
       removed node's own listeners are never freed (`NodeId`s are never
       reused — `tree.rs`'s `create_node` — and there's no native
       "node removed" hook to react to), so this only bounds growth for
       handlers that get replaced in place, not ones whose node goes
       away — revisit once Unit iii's `remove(el)` needs it
-- [x] TS types for the `docs/FFI.md`-documented style-prop and tag
+- [x] TS types for the `specs/FFI.md`-documented style-prop and tag
       vocabulary (compile-time safety on top of the native bridge's
       stringly-typed calls) — `setStyle` is overloaded so known
       `StyleProps` keys get a typed value while unrecognized keys still
@@ -276,14 +276,14 @@ needed without SSR/hydration. Built on `packages/gpjs-ui`, never on
       reorder doesn't dispose it
 - [x] `patchProp`: `key === "style"` (an object, per Vue's
       `:style="{...}"` binding) → one `setStyle` call per entry, unknown
-      keys silently ignored (matching `docs/FFI.md`'s existing
+      keys silently ignored (matching `specs/FFI.md`'s existing
       "malformed/unrecognized → ignored" policy) — a value shape
       `setStyle` can't take (non-primitive) is skipped the same way,
       since unlike a style prop's own render-path fallback, `setStyle` is
       a JS call boundary that would otherwise raise
 - [x] `patchProp`: `isOn`-prefixed keys (`onClick`, ...) → register via
       the callback registry + `addEventListener` — only `"click"` is
-      wired to real input today (`docs/FFI.md` v1), other `on*` props are
+      wired to real input today (`specs/FFI.md` v1), other `on*` props are
       inert for now
 - [x] `patchProp`: everything else → `setAttribute`, skipping non-primitive
       values the same way `style` does (removing a prop entirely — a
@@ -381,7 +381,7 @@ becomes obsolete when Phase 3 swaps in Vite's dev pipeline, the
 - [x] Manual: run the example and look at the window — confirmed
       end-to-end on both macOS (native) and from the devcontainer via
       XQuartz forwarding, both examples, per
-      `docs/MANUAL_GUI_CHECK.md`
+      `specs/MANUAL_GUI_CHECK.md`
 
 ### Docs
 
@@ -389,10 +389,9 @@ becomes obsolete when Phase 3 swaps in Vite's dev pipeline, the
 
 ## Phase 3.1: `gpjsui dev` (full reload)
 
-See [docs/ROADMAP.md#phase-31](./ROADMAP.md#phase-31-gpjsui-dev-full-reload)
-for the design this implements, and its Phase 3 preamble for why
-orchestration lives on the JS side. Phases 3.2–3.4 get their own sections
-when they start.
+See [ROADMAP.md#phase-31](./ROADMAP.md#phase-31-gpjsui-dev-full-reload) for
+the design this implements, and its Phase 3 preamble for why orchestration
+lives on the JS side. Phases 3.2–3.4 get their own sections when they start.
 
 ### Prerequisites — CI workflow
 
@@ -401,7 +400,7 @@ three packages at once, and it's the last chance to add CI before there's a
 release to protect.
 
 - [x] `.github/workflows/ci.yml` running exactly
-      [docs/TESTING.md](./TESTING.md)'s required checks — that doc stays the
+      [TESTING.md](./TESTING.md)'s required checks — that doc stays the
       single source of truth for what must pass, the workflow just runs it
 - [x] Rust job matrix over `ubuntu-latest` + `macos-latest` (macOS is the
       primary development target and `gpjs-ui`'s `gpui_platform` features
@@ -417,7 +416,7 @@ release to protect.
 - [x] No submodule checkout: `third_party/` is reference-only, and `gpui`
       comes from a git dependency, so the default shallow checkout is enough
 - [x] Cache the cargo build and the pnpm store
-- [x] Update `docs/STRUCTURE.md`'s tree with `.github/workflows/`
+- [x] Update `specs/STRUCTURE.md`'s tree with `.github/workflows/`
 - [x] `examples/*` define no `pretest`, so `pnpm -r test` alone doesn't lint
       or type-check them — a separate `lint` job runs the root `pnpm lint`,
       `pnpm format`, and `pnpm typecheck` as three named steps, which do
@@ -455,7 +454,7 @@ can't survive a CLI that doesn't know about the token.
 - [x] `rootNodeId()` binding in `crates/gpjs-ui/src/js/bindings.rs`,
       following `setStyle`'s validation/error-mapping pattern
 - [x] Tests mirroring the existing binding tests
-- [x] `docs/FFI.md`: add it to the binding table; re-apply the FFI safety
+- [x] `specs/FFI.md`: add it to the binding table; re-apply the FFI safety
       checklist below
 - [x] `packages/gpjs-ui`: typed wrapper + unit test
 - [x] `packages/vue`: `createGpjsuiApp(App).mount()` callable with no
@@ -467,7 +466,7 @@ can't survive a CLI that doesn't know about the token.
 
 - [x] Rename `crates/gpjs-ui-example-runner` to `gpjs-ui-host`, keeping the
       existing `<path-to-bundle.js>` one-shot behaviour intact
-- [x] `docs/PROTOCOL.md`: the message surface between the host and the Node
+- [x] `specs/PROTOCOL.md`: the message surface between the host and the Node
       process that spawns it
 - [x] Dev mode: read newline-delimited JSON on stdin, write protocol
       messages on stdout, log to stderr
@@ -552,7 +551,7 @@ work here.
 
 ### Unit iv — `@gpjs-ui/host-client`
 
-The Node end of [docs/PROTOCOL.md](./PROTOCOL.md), and the only package that
+The Node end of [PROTOCOL.md](./PROTOCOL.md), and the only package that
 speaks it. Depends on no bundler, so a bundler other than Vite is a new
 integration registered against this channel rather than a change here.
 
@@ -659,7 +658,7 @@ dependency change here rather than an edit anywhere else.
       the session), whether a handler cancels or only observes, what it may
       await given QuickJS drains microtasks but has no timers or I/O, and
       whether `packages/gpjs-ui` wraps the root-node listener in a named
-      function. Recorded in `docs/FFI.md`'s "App lifecycle surface" section
+      function. Recorded in `specs/FFI.md`'s "App lifecycle surface" section
       — design only, nothing dispatches either event yet
 - [x] Vitest tests — `src/entry.test.mts`, `tests/dev.test.mts`, mock host
       fixtures under `tests/fixtures/`
@@ -671,9 +670,9 @@ dependency change here rather than an edit anywhere else.
       now `src/App.vue`, so `gpjsui dev` builds and starts it with no
       config; `__GPJSUI_ROOT_ID__` was already gone (Unit i's native root
       handle superseded it before this unit started)
-- [x] Update `docs/MANUAL_GUI_CHECK.md` for the new command
+- [x] Update `specs/MANUAL_GUI_CHECK.md` for the new command
       (`cargo build -p gpjs-ui-host` + `pnpm --filter <name> dev` replaces
-      the old build-then-`cargo run` two-liner). `docs/TESTING.md` needed
+      the old build-then-`cargo run` two-liner). `specs/TESTING.md` needed
       no change — its `examples/` mentions are all about the Cargo
       examples, unrelated to these Vue ports
 - [x] Manual: edit a `.vue` file and confirm the window remounts (state loss
@@ -687,10 +686,9 @@ dependency change here rather than an edit anywhere else.
 
 ## Phase 3.2: `gpjsui build`
 
-See [docs/ROADMAP.md#phase-32](./ROADMAP.md#phase-32-gpjsui-build). This is
-3.1's pipeline with the watcher removed and production settings on, so the
-work is mostly about what `dev` and `build` must *share* rather than new
-machinery.
+See [ROADMAP.md#phase-32](./ROADMAP.md#phase-32-gpjsui-build). This is 3.1's
+pipeline with the watcher removed and production settings on, so the work is
+mostly about what `dev` and `build` must *share* rather than new machinery.
 
 ### Unit i — the `build` command
 
@@ -716,12 +714,12 @@ machinery.
 
 - [x] `examples/*` switch their `build` script to `gpjsui build`, and
       `scripts/build.mjs` is deleted (3.1 already stopped using it)
-- [x] Update `docs/TESTING.md`'s required checks if the build command moves
+- [x] Update `specs/TESTING.md`'s required checks if the build command moves
 - [x] Update `AGENTS.md`'s Status section
 
 ## Phase 3.3: Application packaging and the `v0.0.1` release
 
-See [docs/ROADMAP.md#phase-33](./ROADMAP.md#phase-33-application-packaging).
+See [ROADMAP.md#phase-33](./ROADMAP.md#phase-33-application-packaging).
 The first release milestone: after this, the framework is publishable.
 
 ### Unit i — host binary distribution
@@ -753,7 +751,7 @@ The first release milestone: after this, the framework is publishable.
       bundle and starts with no arguments, and fails with a clear message
       when the bundle is missing — this container has no display to
       confirm pixel content beyond that (see
-      [docs/MANUAL_GUI_CHECK.md](./MANUAL_GUI_CHECK.md))
+      [MANUAL_GUI_CHECK.md](./MANUAL_GUI_CHECK.md))
 - [x] Manual: launch a packaged `examples/click_counter` on macOS, outside
       any terminal, and confirm it behaves like the dev run
 
@@ -774,8 +772,8 @@ The first release milestone: after this, the framework is publishable.
 
 ## Phase 3.4: HMR (`@gpjs-ui/vite-runtime`)
 
-See [docs/ROADMAP.md#phase-34](./ROADMAP.md#phase-34-hmr-gpjs-uivite-runtime)
-and [docs/ARCHITECTURE.md](./ARCHITECTURE.md#hmr-delivery) for the design.
+See [ROADMAP.md#phase-34](./ROADMAP.md#phase-34-hmr-gpjs-uivite-runtime)
+and [ARCHITECTURE.md](./ARCHITECTURE.md#hmr-delivery) for the design.
 The hard part of Phase 3: it replaces 3.1's whole-bundle re-evaluation with
 module-granular updates that preserve component state.
 

@@ -16,7 +16,7 @@ gpjs-ui/
 ├── CLAUDE.md                # Claude Code entry point; just `@AGENTS.md`
 ├── Makefile                 # generates the root .gitignore from .gitignore.d/*.gitignore
 ├── .gitignore.d/            # per-topic gitignore fragments (Node/Rust/common) concatenated by `make .gitignore` — edit these, never .gitignore directly
-├── docs/
+├── specs/
 │   ├── STRUCTURE.md         # this file
 │   ├── ARCHITECTURE.md      # target tech stack, system diagram, HMR delivery design
 │   ├── ROADMAP.md           # planned phased implementation (Vue 3 first, React later)
@@ -33,7 +33,7 @@ gpjs-ui/
 ├── .github/
 │   ├── dependabot.yml       # auto-updates the devcontainer image/features only, for now
 │   └── workflows/
-│       └── ci.yml           # runs docs/TESTING.md's required checks on push/PR
+│       └── ci.yml           # runs TESTING.md's required checks on push/PR
 ├── Cargo.toml               # Rust workspace manifest
 ├── Cargo.lock               # locked Rust dependency graph, including git-pinned gpui
 ├── crates/
@@ -70,15 +70,15 @@ gpjs-ui/
 ## Status
 
 See [AGENTS.md](../AGENTS.md#status) for what has landed so far and what
-hasn't, and [docs/TESTING.md](./TESTING.md) for the required checks (Rust
-and TypeScript) — not restated here, to avoid drifting out of sync.
+hasn't, and [TESTING.md](./TESTING.md) for the required checks (Rust and
+TypeScript) — not restated here, to avoid drifting out of sync.
 
 Update this file and [AGENTS.md](../AGENTS.md) as real crates, packages, and ownership boundaries land — do not let either go stale.
 
 ## Target workspace layout (full plan)
 
 Everything already built appears in the tree above. This shows only what
-[docs/ROADMAP.md](./ROADMAP.md)'s later phases still add — nested under the
+[ROADMAP.md](./ROADMAP.md)'s later phases still add — nested under the
 existing `crates/`/`packages/` directories shown above:
 
 ```
@@ -91,7 +91,7 @@ gpjs-ui/
 ```
 
 Move an entry up into the tree above once it actually lands, per
-[docs/ROADMAP.md](./ROADMAP.md).
+[ROADMAP.md](./ROADMAP.md).
 
 ## `third_party/` — pinned upstream sources
 

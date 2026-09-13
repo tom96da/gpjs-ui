@@ -52,7 +52,7 @@ Same look as `hello_world`/`gpui_hello_world` above. Swap in
 `click_counter` for the clickable, counting box (same look as
 `click_counter.rs`) — clicking it should count up, confirming
 `EventDispatcher` correctly drains `@vue/runtime-core`'s
-microtask-scheduled reactivity update (see `docs/PLAN.md`'s Unit iv notes).
+microtask-scheduled reactivity update (see [PLAN.md](./PLAN.md)'s Unit iv notes).
 
 ### A packaged app (`gpjsui package`)
 
@@ -67,7 +67,7 @@ open examples/click_counter/dist/click_counter.app
 
 Double-click it from Finder instead if you want to also confirm it starts
 with no terminal attached at all. Same look and click behavior as the dev
-run above — this is the check `docs/PLAN.md`'s Phase 3.3 Unit ii still
+run above — this is the check [PLAN.md](./PLAN.md)'s Phase 3.3 Unit ii still
 needs on macOS specifically (the exe-relative bundle search itself is
 already confirmed on Linux, inside the devcontainer, with no display to
 carry it further).

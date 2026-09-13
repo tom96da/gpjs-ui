@@ -7,8 +7,8 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 
 Where tests live, what kind of test goes where, and what must pass before a
 change is done — for both languages in this repo, kept as a matched pair.
-Complements [docs/GIT.md](./GIT.md)'s repo-wide rules the same way
-[docs/FFI.md](./FFI.md) complements [docs/ARCHITECTURE.md](./ARCHITECTURE.md).
+Complements [GIT.md](./GIT.md)'s repo-wide rules the same way 
+[FFI.md](./FFI.md) complements [ARCHITECTURE.md](./ARCHITECTURE.md).
 Update this file as real conventions land, same as the other docs here.
 
 ## Rust (`crates/gpjs-ui`)
@@ -22,9 +22,9 @@ Update this file as real conventions land, same as the other docs here.
   each as its own crate against `gpjs-ui`'s public API only, the same
   boundary a real external caller would see.
 - **Manual/GUI checks**: tracked in
-  [docs/MANUAL_GUI_CHECK.md](./MANUAL_GUI_CHECK.md) instead of automated —
-  see that doc for why the devcontainer can't do this alone and how to
-  actually run the check.
+  [MANUAL_GUI_CHECK.md](./MANUAL_GUI_CHECK.md) instead of automated — see
+  that doc for why the devcontainer can't do this alone and how to  actually
+  run the check.
 
 ### Required checks
 
@@ -43,7 +43,7 @@ All of the following must pass, not just `cargo test`:
 `--workspace` rather than a list of `-p` flags, so a new crate is covered by
 the checks the moment it exists. `crates/gpjs-ui-host` opens a window, which
 stays a manual check like `crates/gpjs-ui`'s own examples — see
-[docs/MANUAL_GUI_CHECK.md](./MANUAL_GUI_CHECK.md).
+[MANUAL_GUI_CHECK.md](./MANUAL_GUI_CHECK.md).
 
 ### Toolchain pinning and MSRV
 

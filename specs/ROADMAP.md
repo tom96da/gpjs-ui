@@ -6,10 +6,10 @@ SPDX-License-Identifier: MIT OR Apache-2.0
 # Roadmap
 
 Planned phased implementation of the design in
-[docs/ARCHITECTURE.md](./ARCHITECTURE.md). This file describes phase-level
-design intent only — it doesn't track progress itself. See
+[ARCHITECTURE.md](./ARCHITECTURE.md). This file describes phase-level design
+intent only — it doesn't track progress itself. See
 [AGENTS.md](../AGENTS.md#status) for which phases have landed so far and
-[docs/PLAN.md](./PLAN.md) for the checkbox-tracked, per-task breakdown.
+[PLAN.md](./PLAN.md) for the checkbox-tracked, per-task breakdown.
 
 Vue 3 support is built first end-to-end (Phases 1–3), through to the
 `v0.0.1` release inside Phase 3.3. What follows that release is what an app
@@ -42,9 +42,9 @@ are built in, not a set of independent tracks.
 1. **QuickJS context setup**: use `rquickjs` to spin up a managed QuickJS
    runtime inside the GPUI event loop.
 2. **Retained virtual tree**: an in-memory `VirtualNode` structure — see
-   [docs/FFI.md](./FFI.md#retained-virtual-tree).
+   [FFI.md](./FFI.md#retained-virtual-tree).
 3. **Binding functions** exposed to JS as `globalThis.__gpjsui_native__` — see
-   [docs/FFI.md](./FFI.md#binding-functions).
+   [FFI.md](./FFI.md#binding-functions).
 4. **GPUI rendering pipeline**: recursively convert the `VirtualNode` tree into
    GPUI `AnyElement` instances during GPUI's `render()` frame cycle.
 
@@ -52,8 +52,8 @@ are built in, not a set of independent tracks.
 
 1. **`gpjs-ui`** (`packages/gpjs-ui`): a framework-agnostic, typed JS wrapper
    around `globalThis.__gpjsui_native__` (see
-   [docs/FFI.md](./FFI.md#binding-functions)) — see
-   [docs/ARCHITECTURE.md](./ARCHITECTURE.md#tech-stack) for why this is a
+   [FFI.md](./FFI.md#binding-functions)) — see
+   [ARCHITECTURE.md](./ARCHITECTURE.md#tech-stack) for why this is a
    separate, shared package rather than logic duplicated into each framework
    adapter.
 2. **`@gpjs-ui/vue`** (`packages/vue`): a custom Vue 3 runtime adapter
@@ -87,8 +87,8 @@ skeleton HMR builds on, and this ordering makes `dev`, `build`, and
 packaging usable end-to-end before the hardest piece starts.
 
 A GitHub Actions **CI** workflow running
-[docs/TESTING.md](./TESTING.md)'s required checks lands before 3.1, so the
-first multi-package phase isn't built without one. Its **CD** counterpart
+[TESTING.md](./TESTING.md)'s required checks lands before 3.1, so the first
+multi-package phase isn't built without one. Its **CD** counterpart
 lands after 3.3, when there is something to release.
 
 ### Phase 3.1: `gpjsui dev` (full reload)
@@ -103,7 +103,7 @@ lands after 3.3, when there is something to release.
    The only package that imports `vite`, and it depends on no first-party
    package — a `@gpjs-ui/rspack` would be a sibling, not a rewrite.
 3. **`@gpjs-ui/host-client`** (`packages/host-client`): the Node end of
-   [docs/PROTOCOL.md](./PROTOCOL.md) — resolves and launches the host
+   [PROTOCOL.md](./PROTOCOL.md) — resolves and launches the host
    binary, supervises the child, and carries messages both ways. It depends
    on no bundler and never parses a routed payload, so Vite's HMR traffic
    (Phase 3.4) rides the same channel as a registered `type` name.
@@ -153,17 +153,16 @@ custom `ModuleRunnerTransport` and module evaluator against Vite's Runtime
 API (`vite/module-runner`), so updated modules are evaluated inside QuickJS
 and trigger a GPUI redraw while component state survives. The runner itself
 runs inside QuickJS, not on the Node side — see
-[docs/ARCHITECTURE.md](./ARCHITECTURE.md#hmr-delivery) for why, and for why
+[ARCHITECTURE.md](./ARCHITECTURE.md#hmr-delivery) for why, and for why
 this is preferred over a hand-rolled HMR protocol.
 
 ## Phase 4: Input & text editing (future)
 
 Not started, and not begun until Phase 3's tooling is stable. Phase 1 wired
 exactly one input event — a click on a container, see
-[docs/FFI.md](./FFI.md#event-dispatch-v1-click-only) — which is enough to
-prove the dispatch path and not enough to write an application with. An app
-is driven by input, so this is the first thing the `v0.0.1` release is
-missing.
+[FFI.md](./FFI.md#event-dispatch-v1-click-only) — which is enough to prove
+the dispatch path and not enough to write an application with. An app is
+driven by input, so this is the first thing the `v0.0.1` release is missing.
 
 Everything here reaches JS through the existing `addEventListener` surface:
 the host already dispatches any `(node id, event name)` pair, so a new event
@@ -205,7 +204,7 @@ rewriting that vocabulary.
 1. **Semantics on the retained tree**: a node's role, name, value, and
    state, carried alongside `style_props`/`attributes`. The `tag_name`
    vocabulary is deliberately thin (see
-   [docs/FFI.md](./FFI.md#tag-vocabulary-v1)), so semantics are declared
+   [FFI.md](./FFI.md#tag-vocabulary-v1)), so semantics are declared
    rather than inferred from a tag.
 2. **Platform accessibility APIs**: expose that tree through each platform's
    own API, following what GPUI already supports and filling in the rest.
@@ -223,7 +222,7 @@ fetch, or read a file.
 
 Each item is a host binding plus its typed wrapper in `packages/gpjs-ui`,
 and each hands a new capability to app code — the FFI safety checklist in
-[docs/PLAN.md](./PLAN.md) applies to all of them. They belong in
+[PLAN.md](./PLAN.md) applies to all of them. They belong in
 `crates/gpjs-ui-jsenv`, which depends on `rquickjs` alone so an
 implementation can be swapped for a third-party one.
 
@@ -248,7 +247,7 @@ workspace's when `console` landed, which is why `console` is ours.
 5. **Engine limits**: a memory ceiling, a stack ceiling, and an interrupt
    handler, so a runaway app stays recoverable instead of becoming a frozen
    window that answers no message (see
-   [docs/PROTOCOL.md](./PROTOCOL.md#failure-handling)).
+   [PROTOCOL.md](./PROTOCOL.md#failure-handling)).
 
 ## Phase 7: Majority style & Tailwind coverage (future)
 
@@ -261,9 +260,9 @@ native styling model:
 
 1. **Native style vocabulary expansion** (`crates/gpjs-ui`): close the gaps
    flagged as "deliberately incomplete" since Phase 1 (see
-   [docs/FFI.md](./FFI.md)) — margin/padding, percentage lengths, min/max
-   size, flex-grow/shrink/basis, per-side border width/radius, basic
-   box-shadow, font-weight/family, line-height/letter-spacing.
+   [FFI.md](./FFI.md)) — margin/padding, percentage lengths, min/max size,
+   flex-grow/shrink/basis, per-side border width/radius, basic box-shadow,
+   font-weight/family, line-height/letter-spacing.
 2. **Tailwind class resolver**: gpjs-ui has no real CSS engine, so Tailwind
    utility classes can't generate actual CSS — a Vite plugin (building on
    Phase 3's pipeline) scans `class="..."` usage and maps each recognized
@@ -297,7 +296,7 @@ to run where the app runs.
    failure panel needs of it too.
 2. **The collector beside the app.** `@vue/devtools-kit` in the app's own
    engine, with the dev build's `__VUE_PROD_DEVTOOLS__` on, forwarding over
-   the channel [docs/PROTOCOL.md](./PROTOCOL.md) already carries — nested in
+   the channel [PROTOCOL.md](./PROTOCOL.md) already carries — nested in
    `params`, the way Vite's frames are.
 3. **The UI in a browser, first.** `@gpjs-ui/cli` serves
    `@vue/devtools-client` and bridges it to that channel. This is how Nuxt
@@ -341,8 +340,9 @@ JSX/TSX compilation and HMR.
 Not started, and not begun until the core Rust host design (Phases 1–2)
 is stable — same reasoning as Phase 10. macOS is the primary development
 target until then. This phase properly supports Linux (resolving the
-devcontainer's unconfirmed rendering — see docs/MANUAL_GUI_CHECK.md) and
-adds the `gpui_windows` platform backend for Windows.
+devcontainer's unconfirmed rendering — see
+[MANUAL_GUI_CHECK.md](./MANUAL_GUI_CHECK.md)) and adds the `gpui_windows`
+platform backend for Windows.
 
 ## Phase 12: 100% style & Tailwind parity (future)
 
@@ -376,14 +376,14 @@ and still ships as a single application:
    Apps without one keep needing no Rust toolchain.
 2. **Extension binding surface**: a stable way for app-owned Rust code to
    register its own functions alongside `__gpjsui_native__` (see
-   [docs/FFI.md](./FFI.md#binding-functions)), rather than patching the
-   host's own bindings. This is the likely driver for
-   `crates/gpjs-ui-macros` (see [docs/STRUCTURE.md](./STRUCTURE.md)).
+   [FFI.md](./FFI.md#binding-functions)), rather than patching the host's
+   own bindings. This is the likely driver for `crates/gpjs-ui-macros`
+   (see [STRUCTURE.md](./STRUCTURE.md)).
 3. **MSRV verification**: `rust-version` is held equal to the pinned
    toolchain while these crates have no consumers outside this repo. Once
    app crates compile against them it drops to a real floor, checked by its
    own job — see
-   [docs/TESTING.md](./TESTING.md#toolchain-pinning-and-msrv).
+   [TESTING.md](./TESTING.md#toolchain-pinning-and-msrv).
 
 ## Known gaps, not yet scheduled
 

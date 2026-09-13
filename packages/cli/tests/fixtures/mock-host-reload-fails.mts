@@ -2,8 +2,8 @@
 // Copyright (c) 2026 tom96da
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-// A stand-in whose `reload` always answers the way a bundle that throws
-// while being evaluated does, per docs/PROTOCOL.md — so dev()'s
+// A stand-in whose `reload` always answers with a JSON-RPC error, the way
+// a bundle that throws while being evaluated does — so dev()'s
 // failed-reload display can be tested without a real broken bundle.
 
 import readline from "node:readline";

@@ -147,8 +147,8 @@ the JS half.
 ### App lifecycle surface (decided, not yet dispatched)
 
 Settled ahead of `@gpjs-ui/cli`'s `gpjsui dev` needing it, per
-`docs/PROTOCOL.md`'s own note that an app lifecycle hook is "a name the
-host agrees to dispatch, not a new binding." Recorded here so a future
+[PROTOCOL.md](./PROTOCOL.md)'s own note that an app lifecycle hook is "a name
+the host agrees to dispatch, not a new binding." Recorded here so a future
 unit implements this rather than deciding it again:
 
 - **Moments**: exactly the two the dev protocol itself creates — a reload
