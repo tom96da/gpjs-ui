@@ -754,7 +754,7 @@ The first release milestone: after this, the framework is publishable.
       when the bundle is missing — this container has no display to
       confirm pixel content beyond that (see
       [docs/MANUAL_GUI_CHECK.md](./MANUAL_GUI_CHECK.md))
-- [ ] Manual: launch a packaged `examples/click_counter` on macOS, outside
+- [x] Manual: launch a packaged `examples/click_counter` on macOS, outside
       any terminal, and confirm it behaves like the dev run
 
 ### Unit iii — CD workflow and the release
